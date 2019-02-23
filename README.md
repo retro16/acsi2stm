@@ -1,5 +1,5 @@
-Atari ST ACSI hard drive emulator
-=================================
+ACSI2STM: Atari ST ACSI hard drive emulator
+===========================================
 
 This code provides a hard drive emulator for your Atari ST using an inexpensive STM32 microcontroller and a SD card.
 
