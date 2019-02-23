@@ -12,6 +12,7 @@ Hardware needed
 ---------------
 
  * A STM32F103C8T6 or compatible board. You can find them for a few dollars online. The "blue pill" works out of the box and the "black pill" requires minor modifications.
+ * A USB-serial dongle, with USART 3.3V levels.
  * A SD card port for your STM32. You can also solder wires on a SD to microSD adapter.
  * A SD card.
  * A male DB19 port (you can modify a DB25 port to fit) with a ribbon cable.
@@ -23,6 +24,26 @@ Software needed
 
  * The Arduino software with the STM32duino library.
  * A hard disk driver for your Atari ST (AHDI and ICD pro are tested).
+
+
+Programming the STM32
+---------------------
+
+Set the USB dongle to 3.3V if you have a jumper for that. Connect TX to PA10, RX to PA11 and the GND pins together.
+
+On the board itself, set the BOOT0 jumper to 1 to enable the flash bootloader.
+
+In the Arduino interface, set the card type to 'Generic STM32F103C series', select your variant (C8 or CT), set
+'Upload method' to serial, CPU speed to 72 MHz (very important), then select the correct serial port.
+
+Then, you will be able to upload the program to the STM32.
+
+Note: the debug output sends data at 115200bps. Set the serial monitor accordingly.
+
+Note: Debian 9 has buggy driver for some USB-serial dongles. You should update your kernel to the latest backport
+version if uploading fails for mysterious reasons.
+
+Once the chip is programmed, you can switch the BOOT0 jumper back to 0.
 
 
 Building the ACSI cable
@@ -66,6 +87,7 @@ Notes:
  * Keep the wires short. I had strange behavior with cables longer than 10cm/3 inches.
  * The read/write pin is not needed.
  * You can build a DB19 out of a DB25 by cutting 6 pins on one side and part of the external shielding. Male DB25 were used for parallel port cables or serial port sockets.
+ * You will have to power the STM32 separately (e.g. with a USB cable).
 
 Connecting the SD card
 ----------------------
@@ -99,6 +121,7 @@ Notes:
 
  * The SD card had 2 GND pins. I don't know if they have to be both grounded, maybe one wire is enough.
  * Multiple SD cards could be added by using unused pins as supplementary chip select.
+ * You should put a decoupling capacitor of about 100nF between VDD and VSS, as close as possible from the SD card.
 
 
 Using on a "Black pill" STM32 board
