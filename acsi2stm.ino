@@ -290,7 +290,8 @@ static inline void readDma(int count) {
 
 // Send a status code and turn the status LED off
 static inline void sendStatus(uint8_t s) {
-  ledOff();
+  ledOff(); // We just finished processing a command: turn off activity LED
+
   noInterrupts();
   acquireDataBus();
   writeData(s);
@@ -344,7 +345,7 @@ static bool sdInit() {
 static inline bool writeBlock(int block) {
   int tries = MAXTRIES_SD;
   while(!card.writeBlock(block, dataBuf) && tries-- > 0) {
-    acsiDbg("Retry read on block ");
+    acsiDbg("Retry write on block ");
     acsiDbgln(block, HEX);
     delay(10); // Wait a bit to leave some recovery time for the SD card
     IWDG_BASE->KR = IWDG_KR_FEED; // Feed the watchdog for retries
