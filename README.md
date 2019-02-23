@@ -73,7 +73,7 @@ Connecting the SD card
 SD card pins
 
 
-       ------------------------
+        ______________________
       /|  |  |  |  |  |  |  | |
      /_|01|02|03|04|05|06|07|8|
     |  |__|__|__|__|__|__|__|_|
@@ -164,3 +164,5 @@ time. Without them, this project would have not existed.
  * The Hatari developpers. I used its source code as a reference in some places.
  * The UltraSatan project for their documentation.
 
+The Sd2 files of this project have been copied from the Arduino SD library, also released under GPL v3. This has been done
+to disable sector 0 protection.
