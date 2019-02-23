@@ -49,8 +49,8 @@ static unsigned char inquiry_data[] =
   31,               /* length of the following data */
   0, 0, 0,          /* Vendor specific data */
   'R','e','t','r','o','1','6',' ',    /* Vendor ID */
-  'S','T','M','3','2',' ','S','D',    /* Product ID 1 */
-  ' ','b','r','i','d','g','e',' ',    /* Product ID 2 */
+  'A','C','S','I','2','S','T','M',    /* Product ID 1 */
+  ' ','S','D',' ','c','a','r','d',    /* Product ID 2 */
   'v','1','.','0',                    /* Revision */
 };
 
