@@ -74,7 +74,6 @@ static unsigned char inquiry_data[] =
 // Globals
 
 static Sd2Card card;
-static int curDevice;
 static uint8_t cmdBuf[6];
 static uint8_t dataBuf[BLOCKSIZE];
 static uint32_t sdBlocks = 4000*2048; // Number of blocks on the SD card
@@ -208,7 +207,6 @@ static inline void pulseDrqSend() {
   GPIOA->regs->BRR = DRQ_MASK;
   GPIOA->regs->BRR = DRQ_MASK;
   GPIOA->regs->BSRR = DRQ_MASK; // Release to high
-  while(!getAck());
 }
 
 
@@ -271,6 +269,7 @@ static inline void sendDma(int count) {
   for(int i = 0; i < count; ++i) {
     writeData(dataBuf[i]);
     pulseDrqSend();
+    while(!getAck());
   }
   releaseBus();
   interrupts();
