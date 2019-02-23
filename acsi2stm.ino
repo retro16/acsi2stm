@@ -25,7 +25,7 @@
 #define DRQ_MASK 0b100000000000
 
 // Set to 1 to enable debug output on the serial port
-#define ACSI_DEBUG 1
+#define ACSI_DEBUG 0
 
 // ID on the ACSI bus
 #define ACSI_ID 0
@@ -192,7 +192,6 @@ static inline void pulseDrqSend() {
   GPIOA->regs->BRR = DRQ_MASK;
   GPIOA->regs->BSRR = DRQ_MASK; // Release to high
   while(!getAck());
-  GPIOA->regs->BSRR = DRQ_MASK; // Add some delay to stabilize data
 }
 
 
@@ -228,13 +227,14 @@ static inline void waitCommand() {
     // CS pulse is fast (250ns)
     while((b = GPIOB->regs->IDR) & (A1_MASK | CS_MASK))
       IWDG_BASE->KR = IWDG_KR_FEED; // Feed the watchdog
-  } while(((b) >> (8+5)) != ACSI_ID); // Check the ID
-
-  ledOn(); // Enable activity LED. It will be disabled by the sendStatus function
-
+  } while(((b) >> (8+5)) != ACSI_ID); // Check the device ID
   // At this point we are receiving a command targetted at this device.
 
-  cmdBuf[0] = (b >> 8) & 0b00011111; // Filter out the device indicator
+  // Enable activity LED. It will be disabled by the sendStatus function
+  ledOn();
+
+  // Put the command ID in the first command buffer byte
+  cmdBuf[0] = (b >> 8) & 0b00011111;
 
   // Read the next 5 bytes of the command
   for(int i = 1; i < 6; ++i) {
@@ -246,26 +246,26 @@ static inline void waitCommand() {
   interrupts();
 }
 
-// Send some bytes through the port to the Atari DMA controller
-static inline void sendDma(uint8_t *bytes, int count) {
+// Send some bytes from dataBuf through the port to the Atari DMA controller
+static inline void sendDma(int count) {
   noInterrupts();
   acquireDataBus();
   acquireDrq();
   for(int i = 0; i < count; ++i) {
-    writeData(bytes[i]);
+    writeData(dataBuf[i]);
     pulseDrqSend();
   }
   releaseBus();
   interrupts();
 }
 
-// Receive some bytes through the port from the Atari DMA controller
-static inline void readDma(uint8_t *bytes, int count) {
+// Receive some bytes through the port from the Atari DMA controller and store them to dataBuf
+static inline void readDma(int count) {
   noInterrupts();
   acquireDrq();
   for(int i = 0; i < count; ++i) {
     pulseDrqRead();
-    bytes[i] = GPIOB->regs->IDR >> 8; // Read data pins from PB8-PB15
+    dataBuf[i] = GPIOB->regs->IDR >> 8; // Read data pins from PB8-PB15
     while(!getAck());
   }
   releaseRq();
@@ -322,6 +322,38 @@ static bool sdInit() {
     acsiDbgln("Cannot init SD card");
 
   return sdReady;
+}
+
+// Write a block from dataBuf into the SD card
+static inline bool writeBlock(int block) {
+  int tries = MAXTRIES_SD;
+  while(!card.writeBlock(block, dataBuf) && tries-- > 0) {
+    acsiDbg("Retry read on block ");
+    acsiDbgln(block, HEX);
+    delay(10); // Wait a bit to leave some recovery time for the SD card
+    IWDG_BASE->KR = IWDG_KR_FEED; // Feed the watchdog for retries
+    // After a certain amount of retries, reinit the SD card completely
+    if(tries <= MAXTRIES_SD / 2 && !sdInit()) {
+      return false;
+    }
+  }
+  return tries > 0;
+}
+
+// Read a block from the SD card and store it to dataBuf
+static inline bool readBlock(int block) {
+  int tries = MAXTRIES_SD;
+  while(!card.readBlock(block, dataBuf) && tries-- > 0) {
+    acsiDbg("Retry read on block ");
+    acsiDbgln(block, HEX);
+    delay(10); // Wait a bit to leave some recovery time for the SD card
+    IWDG_BASE->KR = IWDG_KR_FEED; // Feed the watchdog for retries
+    // After a certain amount of retries, reinit the SD card completely
+    if(tries <= MAXTRIES_SD / 2 && !sdInit()) {
+      return false;
+    }
+  }
+  return tries > 0;
 }
 
 // Main setup function
@@ -404,7 +436,7 @@ void loop() {
       dataBuf[b] = 0;
     }
     // Send the response
-    sendDma(dataBuf, cmdBuf[4]);
+    sendDma(cmdBuf[4]);
     
     commandSuccess();
     return;
@@ -421,23 +453,12 @@ void loop() {
         IWDG_BASE->KR = IWDG_KR_FEED; // Feed the watchdog
         int tries = MAXTRIES_SD;
         // Do the actual read operation
-        while(!card.readBlock(block, dataBuf) && tries-- > 0) {
-          acsiDbg("Retry read on block ");
-          acsiDbgln(block, HEX);
-          delay(10); // Wait a bit to leave some recovery time for the SD card
-          IWDG_BASE->KR = IWDG_KR_FEED; // Feed the watchdog for retries
-          // After a certain amount of retries, reinit the SD card completely
-          if(tries <= MAXTRIES_SD / 2 && !sdInit()) {
-            commandError();
-            return;
-          }
-        }
-        if(!tries) {
-          // Maximum amount of retry reached: send an error
+        if(!readBlock(block)) {
+          // SD read error
           commandError();
           return;
         }
-        sendDma(dataBuf, BLOCKSIZE); // Send read data
+        sendDma(BLOCKSIZE); // Send read data
       }
       commandSuccess();
     }
@@ -453,22 +474,10 @@ void loop() {
       // For each requested block
       for(int blocks = cmdBuf[4]; blocks--; block++) {
         IWDG_BASE->KR = IWDG_KR_FEED; // Feed the watchdog
-        readDma(dataBuf, BLOCKSIZE); // Receive data to write
-        int tries = MAXTRIES_SD;
+        readDma(BLOCKSIZE); // Receive data to write
         // Do the actual write operation
-        while(!card.writeBlock(block, dataBuf) && tries-- > 0) {
-          acsiDbg("Retry read on block ");
-          acsiDbgln(block, HEX);
-          delay(10); // Wait a bit to leave some recovery time for the SD card
-          IWDG_BASE->KR = IWDG_KR_FEED; // Feed the watchdog for retries
-          // After a certain amount of retries, reinit the SD card completely
-          if(tries <= MAXTRIES_SD / 2 && !sdInit()) {
-            commandError();
-            return;
-          }
-        }
-        if(!tries) {
-          // Maximum amount of retry reached: send an error
+        if(!writeBlock(block)) {
+          // SD write error
           commandError();
           return;
         }
@@ -483,7 +492,7 @@ void loop() {
       else
         dataBuf[b] = 0;
     }
-    sendDma(dataBuf, cmdBuf[4]);
+    sendDma(cmdBuf[4]);
     
     commandSuccess();
     return;
@@ -502,7 +511,7 @@ void loop() {
       dataBuf[7] = (sdBlocks) & 0xFF;
       // Sector size middle byte
       dataBuf[10] = 2;
-      sendDma(dataBuf, 16);
+      sendDma(16);
       break;
     case 0x04:
       // Values got from the Hatari emulator
@@ -517,7 +526,7 @@ void loop() {
       for(uint8_t b = 0; b < 24; ++b) {
         dataBuf[b] = 0;
       }
-      sendDma(dataBuf, 24);
+      sendDma(24);
       break;
     }
     commandSuccess();
