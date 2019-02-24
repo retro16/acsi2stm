@@ -50,17 +50,17 @@
 // ID on the ACSI bus
 #define ACSI_ID 0
 
+// Maximum number of blocks on the SD (limits capacity artificially)
+//#define SD_MAX_BLOCKS 0x0FFFFF
+
+// Watchdog duration
+#define WATCHDOG_MILLIS 500
+
 // Maximum number of retries in case of SD card errors
 #define MAXTRIES_SD 5
 
 // Block size
 #define BLOCKSIZE 512
-
-// Maximum number of blocks on the SD (limit capacity)
-//#define SD_MAX_BLOCKS 0x7FFFFF
-
-// Watchdog duration
-#define WATCHDOG_MILLIS 500
 
 // Structure provided by the Hatari source code
 static unsigned char inquiry_data[] =

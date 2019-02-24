@@ -139,42 +139,37 @@ If you want an activity LED, put an external one with a 1k resistor in series on
 Other boards were not tested and may require further adjustments.
 
 
+Compile-time options
+--------------------
+
+The source code contains a few #define that you can change. They are described in the source itself.
+
+Do not change ACSI pins without knowing exactly what you do. This code does direct port access in order to reach the required
+speed for proper communication with the ST.
+
+
 Creating a SD card
 ------------------
 
-This project does not support enough commands to be used by the ICD partitioning tool, so you will have to use an emulator.
+Download a floppy disk of ICD PRO drivers. They are available online as ST floppy images. Transfer it to a real floppy your ST can
+read (or use a floppy simulator).
 
-I describe the process for Hatari running under linux.
+Boot the floppy, open the A floppy drive and run INSTALL.PRG. The program will create partitions and a boot sector automatically.
 
-Create an image of the desired size, less than the size of your target SD card. Use a small image like 50MB for the first attempt.
+Now test the setup by ejecting the floppy and rebooting the emulated Atari. The desktop should have extra icons for your newly
+created partitions (C, D, E, ...).
 
-    dd if=/dev/zero of=hdd.img bs=1M count=50
+You can modify partitions after that by running the ICDFMT.PRG file.
 
-For windows, use any tool that creates blank files of a given size. The file size must be a multiple of 512 bytes.
 
-Download a floppy image of ICD PRO drivers. They are available online as ST floppy images.
+Why shipping Sd2CardX ?
+-----------------------
 
-Download a TOS image that matches the machine you use.
+This project includes a modified copy of the Sd2Card files provided by the Arduino library. I couldn't find a way to allow writing
+to sector 0 with the standard code so I brought my own copy with the project (there is a #define but you can't overload it).
 
-Setup Hatari so it uses the correct TOS image, the ICD PRO floppy as drive A, the hdd.img file you just generated as a ACSI HD
-image and disable GEMDOS.
-
-Boot the emulated Atari ST, open the A floppy drive and run INSTALL.PRG. The program will create partitions and a boot sector
-automatically.
-
-Now test the setup by ejecting the virtual floppy image and rebooting the emulated Atari. The desktop should have extra icons for
-your newly created partitions (C, D, E, ...).
-
-When you are happy with this setup, close Hatari and transfer the file onto the SD card by using the following command:
-
-    sudo dd if=hdd.img of=/dev/sdX
-
-Replace /dev/sdX with the device of your SD card drive (cat /proc/partitions will display the size of the disks, it might help).
-Double-check that you typed it correctly, you might damage your other drives if you put the wrong sdX entry !!!
-
-For Windows users, use a tool like Win32 Disk Imager.
-
-The card will be ready to use. Put it in the STM32 card slot and boot your real Atari with it !
+If you know a better library to access the SD card from a STM32 (especially if it can do background DMA transfers), contact me and
+I may integrate it to the project.
 
 
 Credits
