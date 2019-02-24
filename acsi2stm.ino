@@ -44,6 +44,9 @@
 // Set to 1 to enable debug output on the serial port
 #define ACSI_DEBUG 0
 
+// Set to 1 to enable verbose command output on the serial port
+#define ACSI_VERBOSE 0
+
 // ID on the ACSI bus
 #define ACSI_ID 0
 
@@ -52,6 +55,9 @@
 
 // Block size
 #define BLOCKSIZE 512
+
+// Maximum number of blocks on the SD (limit capacity)
+//#define SD_MAX_BLOCKS 0x7FFFFF
 
 // Watchdog duration
 #define WATCHDOG_MILLIS 500
@@ -74,11 +80,22 @@ static unsigned char inquiry_data[] =
 // Globals
 
 static Sd2Card card;
-static uint8_t cmdBuf[6];
 static uint8_t dataBuf[BLOCKSIZE];
+static uint8_t cmdBuf[11];
+static uint32_t lastBlock = 0;
+static bool lastSeek = false;
+static int lastErr = 0;
+static int cmdLen; // Length of the last command in bytes
 static uint32_t sdBlocks = 4000*2048; // Number of blocks on the SD card
 static bool sdReady = false; // Set to true when a SD card has been initialized
 
+#define LASTERR_OK 0x00
+#define LASTERR_NOSECTOR 0x01
+#define LASTERR_WRITEERR 0x03
+#define LASTERR_OPCODE 0x20
+#define LASTERR_INVADDR 0x21
+#define LASTERR_INVARG 0x24
+#define LASTERR_INVLUN 0x25
 
 // Debug output functions
 
@@ -228,6 +245,13 @@ static inline void pulseDrqRead() {
   GPIOA->regs->BSRR = DRQ_MASK; // Release to high
 }
 
+// Return the current LUN for the current command
+static inline int getLun() {
+  if(cmdBuf[0] == 0x1F)
+    return (cmdBuf[2] & 0xE0) >> 5;
+  return (cmdBuf[1] & 0xE0) >> 5;
+}
+
 // Wait for a new command and put it in cmdBuf
 // All commands are always 6 bytes long
 // Feeds the watchdog while waiting for a new command
@@ -251,8 +275,10 @@ static inline void waitCommand() {
   // Put the command ID in the first command buffer byte
   cmdBuf[0] = (b >> 8) & 0b00011111;
 
-  // Read the next 5 bytes of the command
-  for(int i = 1; i < 6; ++i) {
+  cmdLen = cmdBuf[0] == 0x1F ? 11 : 6;
+
+  // Read the next bytes of the command
+  for(int i = 1; i < cmdLen; ++i) {
     pullIrq();
     while((b = GPIOB->regs->IDR) & (CS_MASK)); // Read data and clock at the same time
     releaseRq();
@@ -273,6 +299,19 @@ static inline void sendDma(int count) {
   }
   releaseBus();
   interrupts();
+#if ACSI_VERBOSE
+  acsiDbg("Send:");
+  if(count < 64) {
+    for(int i = 0; i < count; ++i) {
+      acsiDbg(' ');
+      acsiDbg(dataBuf[i], HEX);
+    }
+  } else {
+    acsiDbg(count);
+    acsiDbg(" bytes");
+  }
+  acsiDbgln("");
+#endif
 }
 
 // Receive some bytes through the port from the Atari DMA controller and store them to dataBuf
@@ -286,6 +325,19 @@ static inline void readDma(int count) {
   }
   releaseRq();
   interrupts();
+#if ACSI_VERBOSE
+  acsiDbg("Read:");
+  if(count < 64) {
+    for(int i = 0; i < count; ++i) {
+      acsiDbg(' ');
+      acsiDbg(dataBuf[i], HEX);
+    }
+  } else {
+    acsiDbg(count);
+    acsiDbg(" bytes");
+  }
+  acsiDbgln("");
+#endif
 }
 
 // Send a status code and turn the status LED off
@@ -303,17 +355,24 @@ static inline void sendStatus(uint8_t s) {
 
 // Send a status byte that indicates the command was a success
 static inline void commandSuccess() {
+#if ACSI_VERBOSE
+  acsiDbgln("Success");
+#endif
+  lastErr = LASTERR_OK;
   sendStatus(0);
 }
 
 // Send a status byte that indicates an error happened
 static inline void commandError() {
+#if ACSI_VERBOSE
+  acsiDbgln("Error");
+#endif
   sendStatus(2);
 }
 
 // Initialize the ACSI port
 static inline void acsiInit() {
-  acsiDbgln("Initializing the ACSI bus");
+  acsiDbgln("Initializing the ACSI bus ...");
   digitalWrite(IRQ, 0);
   digitalWrite(DRQ, 1);
   pinMode(CS, INPUT);
@@ -330,11 +389,21 @@ static inline void acsiInit() {
 
 // Initialize the SD card
 static bool sdInit() {
-  acsiDbgln("Initializing SD card");
+  acsiDbgln("Initializing SD card ...");
   sdReady = card.init(SPI_FULL_SPEED, SD_CS);
 
-  if(sdReady)
+  if(sdReady) {
     sdBlocks = card.cardSize();
+#if SD_MAX_BLOCKS
+    if(sdBlocks > SD_MAX_BLOCKS)
+      sdBlocks = SD_MAX_BLOCKS;
+#endif
+    acsiDbg("Size: ");
+    acsiDbg(sdBlocks/2048);
+    acsiDbg("MB - ");
+    acsiDbg(sdBlocks);
+    acsiDbgln(" blocks");
+  }
   else
     acsiDbgln("Cannot init SD card");
 
@@ -342,7 +411,7 @@ static bool sdInit() {
 }
 
 // Write a block from dataBuf into the SD card
-static inline bool writeBlock(int block) {
+static inline bool sdWriteBlock(int block) {
   int tries = MAXTRIES_SD;
   while(!card.writeBlock(block, dataBuf) && tries-- > 0) {
     acsiDbg("Retry write on block ");
@@ -357,8 +426,27 @@ static inline bool writeBlock(int block) {
   return tries > 0;
 }
 
+// Process a write block command
+static inline bool writeBlock(int block, int count) {
+  if(block + count - 1 >= sdBlocks) {
+    lastErr = LASTERR_INVADDR;
+    return false; // Block out of range
+  }
+  // For each requested block
+  for(int blocks = count; blocks--; block++) {
+    IWDG_BASE->KR = IWDG_KR_FEED; // Feed the watchdog
+    readDma(BLOCKSIZE); // Receive data to write
+    // Do the actual write operation
+    if(!sdWriteBlock(block)) {
+      // SD write error
+      return false;
+    }
+  }
+  return true;
+}
+
 // Read a block from the SD card and store it to dataBuf
-static inline bool readBlock(int block) {
+static inline bool sdReadBlock(int block) {
   int tries = MAXTRIES_SD;
   while(!card.readBlock(block, dataBuf) && tries-- > 0) {
     acsiDbg("Retry read on block ");
@@ -367,10 +455,33 @@ static inline bool readBlock(int block) {
     IWDG_BASE->KR = IWDG_KR_FEED; // Feed the watchdog for retries
     // After a certain amount of retries, reinit the SD card completely
     if(tries <= MAXTRIES_SD / 2 && !sdInit()) {
+      // SD write error
+      lastErr = LASTERR_WRITEERR;
       return false;
     }
   }
   return tries > 0;
+}
+
+// Process a read block command
+static inline bool readBlock(int block, int count) {
+  if(block + count - 1 >= sdBlocks) {
+    lastErr = LASTERR_INVADDR;
+    return false; // Block out of range
+  }
+  // For each requested block
+  for(int blocks = count; blocks--; block++) {
+    IWDG_BASE->KR = IWDG_KR_FEED; // Feed the watchdog
+    int tries = MAXTRIES_SD;
+    // Do the actual read operation
+    if(!sdReadBlock(block)) {
+      // SD read error
+      lastErr = LASTERR_NOSECTOR;
+      return false;
+    }
+    sendDma(BLOCKSIZE); // Send read data
+  }
+  return true;
 }
 
 // Main setup function
@@ -410,24 +521,53 @@ void loop() {
     }
   }
 
+#if ACSI_VERBOSE
+  acsiDbg("Command ");
+  for(int i = 0; i < cmdLen; ++i) {
+    acsiDbg(' ');
+    acsiDbg(cmdBuf[i], HEX);
+  }
+  acsiDbgln("");
+#endif
+
+  switch(cmdBuf[0]) {
+  default:
+    // Check LUN
+    if(getLun() > 0) {
+      lastErr = LASTERR_INVLUN;
+      commandError();
+      return;
+    }
+  case 0x03: // Request Sense
+  case 0x12: // Inquiry
+    break;
+  }
+
   // Execute the command
   switch(cmdBuf[0]) {
   default: // Unknown command
-    acsiDbg("Unknown command 0x");
-    acsiDbgln(cmdBuf[0], HEX);
+    acsiDbg("Unknown command ");
+    for(int i = 0; i < cmdLen; ++i) {
+      acsiDbg(' ');
+      acsiDbg(cmdBuf[i], HEX);
+    }
+    acsiDbgln("");
+    lastSeek = false;
     commandError();
     return;
-  case 0x0B: // Seek
   case 0x0D: // Correction
   case 0x15: // Mode select
   case 0x1B: // Ship
     // Always succeed
+    lastSeek = false;
     commandSuccess();
     return;
-  case 0x00: // Test drive ready
   case 0x04: // Format drive
   case 0x05: // Verify track
   case 0x06: // Format track
+    lastSeek = false;
+    // fall through case
+  case 0x00: // Test drive ready
     // Reinitialize the SD card
     if(!sdInit()) {
       commandError();
@@ -442,15 +582,46 @@ void loop() {
       commandError();
       return;
     }
-    // Build the response in dataBuf
-    dataBuf[0] = 0x80;
-    // Return the size of the SD card in blocks
-    dataBuf[1] = (sdBlocks >> 16) & 0xFF;
-    dataBuf[2] = (sdBlocks >> 8) & 0xFF;
-    dataBuf[3] = (sdBlocks) & 0xFF;
-    // Fill the remainder with zero bytes
-    for(uint8_t b = 4; b < cmdBuf[4]; ++b) {
+    // Fill the response with zero bytes
+    for(int b = 0; b < cmdBuf[4]; ++b) {
       dataBuf[b] = 0;
+    }
+    if(cmdBuf[4] <= 4) {
+      dataBuf[0] = lastErr;
+      if(lastSeek) {
+        dataBuf[0] |= 0x80;
+        dataBuf[1] = (lastBlock >> 16) & 0xFF;
+        dataBuf[2] = (lastBlock >> 8) & 0xFF;
+        dataBuf[3] = (lastBlock) & 0xFF;
+      }
+    } else {
+      // Build long response in dataBuf
+      dataBuf[0] = 0x70;
+      if(lastSeek) {
+        dataBuf[0] |= 0x80;
+        dataBuf[4] = (lastBlock >> 16) & 0xFF;
+        dataBuf[5] = (lastBlock >> 8) & 0xFF;
+        dataBuf[6] = (lastBlock) & 0xFF;
+      }
+      switch(lastErr) {
+      case LASTERR_OK:
+        dataBuf[2] = 0;
+        break;
+      case LASTERR_OPCODE:
+      case LASTERR_INVADDR:
+      case LASTERR_INVARG:
+      case LASTERR_INVLUN:
+        dataBuf[2] = 5;
+        break;
+      default:
+        dataBuf[2] = 4;
+        break;
+      }
+      dataBuf[7] = 14;
+      dataBuf[12] = lastErr;
+      dataBuf[19] = (lastBlock >> 16) & 0xFF;
+      dataBuf[20] = (lastBlock >> 8) & 0xFF;
+      dataBuf[21] = (lastBlock) & 0xFF;
     }
     // Send the response
     sendDma(cmdBuf[4]);
@@ -458,62 +629,67 @@ void loop() {
     commandSuccess();
     return;
   case 0x08: // Read block
-    {
-      // Compute the block number
-      int block = (((int)cmdBuf[1])<<16) | (((int)cmdBuf[2]) << 8) | (cmdBuf[3]);
-      if(block + cmdBuf[4] - 1 >= sdBlocks) {
-        commandError(); // Block out of range
-        return;
-      }
-      // For each requested block
-      for(int blocks = cmdBuf[4]; blocks--; block++) {
-        IWDG_BASE->KR = IWDG_KR_FEED; // Feed the watchdog
-        int tries = MAXTRIES_SD;
-        // Do the actual read operation
-        if(!readBlock(block)) {
-          // SD read error
-          commandError();
-          return;
-        }
-        sendDma(BLOCKSIZE); // Send read data
-      }
+    // Compute the block number
+    lastBlock = (((int)cmdBuf[1]) << 16) | (((int)cmdBuf[2]) << 8) | (cmdBuf[3]);
+    lastSeek = true;
+
+    // Do the actual read operation
+    if(readBlock(lastBlock, cmdBuf[4]))
       commandSuccess();
-    }
+    else
+      commandError();
     return;
   case 0x0A: // Write block
-    {
-      // Compute the block number
-      int block = (((int)cmdBuf[1])<<16) | (((int)cmdBuf[2]) << 8) | (cmdBuf[3]);
-      if(block + cmdBuf[4] - 1 >= sdBlocks) {
-        commandError(); // Block out of range
-        return;
-      }
-      // For each requested block
-      for(int blocks = cmdBuf[4]; blocks--; block++) {
-        IWDG_BASE->KR = IWDG_KR_FEED; // Feed the watchdog
-        readDma(BLOCKSIZE); // Receive data to write
-        // Do the actual write operation
-        if(!writeBlock(block)) {
-          // SD write error
-          commandError();
-          return;
-        }
-      }
+    // Compute the block number
+    lastBlock = (((int)cmdBuf[1]) << 16) | (((int)cmdBuf[2]) << 8) | (cmdBuf[3]);
+    lastSeek = true;
+
+    // Do the actual write operation
+    if(writeBlock(lastBlock, cmdBuf[4]))
       commandSuccess();
+    else
+      commandError();
+    return;
+  case 0x0B: // Seek
+    // Reinitialize the SD card
+    if(!sdInit()) {
+      lastErr = LASTERR_INVADDR;
+      commandError();
+      return;
     }
+    lastBlock = (((int)cmdBuf[1]) << 16) | (((int)cmdBuf[2]) << 8) | (cmdBuf[3]);
+    lastSeek = true;
+    if(lastBlock >= sdBlocks) {
+      lastErr = LASTERR_INVADDR;
+      commandError();
+    } else
+      commandSuccess();
     return;
   case 0x12: // Inquiry
-    for(uint8_t b = 0; b < cmdBuf[4]; ++b) {
-      if(b < sizeof(inquiry_data))
-        dataBuf[b] = inquiry_data[b];
-      else
-        dataBuf[b] = 0;
+    // Reinitialize the SD card
+    if(!sdInit()) {
+      commandError();
+      return;
     }
-    sendDma(cmdBuf[4]);
+    for(uint8_t b = 0; b < cmdBuf[4]; ++b) {
+      dataBuf[b] = 0;
+    }
+
+    if(getLun() > 0)
+      dataBuf[0] = 0x7F; // Unsupported LUN
+    dataBuf[2] = 1; // ACSI version
+    dataBuf[4] = 31; // Data length
     
+    // Build the product string with the SD card size
+    snprintf((char*)dataBuf + 8, 29, "ACSI2STM SD %7d MB  v1.0", sdBlocks/2048);
+    
+    sendDma(cmdBuf[4]);
+
+    lastSeek = false;
     commandSuccess();
     return;
   case 0x1A: // Mode sense
+    lastSeek = false;
     switch(cmdBuf[2]) { // Sub-command
     case 0x00:
       for(uint8_t b = 0; b < 16; ++b) {
@@ -531,6 +707,9 @@ void loop() {
       sendDma(16);
       break;
     case 0x04:
+      for(uint8_t b = 0; b < 24; ++b) {
+        dataBuf[b] = 0;
+      }
       // Values got from the Hatari emulator
       dataBuf[0] = 4;
       dataBuf[1] = 22;
@@ -540,13 +719,65 @@ void loop() {
       dataBuf[4] = (sdBlocks >> 7) & 0xFF;
       // Hardcode 128 heads
       dataBuf[5] = 128;
-      for(uint8_t b = 0; b < 24; ++b) {
-        dataBuf[b] = 0;
-      }
       sendDma(24);
       break;
+    default:
+      if(getLun() == 0)
+        lastErr = LASTERR_INVARG;
+      commandError();
+      return;
     }
     commandSuccess();
     return;
+  case 0x1F: // ICD extended command
+    switch(cmdBuf[1]) { // Sub-command
+    case 0x25: // Read capacity
+      // Reinitialize the SD card
+      if(!sdInit()) {
+        commandError();
+        return;
+      }
+      // Send the number of blocks of the SD card
+      dataBuf[0] = (sdBlocks >> 24) & 0xFF;
+      dataBuf[1] = (sdBlocks >> 16) & 0xFF;
+      dataBuf[2] = (sdBlocks >> 8) & 0xFF;
+      dataBuf[3] = (sdBlocks) & 0xFF;
+      // Send the block size (which is always 512)
+      dataBuf[4] = 0x00;
+      dataBuf[5] = 0x00;
+      dataBuf[6] = 0x02;
+      dataBuf[7] = 0x00;
+      
+      sendDma(8);
+      
+      commandSuccess();
+      return;
+    case 0x28: // Read sector
+      {
+        // Compute the block number
+        int block = (((int)cmdBuf[3]) << 24) | (((int)cmdBuf[4]) << 16) | (((int)cmdBuf[5]) << 8) | (cmdBuf[6]);
+        int count = (((int)cmdBuf[8]) << 8) | (cmdBuf[9]);
+  
+        // Do the actual read operation
+        if(readBlock(block, count))
+          commandSuccess();
+        else
+          commandError();
+      }
+      return;
+    case 0x2A: // Write block
+      {
+        // Compute the block number
+        int block = (((int)cmdBuf[3]) << 24) | (((int)cmdBuf[4]) << 16) | (((int)cmdBuf[5]) << 8) | (cmdBuf[6]);
+        int count = (((int)cmdBuf[8]) << 8) | (cmdBuf[9]);
+  
+        // Do the actual write operation
+        if(writeBlock(block, count))
+          commandSuccess();
+        else
+          commandError();
+      }
+      return;
+    }
   }
 }
