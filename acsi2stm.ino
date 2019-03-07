@@ -25,9 +25,21 @@
 #include <SPI.h>
 #include "Sd2CardX.h"
 
+#define ACSI2STM_VERSION "1.1"
+
 // Pin definitions
+static const int sdCs[] = {
+  // List of SD card CS pins
+  PA4,
+  PA3,
+  //PA2,
+  //PA1,
+  //PA0,
+  //PA8,
+  //PB0,
+  //PB1,
+};
 #define LED PC13
-#define SD_CS PA4
 #define CS PB7 // Must be on port B
 #define IRQ PA12
 #define ACK PA8
@@ -42,7 +54,7 @@
 #define DRQ_MASK 0b100000000000
 
 // Set to 1 to enable debug output on the serial port
-#define ACSI_DEBUG 0
+#define ACSI_DEBUG 1
 
 // Set to 1 to enable verbose command output on the serial port
 #define ACSI_VERBOSE 0
@@ -54,7 +66,7 @@
 //#define SD_MAX_BLOCKS 0x0FFFFF
 
 // Watchdog duration
-#define WATCHDOG_MILLIS 500
+#define WATCHDOG_MILLIS 800
 
 // Maximum number of retries in case of SD card errors
 #define MAXTRIES_SD 5
@@ -62,32 +74,32 @@
 // Block size
 #define BLOCKSIZE 512
 
-// Structure provided by the Hatari source code
-static unsigned char inquiry_data[] =
-{
-  0,                /* device type 0 = direct access device */
-  0,                /* device type qualifier (nonremovable) */
-  1,                /* ACSI/SCSI version */
-  0,                /* reserved */
-  31,               /* length of the following data */
-  0, 0, 0,          /* Vendor specific data */
-  'R','e','t','r','o','1','6',' ',    /* Vendor ID */
-  'A','C','S','I','2','S','T','M',    /* Product ID 1 */
-  ' ','S','D',' ','c','a','r','d',    /* Product ID 2 */
-  'v','1','.','0',                    /* Revision */
-};
-
 // Globals
 
-static Sd2Card card;
+class SD {
+public:
+  Sd2Card card;
+  uint32_t blocks;
+  int acsiDevId = -1;
+  bool initialized = false;
+  bool bootable;
+  uint32_t lastBlock;
+  bool lastSeek;
+  int lastErr;
+
+  bool init();
+  bool writeBlock(int block);
+  bool writeBlocks(int block, int count);
+  bool readBlock(int block);
+  bool readBlocks(int block, int count);
+  void getId(char *target);
+};
+#define MAX_SD (sizeof(sdCs)/sizeof(int))
+static SD sdCards[MAX_SD];
+static SD *sd; // Current SD card
 static uint8_t dataBuf[BLOCKSIZE];
 static uint8_t cmdBuf[11];
-static uint32_t lastBlock = 0;
-static bool lastSeek = false;
-static int lastErr = 0;
 static int cmdLen; // Length of the last command in bytes
-static uint32_t sdBlocks = 4000*2048; // Number of blocks on the SD card
-static bool sdReady = false; // Set to true when a SD card has been initialized
 
 #define LASTERR_OK 0x00
 #define LASTERR_NOSECTOR 0x01
@@ -266,8 +278,11 @@ static inline void waitCommand() {
     // CS pulse is fast (250ns)
     while((b = GPIOB->regs->IDR) & (A1_MASK | CS_MASK))
       IWDG_BASE->KR = IWDG_KR_FEED; // Feed the watchdog
-  } while(((b) >> (8+5)) != ACSI_ID); // Check the device ID
+  } while(((b) >> (8+5)) >= MAX_SD); // Check the device ID
   // At this point we are receiving a command targetted at this device.
+
+  // Select the correct SD card
+  sd = &sdCards[b >> (8+5)];
 
   // Enable activity LED. It will be disabled by the sendStatus function
   ledOn();
@@ -358,7 +373,7 @@ static inline void commandSuccess() {
 #if ACSI_VERBOSE
   acsiDbgln("Success");
 #endif
-  lastErr = LASTERR_OK;
+  sd->lastErr = LASTERR_OK;
   sendStatus(0);
 }
 
@@ -372,7 +387,9 @@ static inline void commandError() {
 
 // Initialize the ACSI port
 static inline void acsiInit() {
-  acsiDbgln("Initializing the ACSI bus ...");
+  acsiDbgln("Initializing ACSI bus ...");
+  delay(1);
+
   digitalWrite(IRQ, 0);
   digitalWrite(DRQ, 1);
   pinMode(CS, INPUT);
@@ -388,38 +405,66 @@ static inline void acsiInit() {
 }
 
 // Initialize the SD card
-static bool sdInit() {
-  acsiDbgln("Initializing SD card ...");
-  sdReady = card.init(SPI_FULL_SPEED, SD_CS);
+bool SD::init() {
+  if(acsiDevId == -1) {
+    acsiDbgln("Invalid ACSI device for SD card");
+    initialized = false;
+    return false;
+  }
 
-  if(sdReady) {
-    sdBlocks = card.cardSize();
-#if SD_MAX_BLOCKS
-    if(sdBlocks > SD_MAX_BLOCKS)
-      sdBlocks = SD_MAX_BLOCKS;
-#endif
+  acsiDbg("Initializing SD card ");
+  acsiDbgln(acsiDevId);
+  IWDG_BASE->KR = IWDG_KR_FEED;
+  initialized = card.init(SPI_FULL_SPEED, sdCs[acsiDevId]);
+
+  if(initialized) {
+    blocks = card.cardSize();
     acsiDbg("Size: ");
-    acsiDbg(sdBlocks/2048);
+    acsiDbg(blocks / 2048);
     acsiDbg("MB - ");
-    acsiDbg(sdBlocks);
-    acsiDbgln(" blocks");
+    acsiDbg(blocks);
+    acsiDbg(" blocks");
+#if SD_MAX_BLOCKS
+    if(blocks > SD_MAX_BLOCKS) {
+      blocks = SD_MAX_BLOCKS;
+      acsiDbg(" (capped to ");
+      acsiDbg(blocks / 2048);
+      acsiDbg("MB)");
+    }
+#endif
+    acsiDbgln("");
+
+    // Detect partition type
+    readBlock(0);
+    int checksum = 0;
+    for(int i = 0; i < BLOCKSIZE; i += 2) {
+      checksum += dataBuf[i] << 8 + dataBuf[i+1];
+    }
+    if((checksum & 0xFFFF) == 0x1234) {
+      // Valid Atari boot sector
+      acsiDbgln("SD card is bootable");
+      bootable = true;
+    }
+
   }
   else
     acsiDbgln("Cannot init SD card");
 
-  return sdReady;
+  IWDG_BASE->KR = IWDG_KR_FEED;
+  return initialized;
 }
 
 // Write a block from dataBuf into the SD card
-static inline bool sdWriteBlock(int block) {
+inline bool SD::writeBlock(int block) {
   int tries = MAXTRIES_SD;
+  readDma(BLOCKSIZE); // Receive data to write
   while(!card.writeBlock(block, dataBuf) && tries-- > 0) {
     acsiDbg("Retry write on block ");
     acsiDbgln(block, HEX);
     delay(10); // Wait a bit to leave some recovery time for the SD card
     IWDG_BASE->KR = IWDG_KR_FEED; // Feed the watchdog for retries
     // After a certain amount of retries, reinit the SD card completely
-    if(tries <= MAXTRIES_SD / 2 && !sdInit()) {
+    if(tries <= MAXTRIES_SD / 2 && !init()) {
       return false;
     }
   }
@@ -427,17 +472,16 @@ static inline bool sdWriteBlock(int block) {
 }
 
 // Process a write block command
-static inline bool writeBlock(int block, int count) {
-  if(block + count - 1 >= sdBlocks) {
-    lastErr = LASTERR_INVADDR;
+inline bool SD::writeBlocks(int block, int count) {
+  if(block + count - 1 >= blocks) {
+    sd->lastErr = LASTERR_INVADDR;
     return false; // Block out of range
   }
   // For each requested block
-  for(int blocks = count; blocks--; block++) {
+  for(int b = count; b--; block++) {
     IWDG_BASE->KR = IWDG_KR_FEED; // Feed the watchdog
-    readDma(BLOCKSIZE); // Receive data to write
     // Do the actual write operation
-    if(!sdWriteBlock(block)) {
+    if(!writeBlock(block)) {
       // SD write error
       return false;
     }
@@ -446,7 +490,7 @@ static inline bool writeBlock(int block, int count) {
 }
 
 // Read a block from the SD card and store it to dataBuf
-static inline bool sdReadBlock(int block) {
+inline bool SD::readBlock(int block) {
   int tries = MAXTRIES_SD;
   while(!card.readBlock(block, dataBuf) && tries-- > 0) {
     acsiDbg("Retry read on block ");
@@ -454,34 +498,53 @@ static inline bool sdReadBlock(int block) {
     delay(10); // Wait a bit to leave some recovery time for the SD card
     IWDG_BASE->KR = IWDG_KR_FEED; // Feed the watchdog for retries
     // After a certain amount of retries, reinit the SD card completely
-    if(tries <= MAXTRIES_SD / 2 && !sdInit()) {
+    if(tries <= MAXTRIES_SD / 2 && !init()) {
       // SD write error
-      lastErr = LASTERR_WRITEERR;
+      sd->lastErr = LASTERR_NOSECTOR;
       return false;
     }
   }
-  return tries > 0;
+  if(tries == 0)
+    return false; // Retried too many times
+  
+  sendDma(BLOCKSIZE); // Send read data
+  return true;
 }
 
 // Process a read block command
-static inline bool readBlock(int block, int count) {
-  if(block + count - 1 >= sdBlocks) {
-    lastErr = LASTERR_INVADDR;
+inline bool SD::readBlocks(int block, int count) {
+  if(block + count - 1 >= blocks) {
+    sd->lastErr = LASTERR_INVADDR;
     return false; // Block out of range
   }
   // For each requested block
   for(int blocks = count; blocks--; block++) {
     IWDG_BASE->KR = IWDG_KR_FEED; // Feed the watchdog
-    int tries = MAXTRIES_SD;
     // Do the actual read operation
-    if(!sdReadBlock(block)) {
-      // SD read error
-      lastErr = LASTERR_NOSECTOR;
+    if(!readBlock(block)) {
       return false;
     }
-    sendDma(BLOCKSIZE); // Send read data
   }
   return true;
+}
+
+void SD::getId(char *target) {
+  sprintf(target, "ACSI2STM SD            v" ACSI2STM_VERSION);
+
+  // Write ACSI ID
+  target[13] = '0' + acsiDevId;
+
+  // Write SD card size
+  if(blocks >= 2048*10240) // Size in GB if size >= 10G
+    sprintf(target + 15, "%dGB", blocks / (2048*1024));
+  else // Size in MB
+    sprintf(target + 15, "%dMB", blocks / 2048);
+
+  // Add the Atari logo at the end if the SD is detected as bootable
+  if(bootable) {
+    target[22] = 0x0E;
+    target[23] = 0x0F;
+  }
 }
 
 // Main setup function
@@ -494,7 +557,13 @@ void setup() {
   Serial.begin(115200); // Init the serial port only if needed
 #endif
 
-  acsiDbgln("Retro16 STM32 SD bridge v1.0");
+  acsiDbgln("");
+  acsiDbgln("");
+  acsiDbgln("");
+  acsiDbgln("-----------------------");
+  acsiDbgln("ACSI2STM SD bridge v" ACSI2STM_VERSION);
+  acsiDbgln("-----------------------");
+  acsiDbgln("");
   
   // Initialize the ACSI port
   acsiInit();
@@ -502,11 +571,20 @@ void setup() {
   // Initialize the watchdog
   iwdg_init(IWDG_PRE_256, WATCHDOG_MILLIS / 8);
 
-  // Initialize the SD card
-  sdInit();
+  // Initialize SD cards
+  int sdCount = 0;
+  for(int i = 0; i < MAX_SD; ++i) {
+    sdCards[i].acsiDevId = i;
+    if(sdCards[i].init())
+      sdCount++;
+  }
+  
+  acsiDbg(sdCount);
+  acsiDbgln(" SD cards found");
 
-  // Ready to go
-  acsiDbgln("Ready to go");
+  acsiDbgln("");
+  acsiDbgln("--- Ready to go ---");
+  acsiDbgln("");
   ledOff();
 }
 
@@ -514,8 +592,8 @@ void setup() {
 void loop() {
   waitCommand(); // Wait for the next command arriving in cmdBuf
 
-  if(!sdReady) {
-    if(!sdInit()) {
+  if(!sd->initialized) {
+    if(!sd->init()) {
       commandError();
       return;
     }
@@ -534,7 +612,7 @@ void loop() {
   default:
     // Check LUN
     if(getLun() > 0) {
-      lastErr = LASTERR_INVLUN;
+      sd->lastErr = LASTERR_INVLUN;
       commandError();
       return;
     }
@@ -552,24 +630,24 @@ void loop() {
       acsiDbg(cmdBuf[i], HEX);
     }
     acsiDbgln("");
-    lastSeek = false;
+    sd->lastSeek = false;
     commandError();
     return;
   case 0x0D: // Correction
   case 0x15: // Mode select
   case 0x1B: // Ship
     // Always succeed
-    lastSeek = false;
+    sd->lastSeek = false;
     commandSuccess();
     return;
   case 0x04: // Format drive
   case 0x05: // Verify track
   case 0x06: // Format track
-    lastSeek = false;
+    sd->lastSeek = false;
     // fall through case
   case 0x00: // Test drive ready
     // Reinitialize the SD card
-    if(!sdInit()) {
+    if(!sd->init()) {
       commandError();
       return;
     }
@@ -578,7 +656,7 @@ void loop() {
     return;
   case 0x03: // Request Sense
     // Reinitialize the SD card
-    if(!sdInit()) {
+    if(!sd->init()) {
       commandError();
       return;
     }
@@ -587,23 +665,23 @@ void loop() {
       dataBuf[b] = 0;
     }
     if(cmdBuf[4] <= 4) {
-      dataBuf[0] = lastErr;
-      if(lastSeek) {
+      dataBuf[0] = sd->lastErr;
+      if(sd->lastSeek) {
         dataBuf[0] |= 0x80;
-        dataBuf[1] = (lastBlock >> 16) & 0xFF;
-        dataBuf[2] = (lastBlock >> 8) & 0xFF;
-        dataBuf[3] = (lastBlock) & 0xFF;
+        dataBuf[1] = (sd->lastBlock >> 16) & 0xFF;
+        dataBuf[2] = (sd->lastBlock >> 8) & 0xFF;
+        dataBuf[3] = (sd->lastBlock) & 0xFF;
       }
     } else {
       // Build long response in dataBuf
       dataBuf[0] = 0x70;
-      if(lastSeek) {
+      if(sd->lastSeek) {
         dataBuf[0] |= 0x80;
-        dataBuf[4] = (lastBlock >> 16) & 0xFF;
-        dataBuf[5] = (lastBlock >> 8) & 0xFF;
-        dataBuf[6] = (lastBlock) & 0xFF;
+        dataBuf[4] = (sd->lastBlock >> 16) & 0xFF;
+        dataBuf[5] = (sd->lastBlock >> 8) & 0xFF;
+        dataBuf[6] = (sd->lastBlock) & 0xFF;
       }
-      switch(lastErr) {
+      switch(sd->lastErr) {
       case LASTERR_OK:
         dataBuf[2] = 0;
         break;
@@ -618,10 +696,10 @@ void loop() {
         break;
       }
       dataBuf[7] = 14;
-      dataBuf[12] = lastErr;
-      dataBuf[19] = (lastBlock >> 16) & 0xFF;
-      dataBuf[20] = (lastBlock >> 8) & 0xFF;
-      dataBuf[21] = (lastBlock) & 0xFF;
+      dataBuf[12] = sd->lastErr;
+      dataBuf[19] = (sd->lastBlock >> 16) & 0xFF;
+      dataBuf[20] = (sd->lastBlock >> 8) & 0xFF;
+      dataBuf[21] = (sd->lastBlock) & 0xFF;
     }
     // Send the response
     sendDma(cmdBuf[4]);
@@ -630,44 +708,44 @@ void loop() {
     return;
   case 0x08: // Read block
     // Compute the block number
-    lastBlock = (((int)cmdBuf[1]) << 16) | (((int)cmdBuf[2]) << 8) | (cmdBuf[3]);
-    lastSeek = true;
+    sd->lastBlock = (((int)cmdBuf[1]) << 16) | (((int)cmdBuf[2]) << 8) | (cmdBuf[3]);
+    sd->lastSeek = true;
 
     // Do the actual read operation
-    if(readBlock(lastBlock, cmdBuf[4]))
+    if(sd->readBlocks(sd->lastBlock, cmdBuf[4]))
       commandSuccess();
     else
       commandError();
     return;
   case 0x0A: // Write block
     // Compute the block number
-    lastBlock = (((int)cmdBuf[1]) << 16) | (((int)cmdBuf[2]) << 8) | (cmdBuf[3]);
-    lastSeek = true;
+    sd->lastBlock = (((int)cmdBuf[1]) << 16) | (((int)cmdBuf[2]) << 8) | (cmdBuf[3]);
+    sd->lastSeek = true;
 
     // Do the actual write operation
-    if(writeBlock(lastBlock, cmdBuf[4]))
+    if(sd->writeBlocks(sd->lastBlock, cmdBuf[4]))
       commandSuccess();
     else
       commandError();
     return;
   case 0x0B: // Seek
     // Reinitialize the SD card
-    if(!sdInit()) {
-      lastErr = LASTERR_INVADDR;
+    if(!sd->init()) {
+      sd->lastErr = LASTERR_INVADDR;
       commandError();
       return;
     }
-    lastBlock = (((int)cmdBuf[1]) << 16) | (((int)cmdBuf[2]) << 8) | (cmdBuf[3]);
-    lastSeek = true;
-    if(lastBlock >= sdBlocks) {
-      lastErr = LASTERR_INVADDR;
+    sd->lastBlock = (((int)cmdBuf[1]) << 16) | (((int)cmdBuf[2]) << 8) | (cmdBuf[3]);
+    sd->lastSeek = true;
+    if(sd->lastBlock >= sd->blocks) {
+      sd->lastErr = LASTERR_INVADDR;
       commandError();
     } else
       commandSuccess();
     return;
   case 0x12: // Inquiry
     // Reinitialize the SD card
-    if(!sdInit()) {
+    if(!sd->init()) {
       commandError();
       return;
     }
@@ -681,15 +759,15 @@ void loop() {
     dataBuf[4] = 31; // Data length
     
     // Build the product string with the SD card size
-    snprintf((char*)dataBuf + 8, 29, "ACSI2STM SD %7d MB  v1.0", sdBlocks/2048);
+    sd->getId((char *)dataBuf + 8);
     
     sendDma(cmdBuf[4]);
 
-    lastSeek = false;
+    sd->lastSeek = false;
     commandSuccess();
     return;
   case 0x1A: // Mode sense
-    lastSeek = false;
+    sd->lastSeek = false;
     switch(cmdBuf[2]) { // Sub-command
     case 0x00:
       for(uint8_t b = 0; b < 16; ++b) {
@@ -699,9 +777,9 @@ void loop() {
       dataBuf[1] = 14;
       dataBuf[3] = 8;
       // Send the number of blocks of the SD card
-      dataBuf[5] = (sdBlocks >> 16) & 0xFF;
-      dataBuf[6] = (sdBlocks >> 8) & 0xFF;
-      dataBuf[7] = (sdBlocks) & 0xFF;
+      dataBuf[5] = (sd->blocks >> 16) & 0xFF;
+      dataBuf[6] = (sd->blocks >> 8) & 0xFF;
+      dataBuf[7] = (sd->blocks) & 0xFF;
       // Sector size middle byte
       dataBuf[10] = 2;
       sendDma(16);
@@ -714,16 +792,16 @@ void loop() {
       dataBuf[0] = 4;
       dataBuf[1] = 22;
       // Send the number of blocks in CHS format
-      dataBuf[2] = (sdBlocks >> 23) & 0xFF;
-      dataBuf[3] = (sdBlocks >> 15) & 0xFF;
-      dataBuf[4] = (sdBlocks >> 7) & 0xFF;
+      dataBuf[2] = (sd->blocks >> 23) & 0xFF;
+      dataBuf[3] = (sd->blocks >> 15) & 0xFF;
+      dataBuf[4] = (sd->blocks >> 7) & 0xFF;
       // Hardcode 128 heads
       dataBuf[5] = 128;
       sendDma(24);
       break;
     default:
       if(getLun() == 0)
-        lastErr = LASTERR_INVARG;
+        sd->lastErr = LASTERR_INVARG;
       commandError();
       return;
     }
@@ -733,15 +811,15 @@ void loop() {
     switch(cmdBuf[1]) { // Sub-command
     case 0x25: // Read capacity
       // Reinitialize the SD card
-      if(!sdInit()) {
+      if(!sd->init()) {
         commandError();
         return;
       }
       // Send the number of blocks of the SD card
-      dataBuf[0] = (sdBlocks >> 24) & 0xFF;
-      dataBuf[1] = (sdBlocks >> 16) & 0xFF;
-      dataBuf[2] = (sdBlocks >> 8) & 0xFF;
-      dataBuf[3] = (sdBlocks) & 0xFF;
+      dataBuf[0] = (sd->blocks >> 24) & 0xFF;
+      dataBuf[1] = (sd->blocks >> 16) & 0xFF;
+      dataBuf[2] = (sd->blocks >> 8) & 0xFF;
+      dataBuf[3] = (sd->blocks) & 0xFF;
       // Send the block size (which is always 512)
       dataBuf[4] = 0x00;
       dataBuf[5] = 0x00;
@@ -752,27 +830,27 @@ void loop() {
       
       commandSuccess();
       return;
-    case 0x28: // Read sector
+    case 0x28: // Read blocks
       {
         // Compute the block number
         int block = (((int)cmdBuf[3]) << 24) | (((int)cmdBuf[4]) << 16) | (((int)cmdBuf[5]) << 8) | (cmdBuf[6]);
         int count = (((int)cmdBuf[8]) << 8) | (cmdBuf[9]);
   
         // Do the actual read operation
-        if(readBlock(block, count))
+        if(sd->readBlocks(block, count))
           commandSuccess();
         else
           commandError();
       }
       return;
-    case 0x2A: // Write block
+    case 0x2A: // Write blocks
       {
         // Compute the block number
         int block = (((int)cmdBuf[3]) << 24) | (((int)cmdBuf[4]) << 16) | (((int)cmdBuf[5]) << 8) | (cmdBuf[6]);
         int count = (((int)cmdBuf[8]) << 8) | (cmdBuf[9]);
   
         // Do the actual write operation
-        if(writeBlock(block, count))
+        if(sd->writeBlocks(block, count))
           commandSuccess();
         else
           commandError();

@@ -84,13 +84,13 @@ Notes:
 
  * GND is soldered together on the ST side. You can use only one wire for ground.
  * Reset is not needed as the STM32 resets itself if it stays in an inconsistent state for too long.
- * Keep the wires short. I had strange behavior with cables longer than 10cm/3 inches.
+ * Keep the wires short. I had strange behavior with cables longer than 10cm (4 inches).
  * The read/write pin is not needed.
  * You can build a DB19 out of a DB25 by cutting 6 pins on one side and part of the external shielding. Male DB25 were used for parallel port cables or serial port sockets.
  * You will have to power the STM32 separately (e.g. with a USB cable).
 
-Connecting the SD card
-----------------------
+Connecting the SD cards
+-----------------------
 
 SD card pins
 
@@ -117,10 +117,28 @@ Use this table to match pins on the SD card port and the STM32:
 | 08  | (nc)  | RSV |
 | 09  | (nc)  | RSV |
 
+If you want to use multiple SD cards, connect all SD card pins to the same STM32 pins except CS (SD pin 1).
+
+Here is the table that indicates the STM32 pin for each CS pin of the different SD cards:
+
+| ACSI ID | STM32 |
+|--------:|:------|
+|       0 | PA4   |
+|       1 | PA3   |
+|       2 | PA2   |
+|       3 | PA1   |
+|       4 | PA0   |
+|       5 | PA8   |
+|       6 | PB0   |
+|       7 | PB1   |
+
+In order to detect if a SD card reader is present or not, connect unused pins in the table above to GND.
+
+For example, if you want 3 SD cards detected on ACSI IDs 0, 1 and 5, connect PA2, PA1, PA0, PB0 and PB1 to GND. The STM32 will detect this and it will not react at all. This allows freeing ACSI IDs for other devices on the same bus.
+
 Notes:
 
  * The SD card had 2 GND pins. I don't know if they have to be both grounded, maybe one wire is enough.
- * Multiple SD cards could be added by using unused pins as supplementary chip select.
  * You should put a decoupling capacitor of about 100nF between VDD and VSS, as close as possible from the SD card.
 
 
@@ -159,7 +177,18 @@ Boot the floppy, open the A floppy drive and run INSTALL.PRG. The program will c
 Now test the setup by ejecting the floppy and rebooting the emulated Atari. The desktop should have extra icons for your newly
 created partitions (C, D, E, ...).
 
-You can modify partitions after that by running the ICDFMT.PRG file.
+Alternatively, you can partition the drive manually with ICDFMT.PRG and make it bootable with HDUTILS.PRG. You should set
+verification passes to 0 in ICDFMT to avoid the lengthy (and useless) surface scan.
+
+Maximum partition sizes are the following:
+
+ * 32MB for TOS 1.04 (ST and STF series)
+ * 64MB for modern Linux kernels
+ * 512MB for TOS 1.62 and 2.06 (STE series)
+
+Other TOS versions were not tested.
+
+With different drivers, you may have different limits. This bridge supports 32 bits access for disks bigger than 8GB.
 
 
 Why shipping Sd2CardX ?
