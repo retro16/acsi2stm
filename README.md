@@ -139,9 +139,12 @@ Here is the table that indicates the STM32 pin for each CS pin of the different 
 
 In order to detect if a SD card reader is present or not, connect unused pins in the table above to GND.
 
-For example, if you want 3 SD cards detected on ACSI IDs 0, 1 and 5, connect PA2, PA1, PB0, PB3 and PB4 to GND. The STM32 will
-detect this and it will not react at all. This allows freeing ACSI IDs for other devices on the same bus.
-
+For example, if you want 3 SD cards detected on ACSI IDs 0, 1 and 5:
+ * Connect PA4 to pin 1 of the first SD card.
+ * Connect PA3 to pin 1 of the second SD card.
+ * Connect PB1 to pin 1 of the third SD card.
+ * Connect PA2, PA1, PB0, PB3 and PB4 to GND.
+ 
 Notes:
 
  * The SD card had 2 GND pins. I don't know if they have to be both grounded, maybe one wire is enough.
@@ -214,7 +217,7 @@ I would like to thanks the people that put invaluable information online that ma
 time. Without them, this project would have not existed.
 
  * The http://atari.8bitchip.info website and his author, who also contributes on various forums.
- * The Hatari developpers. I used its source code as a reference in some places.
+ * The Hatari developpers. I used its source code as a reference for ACSI commands.
  * The UltraSatan project for their documentation.
 
 The Sd2 files of this project have been copied from the Arduino SD library, also released under GPL v3. This has been done
