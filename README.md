@@ -127,19 +127,19 @@ Here is the table that indicates the STM32 pin for each CS pin of the different 
 |       1 | PA3   |
 |       2 | PA2   |
 |       3 | PA1   |
-|       4 | PA0   |
-|       5 | PA8   |
-|       6 | PB0   |
-|       7 | PB1   |
+|       4 | PB0   |
+|       5 | PB1   |
+|       6 | PB3   |
+|       7 | PB4   |
 
 In order to detect if a SD card reader is present or not, connect unused pins in the table above to GND.
 
-For example, if you want 3 SD cards detected on ACSI IDs 0, 1 and 5, connect PA2, PA1, PA0, PB0 and PB1 to GND. The STM32 will detect this and it will not react at all. This allows freeing ACSI IDs for other devices on the same bus.
+For example, if you want 3 SD cards detected on ACSI IDs 0, 1 and 5, connect PA2, PA1, PB0, PB3 and PB4 to GND. The STM32 will detect this and it will not react at all. This allows freeing ACSI IDs for other devices on the same bus.
 
 Notes:
 
  * The SD card had 2 GND pins. I don't know if they have to be both grounded, maybe one wire is enough.
- * You should put a decoupling capacitor of about 100nF between VDD and VSS, as close as possible from the SD card.
+ * You should put a decoupling capacitor of about 100nF between VDD and VSS, as close as possible from the SD card pins.
 
 
 Using on a "Black pill" STM32 board

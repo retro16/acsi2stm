@@ -32,12 +32,12 @@ static const int sdCs[] = {
   // List of SD card CS pins
   PA4,
   PA3,
-  //PA2,
-  //PA1,
-  //PA0,
-  //PA8,
-  //PB0,
-  //PB1,
+  PA2,
+  PA1,
+  PB0,
+  PB1,
+  PB3,
+  PB4
 };
 #define LED PC13
 #define CS PB7 // Must be on port B
@@ -54,19 +54,16 @@ static const int sdCs[] = {
 #define DRQ_MASK 0b100000000000
 
 // Set to 1 to enable debug output on the serial port
-#define ACSI_DEBUG 1
+#define ACSI_DEBUG 0
 
 // Set to 1 to enable verbose command output on the serial port
 #define ACSI_VERBOSE 0
-
-// ID on the ACSI bus
-#define ACSI_ID 0
 
 // Maximum number of blocks on the SD (limits capacity artificially)
 //#define SD_MAX_BLOCKS 0x0FFFFF
 
 // Watchdog duration
-#define WATCHDOG_MILLIS 800
+#define WATCHDOG_MILLIS 1000
 
 // Maximum number of retries in case of SD card errors
 #define MAXTRIES_SD 5
@@ -87,6 +84,7 @@ public:
   bool lastSeek;
   int lastErr;
 
+  bool present();
   bool init();
   bool writeBlock(int block);
   bool writeBlocks(int block, int count);
@@ -100,6 +98,7 @@ static SD *sd; // Current SD card
 static uint8_t dataBuf[BLOCKSIZE];
 static uint8_t cmdBuf[11];
 static int cmdLen; // Length of the last command in bytes
+static uint8_t readerMask; // Mask of present SD card readers
 
 #define LASTERR_OK 0x00
 #define LASTERR_NOSECTOR 0x01
@@ -278,8 +277,8 @@ static inline void waitCommand() {
     // CS pulse is fast (250ns)
     while((b = GPIOB->regs->IDR) & (A1_MASK | CS_MASK))
       IWDG_BASE->KR = IWDG_KR_FEED; // Feed the watchdog
-  } while(((b) >> (8+5)) >= MAX_SD); // Check the device ID
-  // At this point we are receiving a command targetted at this device.
+  } while(!((1 << (b >> (8+5))) & readerMask)); // Check the device ID
+  // At this point we are receiving a command targetted at a present device.
 
   // Select the correct SD card
   sd = &sdCards[b >> (8+5)];
@@ -404,6 +403,18 @@ static inline void acsiInit() {
   acsiDbgln("ACSI bus ready");
 }
 
+// Tells if a SD card reader is present for this ID
+// Unused CS pins must be grounded to free the bus
+bool SD::present() {
+  if(acsiDevId == -1) {
+    acsiDbgln("Invalid ACSI device for SD card");
+    return false;
+  }
+  pinMode(sdCs[acsiDevId], INPUT_PULLUP);
+  delayMicroseconds(100);
+  return digitalRead(sdCs[acsiDevId]);
+}
+
 // Initialize the SD card
 bool SD::init() {
   if(acsiDevId == -1) {
@@ -435,10 +446,10 @@ bool SD::init() {
     acsiDbgln("");
 
     // Detect partition type
-    readBlock(0);
+    card.readBlock(0, dataBuf);
     int checksum = 0;
     for(int i = 0; i < BLOCKSIZE; i += 2) {
-      checksum += dataBuf[i] << 8 + dataBuf[i+1];
+      checksum += ((int)dataBuf[i] << 8) + (dataBuf[i+1]);
     }
     if((checksum & 0xFFFF) == 0x1234) {
       // Valid Atari boot sector
@@ -529,22 +540,31 @@ inline bool SD::readBlocks(int block, int count) {
 }
 
 void SD::getId(char *target) {
-  sprintf(target, "ACSI2STM SD            v" ACSI2STM_VERSION);
 
-  // Write ACSI ID
-  target[13] = '0' + acsiDevId;
+  int sz = blocks / 2048;
+  char unit = 'M';
+  char boot0 = ' ';
+  char boot1 = ' ';
 
   // Write SD card size
-  if(blocks >= 2048*10240) // Size in GB if size >= 10G
-    sprintf(target + 15, "%dGB", blocks / (2048*1024));
-  else // Size in MB
-    sprintf(target + 15, "%dMB", blocks / 2048);
+  if(blocks >= 2048*10240) { // Size in GB if size >= 10G
+    sz = blocks / (2048*1024);
+    unit = 'G';
+  }
 
   // Add the Atari logo at the end if the SD is detected as bootable
   if(bootable) {
-    target[22] = 0x0E;
-    target[23] = 0x0F;
+    boot0 = 0x0E;
+    boot1 = 0x0F;
   }
+
+  sprintf(target, "ACSI2STM SD %1d %4d %cB %c%cv" ACSI2STM_VERSION, acsiDevId, sz, unit, boot0, boot1);
+
+  acsiDbg("SD ");
+  acsiDbg(acsiDevId);
+  acsiDbg(" ID ='");
+  acsiDbg(target);
+  acsiDbgln("'");
 }
 
 // Main setup function
@@ -575,6 +595,8 @@ void setup() {
   int sdCount = 0;
   for(int i = 0; i < MAX_SD; ++i) {
     sdCards[i].acsiDevId = i;
+    if(sdCards[i].present())
+      readerMask |= 1 << i;
     if(sdCards[i].init())
       sdCount++;
   }
