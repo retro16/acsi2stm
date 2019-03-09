@@ -5,16 +5,20 @@ This code provides a hard drive emulator for your Atari ST using an inexpensive 
 
 The aim of this project is to be very easy to build, extremely cheap, reliable and safe for your precious vintage machine.
 
-This is NOT as polished as the UltraSatan or other big name projects. Performance is worse (~300k/s, varies a bit with SD
-performance), features are practically non-existant, and you have to partition the SD card using an emulator.
+This is NOT as polished as the UltraSatan or other big name projects. Performance is worse (~300kB/s, varies a bit with SD
+performance), features are practically non-existant.
+
+The module supports up to 8 SD card readers, showing them as 8 different ACSI devices plugged in. You can choose the ACSI
+ID of each SD card by soldering CS wires on the matching STM32 pin.
 
 Hardware needed
 ---------------
 
- * A STM32F103C8T6 or compatible board. You can find them for a few dollars online. The "blue pill" works out of the box and the "black pill" requires minor modifications.
- * A USB-serial dongle, with USART 3.3V levels.
- * A SD card port for your STM32. You can also solder wires on a SD to microSD adapter.
- * A SD card.
+ * A STM32F103C8T6 or compatible board. You can find them for a few dollars online. The "blue pill" works out of the box
+   and the "black pill" requires minor modifications.
+ * A USB-serial dongle for programming the STM32 chip, with a 3.3V USART.
+ * One or more SD card port(s) for your STM32. You can also solder wires on a SD to microSD adapter.
+ * One or more SD card(s).
  * A male DB19 port (you can modify a DB25 port to fit) with a ribbon cable.
  * (recommended) A protoboard PCB to solder all the components and wires together.
 
@@ -83,10 +87,11 @@ Use this table to match pins on the ACSI port and the STM32:
 Notes:
 
  * GND is soldered together on the ST side. You can use only one wire for ground.
- * Reset is not needed as the STM32 resets itself if it stays in an inconsistent state for too long.
+ * Reset is not needed as the STM32 resets itself if it stays in an inconsistent state for more than 1 second.
  * Keep the wires short. I had strange behavior with cables longer than 10cm (4 inches).
  * The read/write pin is not needed.
- * You can build a DB19 out of a DB25 by cutting 6 pins on one side and part of the external shielding. Male DB25 were used for parallel port cables or serial port sockets.
+ * You can build a DB19 out of a DB25 by cutting 6 pins on one side and part of the external shielding. Male DB25
+   are easy to find because they were used for parallel port cables or serial port sockets.
  * You will have to power the STM32 separately (e.g. with a USB cable).
 
 Connecting the SD cards
@@ -107,7 +112,7 @@ Use this table to match pins on the SD card port and the STM32:
 
 | SD  | STM32 | PIN |
 |:---:|:-----:|:---:|
-| 01  | PA4   | CS  |
+| 01  | PA4 * | CS  |
 | 02  | PA7   | MOSI|
 | 03  | GND   | VSS |
 | 04  | +3.3V | VDD |
@@ -121,20 +126,21 @@ If you want to use multiple SD cards, connect all SD card pins to the same STM32
 
 Here is the table that indicates the STM32 pin for each CS pin of the different SD cards:
 
-| ACSI ID | STM32 |
-|--------:|:------|
-|       0 | PA4   |
-|       1 | PA3   |
-|       2 | PA2   |
-|       3 | PA1   |
-|       4 | PB0   |
-|       5 | PB1   |
-|       6 | PB3   |
-|       7 | PB4   |
+| ACSI ID | STM32 | Connect to        |
+|--------:|:------|-------------------|
+|       0 | PA4   | SD 0 pin 1 or GND |
+|       1 | PA3   | SD 1 pin 1 or GND |
+|       2 | PA2   | SD 2 pin 1 or GND |
+|       3 | PA1   | SD 3 pin 1 or GND |
+|       4 | PB0   | SD 4 pin 1 or GND |
+|       5 | PB1   | SD 5 pin 1 or GND |
+|       6 | PB3   | SD 6 pin 1 or GND |
+|       7 | PB4   | SD 7 pin 1 or GND |
 
 In order to detect if a SD card reader is present or not, connect unused pins in the table above to GND.
 
-For example, if you want 3 SD cards detected on ACSI IDs 0, 1 and 5, connect PA2, PA1, PB0, PB3 and PB4 to GND. The STM32 will detect this and it will not react at all. This allows freeing ACSI IDs for other devices on the same bus.
+For example, if you want 3 SD cards detected on ACSI IDs 0, 1 and 5, connect PA2, PA1, PB0, PB3 and PB4 to GND. The STM32 will
+detect this and it will not react at all. This allows freeing ACSI IDs for other devices on the same bus.
 
 Notes:
 
