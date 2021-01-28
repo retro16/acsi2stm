@@ -200,6 +200,22 @@ Other TOS versions were not tested.
 With different drivers, you may have different limits. This bridge supports 32 bits access for disks bigger than 8GB.
 
 
+Write issues
+------------
+
+Some people reported write issues with this project. There are 2 possible causes:
+
+ * You have hardware problems in your ST
+
+This one is common, it also happens with other products (SatanDisk / UltraSatan and other). It seems to be a hardware issue within some STs.
+
+If you have such a machine, there is no known solution to work around the issue. If you have a machine with a "bad DMA" and a good logic analyzer (10 channels at 16MHz or better), I would be interested to have a full trace of a write to try some non-standard workarounds to make it work.
+
+ * There is a timing problem within the pulseDrqRead function
+
+The ACSI interface requires very narrow timings (200ns reaction time), reaching the limit of the STM32 chip. Because of that, I had to make some assumptions about the speed of the data bus and hardcode a very tight delay by repeating a write to the DRQ pin. This delay seems to vary depending on the Arduino library version and compiler optimizations, so you may need to tune the number of lines in pulseDrqRead (e.g. remove 3 or 4 lines in the middle of the function).
+
+
 Why shipping Sd2CardX ?
 -----------------------
 
