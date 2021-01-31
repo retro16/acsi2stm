@@ -11,6 +11,7 @@ performance), features are practically non-existant.
 The module supports up to 8 SD card readers, showing them as 8 different ACSI devices plugged in. You can choose the ACSI
 ID of each SD card by soldering CS wires on the matching STM32 pin.
 
+
 Hardware needed
 ---------------
 
@@ -26,8 +27,28 @@ Hardware needed
 Software needed
 ---------------
 
- * The Arduino software with the STM32duino library.
+ * The Arduino software with the Roger Clark Melbourne STM32 library.
  * A hard disk driver for your Atari ST (AHDI and ICD pro are tested).
+
+
+Installing software
+-------------------
+
+Install the [STM32 library](https://github.com/rogerclarkmelbourne/Arduino_STM32/wiki/Installation). The doc says that it only
+works on Arduino 1.8.5 but that does seems to work with more recent versions too.
+
+In the Tools menu of the Arduino interface, select the following:
+
+ * Board: Generic STM32F103C series
+ * Variant: STM32F103C8
+ * Upload method: Serial
+ * CPU speed: 72MHz (normal)
+ * Optimize: Fastest (-O3)
+ * Port: your USB serial dongle
+
+If you have different options in the Tools menu, it may be because you don't have the correct board installed.
+
+Then, you will be able to upload the program to the STM32.
 
 
 Programming the STM32
@@ -35,19 +56,11 @@ Programming the STM32
 
 Set the USB dongle to 3.3V if you have a jumper for that. Connect TX to PA10, RX to PA11 and the GND pins together.
 
-On the board itself, set the BOOT0 jumper to 1 to enable the flash bootloader.
+On the board itself, set the BOOT0 jumper to 1 to enable the serial flash bootloader. Reset the STM32 then click Upload.
 
-In the Arduino interface, set the card type to 'Generic STM32F103C series', select your variant (C8 or CT), set
-'Upload method' to serial, CPU speed to 72 MHz (very important), then select the correct serial port.
-
-Then, you will be able to upload the program to the STM32.
+Once the chip is programmed, switch the BOOT0 jumper back to 0.
 
 Note: the debug output sends data at 115200bps. Set the serial monitor accordingly.
-
-Note: Debian 9 has buggy driver for some USB-serial dongles. You should update your kernel to the latest backport
-version if uploading fails for mysterious reasons.
-
-Once the chip is programmed, you can switch the BOOT0 jumper back to 0.
 
 
 Building the ACSI cable
@@ -93,6 +106,7 @@ Notes:
  * You can build a DB19 out of a DB25 by cutting 6 pins on one side and part of the external shielding. Male DB25
    are easy to find because they were used for parallel port cables or serial port sockets.
  * You will have to power the STM32 separately (e.g. with a USB cable).
+
 
 Connecting the SD cards
 -----------------------
@@ -183,7 +197,7 @@ read (or use a floppy simulator).
 
 Boot the floppy, open the A floppy drive and run INSTALL.PRG. The program will create partitions and a boot sector automatically.
 
-Now test the setup by ejecting the floppy and rebooting the emulated Atari. The desktop should have extra icons for your newly
+Now test the setup by ejecting the floppy and rebooting the Atari. The desktop should have extra icons for your newly
 created partitions (C, D, E, ...).
 
 Alternatively, you can partition the drive manually with ICDFMT.PRG and make it bootable with HDUTILS.PRG. You should set
@@ -207,13 +221,19 @@ Some people reported write issues with this project. There are 2 possible causes
 
  * You have hardware problems in your ST
 
-This one is common, it also happens with other products (SatanDisk / UltraSatan and other). It seems to be a hardware issue within some STs.
+This one is common, it also happens with other products (SatanDisk / UltraSatan and other). It seems to be a hardware issue within
+some STs.
 
-If you have such a machine, there is no known solution to work around the issue. If you have a machine with a "bad DMA" and a good logic analyzer (10 channels at 16MHz or better), I would be interested to have a full trace of a write to try some non-standard workarounds to make it work.
+If you have such a machine, there is no known solution to work around the issue. If you have a machine with a "bad DMA" and a good
+logic analyzer (10 channels at 16MHz or better), I would be interested to have a full trace of a write to try some non-standard
+workarounds to make it work.
 
  * There is a timing problem within the pulseDrqRead function
 
-The ACSI interface requires very narrow timings (200ns reaction time), reaching the limit of the STM32 chip. Because of that, I had to make some assumptions about the speed of the data bus and hardcode a very tight delay by repeating a write to the DRQ pin. This delay seems to vary depending on the Arduino library version and compiler optimizations, so you may need to tune the number of lines in pulseDrqRead (e.g. remove 3 or 4 lines in the middle of the function).
+The ACSI interface requires very narrow timings (200ns reaction time), reaching the limit of the STM32 chip. Because of that, I had
+to make some assumptions about the speed of the data bus and hardcode a very tight delay by repeating a write to the DRQ pin. This
+delay seems to vary depending on the Arduino library version and compiler optimizations, so you may need to tune the number of
+lines in pulseDrqRead (e.g. remove 3 or 4 lines in the middle of the function).
 
 
 Why shipping Sd2CardX ?
