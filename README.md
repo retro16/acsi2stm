@@ -8,7 +8,7 @@ The aim of this project is to be very easy to build, extremely cheap, reliable a
 This is NOT as polished as the UltraSatan or other big name projects. Performance is worse (~300kB/s, varies a bit with SD
 performance), features are practically non-existant.
 
-The module supports up to 8 SD card readers, showing them as 8 different ACSI devices plugged in. You can choose the ACSI
+The module supports up to 5 SD card readers, showing them as 5 different ACSI devices plugged in. You can choose the ACSI
 ID of each SD card by soldering CS wires on the matching STM32 pin.
 
 
@@ -22,6 +22,7 @@ Hardware needed
  * One or more SD card(s).
  * A male DB19 port (you can modify a DB25 port to fit) with a ribbon cable.
  * (recommended) A protoboard PCB to solder all the components and wires together.
+ * Do *NOT* connect USB on the STM32. Use the +5V or +3.3V pin to power it.
 
 
 Software needed
@@ -46,6 +47,8 @@ In the Tools menu of the Arduino interface, select the following:
  * Optimize: Fastest (-O3)
  * Port: your USB serial dongle
 
+Note: you can use any setting in the "Optimize" menu. O3 is recommended for fastest performance.
+
 If you have different options in the Tools menu, it may be because you don't have the correct board installed.
 
 Then, you will be able to upload the program to the STM32.
@@ -54,7 +57,7 @@ Then, you will be able to upload the program to the STM32.
 Programming the STM32
 ---------------------
 
-Set the USB dongle to 3.3V if you have a jumper for that. Connect TX to PA10, RX to PA11 and the GND pins together.
+Set the USB dongle to 3.3V if you have a jumper for that. Connect TX to PA10, RX to PA9 and the GND pins together.
 
 On the board itself, set the BOOT0 jumper to 1 to enable the serial flash bootloader. Reset the STM32 then click Upload.
 
@@ -86,21 +89,23 @@ Use this table to match pins on the ACSI port and the STM32:
 |  07  | PB14  | D6  | Data 6           |
 |  08  | PB15  | D7  | Data 7 (MSB)     |
 |  09  | PB7   | CS  | Chip Select      |
-|  10  | PA12  | IRQ | Interrupt        |
+|  10  | PA8   | IRQ | Interrupt        |
 |  11  | GND   | GND | Ground           |
 |  12  | (nc)  | RST | Reset            |
 |  13  | GND   | GND | Ground           |
-|  14  | PA8   | ACK | Acknowledge      |
+|  14  | PA12  | ACK | Acknowledge      |
 |  15  | GND   | GND | Ground           |
 |  16  | PB6   | A1  | Address bit      |
 |  17  | GND   | GND | Ground           |
 |  18  | (nc)  | R/W | Read/Write       |
 |  19  | PA11  | DRQ | Data request     |
 
+**WARNING**: Pinout changed in v2.0: PA8 and PA12 are swapped.
+
 Notes:
 
- * GND is soldered together on the ST side. You can use only one wire for ground.
- * Reset is not needed as the STM32 resets itself if it stays in an inconsistent state for more than 1 second.
+ * GND is soldered together on the ST side. You can use a single wire for ground.
+ * Reset is not needed as the STM32 resets itself if it stays in an inconsistent state for more than 2 seconds.
  * Keep the wires short. I had strange behavior with cables longer than 10cm (4 inches).
  * The read/write pin is not needed.
  * You can build a DB19 out of a DB25 by cutting 6 pins on one side and part of the external shielding. Male DB25
@@ -146,30 +151,30 @@ Here is the table that indicates the STM32 pin for each CS pin of the different 
 |       1 | PA3   | SD 1 pin 1 or GND |
 |       2 | PA2   | SD 2 pin 1 or GND |
 |       3 | PA1   | SD 3 pin 1 or GND |
-|       4 | PB0   | SD 4 pin 1 or GND |
-|       5 | PB1   | SD 5 pin 1 or GND |
-|       6 | PB3   | SD 6 pin 1 or GND |
-|       7 | PB4   | SD 7 pin 1 or GND |
+|       4 | PA0   | SD 4 pin 1 or GND |
 
-In order to detect if a SD card reader is present or not, connect unused pins in the table above to GND.
+Leave unused CS pins unconnected.
 
-For example, if you want 3 SD cards detected on ACSI IDs 0, 1 and 5:
+**WARNING**: Pinout changed in v2.0: PA0 was added, PBx were removed and unused CS *must not* be grounded anymore.
+
+For example, if you want 3 SD cards detected on ACSI IDs 0, 1 and 4:
  * Connect PA4 to pin 1 of the first SD card.
  * Connect PA3 to pin 1 of the second SD card.
- * Connect PB1 to pin 1 of the third SD card.
- * Connect PA2, PA1, PB0, PB3 and PB4 to GND.
- 
+ * Connect PA0 to pin 1 of the third SD card.
+
 Notes:
 
  * The SD card had 2 GND pins. I don't know if they have to be both grounded, maybe one wire is enough.
  * You should put a decoupling capacitor of about 100nF between VDD and VSS, as close as possible from the SD card pins.
+ * If you need other ACSI IDs, you can change the sdCs array in the source code. See "Compile-time options" below.
+ * CS pins must be on GPIO port A (PA pins).
 
 
 Using on a "Black pill" STM32 board
 -----------------------------------
 
 If you have these cheap "STM32 minimum development boards" from eBay, Amazon, Banggood or other chinese sellers, chances are that
-you have either a "blue pill" or a "black pill" board. The "blue" or "black" refers to the color of the PCB.
+you have either a "blue pill" or a "black pill" board. "blue" or "black" refers to the color of the PCB.
 
 The problem with black pill designs is that the onboard LED is wired on PB12 instead of PC13, messing with data signals.
 
@@ -185,8 +190,21 @@ Compile-time options
 
 The source code contains a few #define that you can change. They are described in the source itself.
 
+Settings that you might wish to change:
+
+ * ACSI_CAREFUL_DMA: Does extra checks during DMA transfers. It checks that DRQ and ACK pulses match and returns an error in case of problem. If you have random data corruption, this setting may help. Moderate performance penalty.
+ * ACSI_DEBUG: Enables debug output on the serial port. Moderate performance penalty.
+ * ACSI_VERBOSE: Requires ACSI_DEBUG. Logs all commands on the serial port. High performance penalty.
+ * ACSI_DUMP_LEN: Requires ACSI_VERBOSE. Dumps N bytes for each DMA transfer. It helps finding data corruption. Even higher performance penalty.
+ * SD_MAX_BLOCKS: Limits the number of SD card blocks exposed to the ST. This may be useful to test specific setups or emulate an old hard drive of a specific size.
+ * SD_MAX_RETRY: Number of retries for SD card operations.
+ * WATCHDOG_MILLIS: Timeout before rebooting the STM32 if it is stuck.
+ * WATCHDOG_TIMEOUT: Timeout for quick operations or delay between retries.
+
 Do not change ACSI pins without knowing exactly what you do. This code does direct port access in order to reach the required
-speed for proper communication with the ST.
+speed for proper communication with the ST. Some pins are driven by a timer !
+
+If you need a reference debug output, see the debug_output.txt file. This contains a full trace of a standard ICD PRO setup booting and loading a few ACC and CPX.
 
 
 Creating a SD card
@@ -214,28 +232,6 @@ Other TOS versions were not tested.
 With different drivers, you may have different limits. This bridge supports 32 bits access for disks bigger than 8GB.
 
 
-Write issues
-------------
-
-Some people reported write issues with this project. There are 2 possible causes:
-
- * You have hardware problems in your ST
-
-This one is common, it also happens with other products (SatanDisk / UltraSatan and other). It seems to be a hardware issue within
-some STs.
-
-If you have such a machine, there is no known solution to work around the issue. If you have a machine with a "bad DMA" and a good
-logic analyzer (10 channels at 16MHz or better), I would be interested to have a full trace of a write to try some non-standard
-workarounds to make it work.
-
- * There is a timing problem within the pulseDrqRead function
-
-The ACSI interface requires very narrow timings (200ns reaction time), reaching the limit of the STM32 chip. Because of that, I had
-to make some assumptions about the speed of the data bus and hardcode a very tight delay by repeating a write to the DRQ pin. This
-delay seems to vary depending on the Arduino library version and compiler optimizations, so you may need to tune the number of
-lines in pulseDrqRead (e.g. remove 3 or 4 lines in the middle of the function).
-
-
 Why shipping Sd2CardX ?
 -----------------------
 
@@ -255,6 +251,7 @@ time. Without them, this project would have not existed.
  * The http://atari.8bitchip.info website and his author, who also contributes on various forums.
  * The Hatari developpers. I used its source code as a reference for ACSI commands.
  * The UltraSatan project for their documentation.
+ * Sr Antonio, Edu Arana, Frederick321, Ulises74, Maciej G., Olivier Gossuin and Marcel Prisi for their very detailed feedback that helped me a lot for fine tuning the DRQ/ACK signals and other various aspects of the projects.
 
 The Sd2 files of this project have been copied from the Arduino SD library, also released under GPL v3. This has been done
 to disable sector 0 protection.
