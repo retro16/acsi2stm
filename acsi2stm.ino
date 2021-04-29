@@ -1,3 +1,4 @@
+
 /* ACSI2STM Atari hard drive emulator
  * Copyright (C) 2019-2021 by Jean-Matthieu Coulon
  *
@@ -20,18 +21,17 @@
 #include <libmaple/util.h>
 #include <libmaple/rcc.h>
 #include <libmaple/iwdg.h>
-#include <boards.h>
-#include <wirish.h>
-#include <inttypes.h>
-#include <SPI.h>
-#include "Sd2CardX.h"
+
+// Requires the SdFat library by Bill Greiman
+#include "SdFat.h"
 
 // Settings
 
 // Version number shown in the device name
-#define ACSI2STM_VERSION "20b"
+#define ACSI2STM_VERSION "2b2" // Version 2 beta 2
 
 // Set to 1 to enable extra checks in DMA transfers
+// Set to 2 to explicitely wait ACK pulse (should not be needed)
 // Slows down data throughput
 #define ACSI_CAREFUL_DMA 1
 
@@ -53,7 +53,7 @@
 
 // Watchdog duration
 #define WATCHDOG_MILLIS 2000 // Milliseconds before reboot
-#define WATCHDOG_TIMEOUT 50 // Milliseconds for short timeouts
+#define WATCHDOG_TIMEOUT 20 // Milliseconds for short timeouts
 
 // Activity LED pin. Leave undefined to remove activity LED.
 #define LED LED_BUILTIN
@@ -95,8 +95,9 @@ static const int sdCs[] = {
 
 class SD {
 public:
-  Sd2Card card;
+  SdSpiCard card;
   uint32_t blocks;
+  bool capped;
   int acsiDevId = -1;
   bool initialized = false;
   bool bootable;
@@ -177,7 +178,7 @@ these signals. Data flow:
          CLK|          |CH4
   ACK ----->|  Timer1  |-----> PA11 (DRQ)
             |          |
-            |          |CH1
+            |          |CH3
             |          |------------
             |__________|            |
                                     |Trigger (DMA1 CH2)
@@ -256,23 +257,23 @@ DMA block transfer stop process:
 #if ACSI_DEBUG
 template<typename T>
 inline void acsiDbg(T txt) {
-  Serial.flush();
   Serial.print(txt);
+  Serial.flush();
 }
 template<typename T, typename F>
 inline void acsiDbg(T txt, F fmt) {
-  Serial.flush();
   Serial.print(txt, fmt);
+  Serial.flush();
 }
 template<typename T>
 inline void acsiDbgln(T txt) {
-  Serial.flush();
   Serial.println(txt);
+  Serial.flush();
 }
 template<typename T, typename F>
 inline void acsiDbgln(T txt, F fmt) {
-  Serial.flush();
   Serial.println(txt, fmt);
+  Serial.flush();
 }
 #else
 template<typename T>
@@ -440,15 +441,18 @@ static inline bool pullDrqUntilAck() {
 
   // The DRQ pin is attached to the timer PWM output so it automatically goes high
 
-#if ACSI_CAREFUL_DMA
-  // Wait until ACK is high (normally ACK is fast, this should never wait)
+#if ACSI_CAREFUL_DMA >= 2
+  // Wait until ACK is high (normally ACK is fast, this should never wait).
+  // This step is extra careful and should not be needed in normal operation.
   while(!getAck()) {
     if(watchdogTimeout()) {
       acsiDbgln("ACK low timeout");
       return false;
     }
   }
+#endif
 
+#if ACSI_CAREFUL_DMA
   if(TIMER1_BASE->CNT != 1) {
     acsiDbg("Too many ACK pulses:");
     acsiDbgln(TIMER1_BASE->CNT);
@@ -498,7 +502,7 @@ static inline int sendDma(int count) {
 
   int i;
   for(i = 0; i < count && sendDmaByte(dataBuf[i]); ++i);
-  releaseBus();
+    releaseBus();
 
 #if ACSI_DEBUG
   if(i != count) {
@@ -569,7 +573,6 @@ static inline void waitCommand() {
   int b;
 
   watchdogPause();
-  noInterrupts();
   do {
     // Read the command on the data pins along with the
     // A1 command start marker and the CS clock signal
@@ -577,7 +580,6 @@ static inline void waitCommand() {
     // CS pulse is fast (250ns)
     while((b = GPIOB->regs->IDR) & (A1_MASK | CS_MASK));
   } while(!((1 << (b >> (8+5))) & readerMask) && rqReleased()); // Check the device ID and Ack line
-  interrupts();
   watchdogResume();
 
   // If CS never goes up before the watchdog triggers, the cable is probably disconnected.
@@ -642,31 +644,33 @@ static inline void setupDrqTimer() {
   TIMER1_BASE->SMCR = TIMER_SMCR_ETP | TIMER_SMCR_TS_ETRF | TIMER_SMCR_SMS_EXTERNAL;
   TIMER1_BASE->PSC = 0; // Prescaler
   TIMER1_BASE->ARR = 65535; // Overflow (0 = counter stopped)
-  TIMER1_BASE->DIER = TIMER_DIER_CC1DE;
+  TIMER1_BASE->DIER = TIMER_DIER_CC3DE;
   TIMER1_BASE->CCMR1 = 0;
   TIMER1_BASE->CCMR2 = TIMER_CCMR2_OC4M;//(TIMER_CCMR2_OC4M & (0b110 << 12));
-  TIMER1_BASE->CCER = /*TIMER_CCER_CC4P |*/ TIMER_CCER_CC4E; // Enable output
+  TIMER1_BASE->CCER = TIMER_CCER_CC4E; // Enable output
   TIMER1_BASE->EGR = TIMER_EGR_UG;
-  TIMER1_BASE->CCR1 = 1; // Compare value
+  TIMER1_BASE->CCR1 = 65535; // Disable unused CC channel
+  TIMER1_BASE->CCR2 = 65535; // Disable unused CC channel
+  TIMER1_BASE->CCR3 = 1; // Compare value
   TIMER1_BASE->CCR4 = 1; // Compare value
 }
 
 static inline void setupAckDmaTransfer()
 {
   TIMER4_BASE->CR1 = 0; // Disable timer 4 to use its CCR1 register as a buffer
-  TIMER1_BASE->CCR1 = 0;
+  TIMER1_BASE->CCR3 = 0;
 
   // Setup the DMA engine to copy GPIOB to timer 4 CH1 compare value
   dma_init(DMA1);
   dma_setup_transfer(DMA1,
-                     DMA_CH2,
+                     DMA_CH6,
                      &(TIMER4_BASE->CCR1),
                      DMA_SIZE_16BITS,
                      &(GPIOB->regs->IDR),
                      DMA_SIZE_16BITS,
                      DMA_FROM_MEM | DMA_CIRC_MODE);
-  dma_set_num_transfers(DMA1, DMA_CH2, 1);
-  dma_enable(DMA1, DMA_CH2);
+  dma_set_num_transfers(DMA1, DMA_CH6, 1);
+  dma_enable(DMA1, DMA_CH6);
 }
 
 // Initialize the ACSI port
@@ -695,30 +699,40 @@ static inline void acsiInit() {
 // Initialize the SD card
 bool SD::init() {
   acsiDbg("Initializing SD card ");
-  acsiDbgln(acsiDevId);
-  systick_enable(); // Needed for SD timeout
-  for(int tries = 0; tries < SD_MAX_RETRY && !(initialized = card.init(SPI_FULL_SPEED, sdCs[acsiDevId])); ++tries, watchdogFeed());
-  systick_disable();
+  acsiDbg(acsiDevId);
+  acsiDbg('.');
+
+  for(int tries = 0; tries < SD_MAX_RETRY; ++tries) {
+    initialized = card.begin(SdSpiConfig(sdCs[acsiDevId], SHARED_SPI));
+    if(initialized)
+      break;
+
+    recoveryDelay();
+    acsiDbg('.');
+  }
 
   if(initialized) {
     blocks = card.cardSize();
+    capped = false;
+    acsiDbgln("");
     acsiDbg("Size: ");
-    acsiDbg(blocks / 2048);
+    acsiDbg((blocks + 1024) / 2048);
     acsiDbg("MB - ");
     acsiDbg(blocks);
     acsiDbg(" blocks");
 #if SD_MAX_BLOCKS
     if(blocks > SD_MAX_BLOCKS) {
       blocks = SD_MAX_BLOCKS;
+      capped = true;
       acsiDbg(" (capped to ");
-      acsiDbg(blocks / 2048);
+      acsiDbg((blocks + 1024) / 2048);
       acsiDbg("MB)");
     }
 #endif
     acsiDbgln("");
 
     // Detect partition type
-    card.readBlock(0, dataBuf);
+    card.readSector(0, dataBuf);
     int checksum = 0;
     for(int i = 0; i < ACSI_BLOCKSIZE; i += 2) {
       checksum += ((int)dataBuf[i] << 8) + (dataBuf[i+1]);
@@ -728,15 +742,16 @@ bool SD::init() {
       acsiDbgln("SD card is bootable");
       bootable = true;
     }
-
   }
   else
+  {
+    acsiDbgln("");
     acsiDbgln("Cannot init SD card");
-
+  }
   return initialized;
 }
 
-// Write a block from dataBuf into the SD card
+// Write a block from ACSI DMA into the SD card
 inline bool SD::writeBlock(int block) {
   int tries = SD_MAX_RETRY;
 
@@ -745,7 +760,7 @@ inline bool SD::writeBlock(int block) {
     return false;
 
   // Write data to the SD card
-  while(!card.writeBlock(block, dataBuf) && tries-- > 0) {
+  while(!card.writeSector(block, dataBuf) && tries-- > 0) {
     acsiDbg("Retry write on block ");
     acsiDbgln(block, HEX);
     recoveryDelay(); // Wait a bit to leave some recovery time for the SD card
@@ -777,14 +792,13 @@ inline bool SD::writeBlocks(int block, int count) {
   return true;
 }
 
-// Read a block from the SD card and store it to dataBuf
+// Read a block from the SD card and send it to ACSI DMA
 inline bool SD::readBlock(int block) {
   int tries = SD_MAX_RETRY;
-  while(!card.readBlock(block, dataBuf) && tries-- > 0) {
+  while(!card.readSector(block, dataBuf) && tries-- > 0) {
     acsiDbg("Retry read on block ");
     acsiDbgln(block, HEX);
     recoveryDelay(); // Wait a bit to leave some recovery time for the SD card
-    watchdogFeed();
     // After a certain amount of retries, reinit the SD card completely
     if(tries <= SD_MAX_RETRY / 2 && !init()) {
       // SD write error
@@ -792,9 +806,9 @@ inline bool SD::readBlock(int block) {
       return false;
     }
   }
-  if(tries == 0)
+  if(tries < 0)
     return false; // Retried too many times
-  
+
   return sendDma(ACSI_BLOCKSIZE) == ACSI_BLOCKSIZE; // Send read data
 }
 
@@ -817,16 +831,21 @@ inline bool SD::readBlocks(int block, int count) {
 
 void SD::getId(char *target) {
 
-  int sz = blocks / 2048;
+  int sz = (blocks + 1024) / 2048;
   char unit = 'M';
+  char capping = ' ';
   char boot0 = ' ';
   char boot1 = ' ';
 
   // Write SD card size
   if(blocks >= 2048*10240) { // Size in GB if size >= 10G
-    sz = blocks / (2048*1024);
+    sz = (blocks + 1024*1024) / (2048*1024);
     unit = 'G';
   }
+
+  // Add a ^ symbol if capacity is artificially capped
+  if(capped)
+    capping = '^';
 
   // Add the Atari logo at the end if the SD is detected as bootable
   if(bootable) {
@@ -834,7 +853,7 @@ void SD::getId(char *target) {
     boot1 = 0x0F;
   }
 
-  sprintf(target, "ACSI2STM SD %1d %4d %cB %c%cv" ACSI2STM_VERSION, acsiDevId, sz, unit, boot0, boot1);
+  sprintf(target, "ACSI2STM SD %1d %4d %cB%c%c%cv" ACSI2STM_VERSION, acsiDevId, sz, unit, capping, boot0, boot1);
 
   acsiDbg("SD ");
   acsiDbg(acsiDevId);
@@ -859,13 +878,17 @@ void setup() {
   delay(100);
 #endif
 
-  delay(50); // Leave some time for SD cards to boot and power to stabilize
+  // Disable systick that introduces jitter. delay() and millis() don't work because of this.
+  systick_disable();
+
+  // Initialize the watchdog timer
+  watchdogInit();
 
   acsiDbgln("-----------------------");
   acsiDbgln("ACSI2STM SD bridge v" ACSI2STM_VERSION);
   acsiDbgln("-----------------------");
   acsiDbgln("");
-  
+
   // Initialize SD cards
   int sdCount = 0;
   for(int i = 0; i < MAX_SD; ++i) {
@@ -876,13 +899,8 @@ void setup() {
       readerMask |= 1 << i;
       sdCount++;
     }
+    watchdogFeed();
   }
-
-  // Disable systick that introduces jitter. delay() does not work because of this.
-  systick_disable();
-
-  // Initialize the watchdog timer
-  watchdogInit();
 
   acsiDbg(sdCount);
   acsiDbgln(" SD cards found");

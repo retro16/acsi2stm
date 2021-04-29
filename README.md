@@ -29,6 +29,7 @@ Software needed
 ---------------
 
  * The Arduino software with the Roger Clark Melbourne STM32 library.
+ * The SdFat Arduino library by Bill Greiman.
  * A hard disk driver for your Atari ST (AHDI and ICD pro are tested).
 
 
@@ -37,6 +38,8 @@ Installing software
 
 Install the [STM32 library](https://github.com/rogerclarkmelbourne/Arduino_STM32/wiki/Installation). The doc says that it only
 works on Arduino 1.8.5 but that does seems to work with more recent versions too.
+
+In the Tools / Manage Libraries menu of the Arduino interface, search for "SdFat" and install "SdFat by Bill Greiman".
 
 In the Tools menu of the Arduino interface, select the following:
 
@@ -232,16 +235,6 @@ Other TOS versions were not tested.
 With different drivers, you may have different limits. This bridge supports 32 bits access for disks bigger than 8GB.
 
 
-Why shipping Sd2CardX ?
------------------------
-
-This project includes a modified copy of the Sd2Card files provided by the Arduino library. I couldn't find a way to allow writing
-to sector 0 with the standard code so I brought my own copy with the project (there is a #define but you can't overload it).
-
-If you know a better library to access the SD card from a STM32 (especially if it can do background DMA transfers), contact me and
-I may integrate it to the project.
-
-
 Credits
 -------
 
@@ -253,5 +246,3 @@ time. Without them, this project would have not existed.
  * The UltraSatan project for their documentation.
  * Sr Antonio, Edu Arana, Frederick321, Ulises74, Maciej G., Olivier Gossuin and Marcel Prisi for their very detailed feedback that helped me a lot for fine tuning the DRQ/ACK signals and other various aspects of the projects.
 
-The Sd2 files of this project have been copied from the Arduino SD library, also released under GPL v3. This has been done
-to disable sector 0 protection.
