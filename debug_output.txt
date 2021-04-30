@@ -1,622 +1,508 @@
 
 
-
 -----------------------
-ACSI2STM SD bridge v2.0
+ACSI2STM SD bridge v2b2
 -----------------------
 
-Initializing SD card 0
-Size: 30436MB - 62333952 blocks
-SD card is bootable
-Initializing SD card 1
-Cannot init SD card
-Initializing SD card 2
-Cannot init SD card
-Initializing SD card 3
-Cannot init SD card
-Initializing SD card 4
-Size: 15193MB - 31116288 blocks
-Initializing SD card 5
-Cannot init SD card
-Initializing SD card 6
-Cannot init SD card
-Initializing SD card 7
-Cannot init SD card
-2 SD cards found
-Initializing ACSI bus ...
-ACSI bus ready
+Device 0:ACSI2STM SD0   30 GB    
+Device 1:SD 1 init error
+unavailable
+Device 2:SD 2 init error
+unavailable
+Device 3:SD 3 init error
+unavailable
+Device 4:SD 4 init error
+unavailable
+1 SD cards found
+Waiting for the ACSI bus
 
 --- Ready to go ---
 
-Command  8 0 0 0 1 0
-Send 512 bytes: 2F B 2F 3C 0 B FF FF [...]
-Success
-Command  8 0 0 2 1 0
-Send 512 bytes: 60 2C 49 43 44 49 4E 43 [...]
-Success
-Command  8 0 0 43 1 0
-Send 512 bytes: 42 4F 4F 54 20 20 20 20 [...]
-Success
-Command  8 0 0 3 20 0
-Send 512 bytes: 0 0 0 0 3 0 4 0 [...]
-Send 512 bytes: 0 0 0 0 0 0 0 0 [...]
-Send 512 bytes: 0 0 0 0 0 0 0 0 [...]
-Send 512 bytes: 0 0 0 0 0 0 0 0 [...]
-Send 512 bytes: 0 0 0 0 0 0 0 0 [...]
-Send 512 bytes: 0 0 0 0 0 0 0 0 [...]
-Send 512 bytes: 0 0 0 0 0 0 0 0 [...]
-Send 512 bytes: 0 0 0 0 0 0 0 0 [...]
-Send 512 bytes: 0 0 0 0 0 0 0 0 [...]
-Send 512 bytes: 0 0 0 0 0 0 0 0 [...]
-Send 512 bytes: 0 0 0 0 0 0 0 0 [...]
-Send 512 bytes: 0 0 0 0 0 0 0 0 [...]
-Send 512 bytes: 0 0 0 0 0 0 0 0 [...]
-Send 512 bytes: 0 0 0 0 0 0 0 0 [...]
-Send 512 bytes: 0 0 0 0 0 0 0 0 [...]
-Send 512 bytes: 0 0 0 0 0 0 0 0 [...]
-Send 512 bytes: 0 0 0 0 0 0 0 0 [...]
-Send 512 bytes: 0 0 0 0 0 0 0 0 [...]
-Send 512 bytes: 0 0 0 0 0 0 0 0 [...]
-Send 512 bytes: 0 0 0 0 0 0 0 0 [...]
-Send 512 bytes: 0 0 0 0 0 0 0 0 [...]
-Send 512 bytes: 0 0 0 0 0 0 0 0 [...]
-Send 512 bytes: 0 0 0 0 0 0 0 0 [...]
-Send 512 bytes: 0 0 0 0 0 0 0 0 [...]
-Send 512 bytes: 0 0 0 0 0 0 0 0 [...]
-Send 512 bytes: 0 0 0 0 0 0 0 0 [...]
-Send 512 bytes: 0 0 0 0 0 0 0 0 [...]
-Send 512 bytes: 0 0 0 0 0 0 0 0 [...]
-Send 512 bytes: 0 0 0 0 0 0 0 0 [...]
-Send 512 bytes: 0 0 0 0 0 0 0 0 [...]
-Send 512 bytes: 0 0 0 0 0 0 0 0 [...]
-Send 512 bytes: 0 0 0 0 0 0 0 0 [...]
-Success
-Command  8 0 0 53 2 0
-Send 512 bytes: 60 1A 0 0 B6 76 0 0 [...]
-Send 512 bytes: C 32 0 64 0 0 67 6 [...]
-Success
-Command  8 0 0 55 2 0
-Send 512 bytes: 77 6C 61 0 74 C2 1B 59 [...]
-Send 512 bytes: 8 2E 0 4 0 5 56 F9 [...]
-Success
-Command  8 0 0 57 2 0
-Send 512 bytes: 66 1E BE AA 0 C 66 18 [...]
-Send 512 bytes: 66 A 4A 39 0 0 0 1E [...]
-Success
-Command  8 0 0 59 2 0
-Send 512 bytes: 0 4 4E 75 41 F9 0 0 [...]
-Send 512 bytes: 0 0 20 BB 33 FC 0 15 [...]
-Success
-Command  8 0 0 5B 2 0
-Send 512 bytes: 20 20 20 20 20 20 20 20 [...]
-Send 512 bytes: 0 0 0 0 0 0 0 0 [...]
-Success
-Command  8 0 0 5D 2 0
-Send 512 bytes: 0 0 0 0 0 0 0 0 [...]
-Send 512 bytes: 0 0 0 0 0 0 0 0 [...]
-Success
-Command  8 0 0 5F 2 0
-Send 512 bytes: 0 0 0 0 0 0 0 0 [...]
-Send 512 bytes: 0 0 0 0 0 0 0 0 [...]
-Success
-Command  8 0 0 61 2 0
-Send 512 bytes: 0 0 0 0 0 0 0 0 [...]
-Send 512 bytes: 0 0 0 0 0 0 0 0 [...]
-Success
-Command  8 0 0 63 2 0
-Send 512 bytes: 0 0 0 0 0 0 0 0 [...]
-Send 512 bytes: 0 0 8B 16 13 F0 50 0 [...]
-Success
-Command  8 0 0 65 2 0
-Send 512 bytes: 61 0 A 2E 61 0 8 70 [...]
-Send 512 bytes: 26 40 C 39 0 A 0 0 [...]
-Success
-Command  8 0 0 67 2 0
-Send 512 bytes: 20 6 48 40 EB 48 13 C0 [...]
-Send 512 bytes: 0 0 8F 46 3F 3C 0 2 [...]
-Success
-Command  8 0 0 69 2 0
-Send 512 bytes: 48 79 0 0 2D 62 48 79 [...]
-Send 512 bytes: 0 2 23 C0 0 0 2E 10 [...]
-Success
-Command  8 0 0 6B 2 0
-Send 512 bytes: 13 FC 0 1 FF F0 0 D [...]
-Send 512 bytes: 0 0 31 2D 80 39 0 0 [...]
-Success
-Command  8 0 0 6D 2 0
-Send 512 bytes: 61 0 FA BA 4A 79 0 0 [...]
-Send 512 bytes: 67 40 41 F9 0 0 40 F6 [...]
-Success
-Command  8 0 0 6F 2 0
-Send 512 bytes: 13 E8 0 7 0 0 40 82 [...]
-Send 512 bytes: 33 7C 0 0 0 2E 33 7C [...]
-Success
-Command  8 0 0 71 2 0
-Send 512 bytes: 0 0 23 C8 0 0 3D 1C [...]
-Send 512 bytes: 61 0 0 B4 33 F9 0 0 [...]
-Success
-Command  8 0 0 73 2 0
-Send 512 bytes: 67 12 13 FC 0 24 0 0 [...]
-Send 512 bytes: 0 0 0 0 0 0 0 0 [...]
-Success
-Command  8 0 0 75 2 0
-Send 512 bytes: 0 0 0 0 0 0 0 0 [...]
-Send 512 bytes: 61 0 6 56 61 0 6 9E [...]
-Success
-Command  8 0 0 77 2 0
-Send 512 bytes: 0 6 67 0 0 4C 61 0 [...]
-Send 512 bytes: 0 0 61 0 2 78 4A 38 [...]
-Success
-Command  8 0 0 79 2 0
-Send 512 bytes: 22 79 0 0 4C D8 42 80 [...]
-Send 512 bytes: 0 0 0 0 0 0 0 0 [...]
-Success
-Command  8 0 0 7B 2 0
-Send 512 bytes: 0 C 33 FC 0 0 0 0 [...]
-Send 512 bytes: 20 80 4A 38 FA 1 4A 38 [...]
-Success
-Command  8 0 0 7D 2 0
-Send 512 bytes: 0 0 0 0 0 0 23 DF [...]
-Send 512 bytes: 20 39 0 0 61 68 61 0 [...]
-Success
-Command  8 0 0 7F 2 0
-Send 512 bytes: 20 3C 52 65 74 72 69 65 [...]
-Send 512 bytes: 0 0 0 0 0 0 0 0 [...]
-Success
-Command  8 0 0 81 2 0
-Send 512 bytes: 0 0 0 0 0 0 0 0 [...]
-Send 512 bytes: 0 0 0 0 0 0 0 0 [...]
-Success
-Command  8 0 0 83 2 0
-Send 512 bytes: 0 0 0 0 0 0 0 0 [...]
-Send 512 bytes: 17 7C 0 0 0 8 4A 2B [...]
-Success
-Command  8 0 0 85 2 0
-Send 512 bytes: 17 7C 0 2 0 4 17 7C [...]
-Send 512 bytes: 65 FE 33 DF 0 0 66 2 [...]
-Success
-Command  8 0 0 87 2 0
-Send 512 bytes: 20 20 20 20 20 20 20 20 [...]
-Send 512 bytes: C 39 0 5 0 0 8D 46 [...]
-Success
-Command  8 0 0 89 2 0
-Send 512 bytes: 0 0 0 0 0 0 0 0 [...]
-Send 512 bytes: 4A 38 FA 1 30 10 4A 38 [...]
-Success
-Command  8 0 0 8B 2 0
-Send 512 bytes: 71 69 4A 39 0 0 71 68 [...]
-Send 512 bytes: 0 6 0 4 67 0 0 74 [...]
-Success
-Command  8 0 0 8D 2 0
-Send 512 bytes: 93 46 42 80 22 3C 0 0 [...]
-Send 512 bytes: 0 0 23 C5 0 0 75 FC [...]
-Success
-Command  8 0 0 8F 2 0
-Send 512 bytes: 50 F9 0 0 B2 BA 4C F9 [...]
-Send 512 bytes: 0 0 0 0 0 0 0 0 [...]
-Success
-Command  8 0 0 91 2 0
-Send 512 bytes: 55 B9 0 0 7C 12 D3 F9 [...]
-Send 512 bytes: 61 0 5 D8 4A 39 0 0 [...]
-Success
-Command  8 0 0 93 2 0
-Send 512 bytes: 0 0 82 3F 61 0 3 8 [...]
-Send 512 bytes: 0 0 0 0 0 0 0 0 [...]
-Success
-Command  8 0 0 95 2 0
-Send 512 bytes: 42 39 0 0 84 5A 3F 3C [...]
-Send 512 bytes: 0 0 8C 9C 2E 1F 4A 79 [...]
-Success
-Command  8 0 0 97 2 0
-Send 512 bytes: 67 14 4E 7A 0 2 23 C0 [...]
-Send 512 bytes: 0 0 0 0 0 0 0 0 [...]
-Success
-Command  8 0 0 99 2 0
-Send 512 bytes: 0 0 0 0 0 0 0 0 [...]
-Send 512 bytes: 0 0 0 0 0 0 0 0 [...]
-Success
-Command  8 0 0 9B 2 0
-Send 512 bytes: 0 0 0 0 0 0 0 0 [...]
-Send 512 bytes: 0 0 0 0 0 0 0 0 [...]
-Success
-Command  8 0 0 9D 2 0
-Send 512 bytes: 0 0 0 0 0 0 0 0 [...]
-Send 512 bytes: 0 0 0 0 0 0 0 0 [...]
-Success
-Command  8 0 0 9F 2 0
-Send 512 bytes: 67 0 0 46 C 80 0 2 [...]
-Send 512 bytes: 58 8F C0 7C 0 20 33 C0 [...]
-Success
-Command  8 0 0 A1 2 0
-Send 512 bytes: 1 2 49 43 44 20 44 72 [...]
-Send 512 bytes: FA 1 8 38 0 5 FA 1 [...]
-Success
-Command  8 0 0 A3 2 0
-Send 512 bytes: 6E 0 0 88 B2 3C 0 62 [...]
-Send 512 bytes: C 79 0 1 0 0 74 8C [...]
-Success
-Command  8 0 0 A5 2 0
-Send 512 bytes: 20 20 20 20 20 20 20 20 [...]
-Send 512 bytes: 8D C 3F 3C 0 0 3F 3C [...]
-Success
-Command  8 0 0 A7 2 0
-Send 512 bytes: 60 0 0 84 61 0 D0 C0 [...]
-Send 512 bytes: 41 E8 FF F4 42 80 30 10 [...]
-Success
-Command  8 0 0 A9 2 0
-Send 512 bytes: B2 B0 67 8 4A 79 0 0 [...]
-Send 512 bytes: 0 0 7 FF FF 80 0 0 [...]
-Success
-Command  8 0 0 AB 2 0
-Send 512 bytes: FF FF FF FF C0 0 0 0 [...]
-Send 512 bytes: FE 3 FF FF FF FF E0 0 [...]
-Success
-Command  8 0 0 AD 2 0
-Send 512 bytes: 48 40 80 42 17 80 40 0 [...]
-Send 512 bytes: 0 8F 30 82 4A 38 FA 1 [...]
-Success
-Command  8 0 0 AF 2 0
-Send 512 bytes: 44 8 8 8 8 8 6 6 [...]
-Send 512 bytes: A 18 1 1 88 E 4 4 [...]
-Success
-Command  8 0 0 B1 2 0
-Send 512 bytes: 6 6 6 6 8 6 4 6 [...]
-Send 512 bytes: 1 95 4A 54 E0 F9 23 E7 [...]
-Success
-Command  0 0 0 0 0 0
-Initializing SD card 0
-Size: 30436MB - 62333952 blocks
-SD card is bootable
-Success
-Command  12 0 0 0 24 0
-Initializing SD card 0
-Size: 30436MB - 62333952 blocks
-SD card is bootable
-SD 0 ID ='ACSI2STM SD 0   29 GB v2.0'
-Send 36 bytes: 0 0 1 0 1F 0 0 0 [...]
-Success
-Command  0 0 0 0 0 0
-Initializing SD card 0
-Size: 30436MB - 62333952 blocks
-SD card is bootable
-Success
-Command  0 0 0 0 0 0
-Initializing SD card 0
-Size: 30436MB - 62333952 blocks
-SD card is bootable
-Success
-Command  8 0 0 0 1 0
-Send 512 bytes: 2F B 2F 3C 0 B FF FF [...]
-Success
-Command  8 0 0 2 1 0
-Send 512 bytes: 60 2C 49 43 44 49 4E 43 [...]
-Success
-Command  8 0 3E 91 1 0
-Send 512 bytes: 0 0 49 43 44 49 4E 43 [...]
-Success
-Command  8 1 2B 13 1 0
-Send 512 bytes: 0 0 49 43 44 49 4E 43 [...]
-Success
-Command  12 0 0 0 24 0
-Initializing SD card 4
-Size: 15193MB - 31116288 blocks
-SD 4 ID ='ACSI2STM SD 4   14 GB   v2.0'
-Send 36 bytes: 0 0 1 0 1F 0 0 0 [...]
-Success
-Command  0 0 0 0 0 0
-Initializing SD card 4
-Size: 15193MB - 31116288 blocks
-Success
-Command  0 0 0 0 0 0
-Initializing SD card 4
-Size: 15193MB - 31116288 blocks
-Success
-Command  8 0 0 0 1 0
-Send 512 bytes: 0 0 0 0 0 0 0 0 [...]
-Success
-Command  8 0 0 2 1 0
-Send 512 bytes: 0 0 49 43 44 49 4E 43 [...]
-Success
-Command  0 0 0 0 0 0
-Initializing SD card 0
-Size: 30436MB - 62333952 blocks
-SD card is bootable
-Success
-Command  8 0 0 43 1 0
-Send 512 bytes: 42 4F 4F 54 20 20 20 20 [...]
-Success
-Command  8 0 1 2F 1 0
-Send 512 bytes: 2E 20 20 20 20 20 20 20 [...]
-Success
-Command  8 0 1 67 1 0
-Send 512 bytes: 60 1A 0 0 89 70 0 0 [...]
-Success
-Command  8 0 1 68 1 0
-Send 512 bytes: 48 E7 18 38 4F EF FF D4 [...]
-Success
-Command  8 0 0 23 1 0
-Send 512 bytes: 0 0 0 0 3 0 4 0 [...]
-Success
-Command  8 0 1 69 50 0
-Send 512 bytes: 35 8C 4F EF 0 2C 4C DF [...]
-Send 512 bytes: A7 BE 30 2B 0 1C E4 48 [...]
-Send 512 bytes: 0 0 7B C8 20 4B 28 5F [...]
-Send 512 bytes: B9 D2 66 16 B7 D2 66 12 [...]
-Send 512 bytes: 32 2A 0 E 66 D6 20 A [...]
-Send 512 bytes: 4E BA FF 56 54 4F 24 5F [...]
-Send 512 bytes: 20 3C 0 0 2 0 4E B9 [...]
-Send 512 bytes: 22 2A 0 1E B2 AF 0 1E [...]
-Send 512 bytes: 0 0 2C 46 4F EF 0 10 [...]
-Send 512 bytes: 3F 1 2F B 4E B9 0 0 [...]
-Send 512 bytes: 0 0 B9 9A 42 67 4E B9 [...]
-Send 512 bytes: 43 D7 22 D8 22 D8 48 6F [...]
-Send 512 bytes: 22 4B 20 4C 4E B9 0 0 [...]
-Send 512 bytes: 32 3 48 C1 20 1 E5 88 [...]
-Send 512 bytes: 20 76 34 12 32 2A 0 2 [...]
-Send 512 bytes: 0 0 80 3E D0 43 20 4A [...]
-Send 512 bytes: 26 38 3A 80 B0 6D 0 2 [...]
-Send 512 bytes: 3F 40 0 6 41 D7 43 EA [...]
-Send 512 bytes: 3F 2 34 6 48 C2 20 2 [...]
-Send 512 bytes: 66 0 1 D4 20 4B 4E BA [...]
-Send 512 bytes: 0 20 95 CA 70 FF D0 43 [...]
-Send 512 bytes: E7 89 4E B9 0 0 80 BA [...]
-Send 512 bytes: 0 16 66 0 FF 50 4A 44 [...]
-Send 512 bytes: 8 10 22 4B 22 D8 22 D8 [...]
-Send 512 bytes: 6F 4 78 1 60 2 42 44 [...]
-Send 512 bytes: 22 72 18 C 33 6B 0 A6 [...]
-Send 512 bytes: 42 A8 0 8 26 5F 24 5F [...]
-Send 512 bytes: 0 10 20 4B 4E B9 0 0 [...]
-Send 512 bytes: 33 C0 0 0 AA 26 32 3 [...]
-Send 512 bytes: C0 7C 0 3F EB 48 32 3 [...]
-Send 512 bytes: 21 69 0 8 0 8 21 69 [...]
-Send 512 bytes: 4E B9 0 0 57 2A 60 3A [...]
-Send 512 bytes: 52 40 B0 7C 0 A 6D EE [...]
-Send 512 bytes: A7 8C 66 18 41 F9 0 0 [...]
-Send 512 bytes: 6A 20 5C 4F 4E 75 48 E7 [...]
-Send 512 bytes: 0 0 F 48 50 4F 4E 75 [...]
-Send 512 bytes: 38 2 35 52 0 2 24 5F [...]
-Send 512 bytes: 70 4 4E B9 0 0 4F 3C [...]
-Send 512 bytes: 67 4 30 3 60 12 70 20 [...]
-Send 512 bytes: 4F EF 0 12 4C DF 1C 8 [...]
-Send 512 bytes: 31 B4 0 0 18 0 52 55 [...]
-Send 512 bytes: 67 16 74 3 22 4D 42 41 [...]
-Send 512 bytes: D0 3C 0 30 13 40 0 3 [...]
-Send 512 bytes: 42 7E 5C 4F 38 0 52 40 [...]
-Send 512 bytes: 0 0 7A 34 4E B9 0 0 [...]
-Send 512 bytes: 43 F9 0 0 A0 18 20 4A [...]
-Send 512 bytes: 34 12 72 8 42 40 20 4B [...]
-Send 512 bytes: 7 72 4A 40 66 50 4E B9 [...]
-Send 512 bytes: 0 18 48 79 0 0 B3 7A [...]
-Send 512 bytes: 0 C 3F 68 0 6 0 E [...]
-Send 512 bytes: 0 0 7E 22 70 0 4C DF [...]
-Send 512 bytes: 4E B9 0 0 84 82 60 F6 [...]
-Send 512 bytes: 0 0 A5 B0 67 C 20 4A [...]
-Send 512 bytes: 22 D8 42 40 43 D7 41 EF [...]
-Send 512 bytes: 20 6F 0 5E 22 70 18 0 [...]
-Send 512 bytes: 42 47 60 6 7E FF DE 6F [...]
-Send 512 bytes: 0 8 42 6E 0 A 3D 6E [...]
-Send 512 bytes: 7A A2 52 43 B6 7C 0 2 [...]
-Send 512 bytes: 0 DE 37 1C 37 14 25 6F [...]
-Send 512 bytes: 0 0 BB 2E 24 D8 24 D8 [...]
-Send 512 bytes: 67 4 4A 18 66 E0 53 48 [...]
-Send 512 bytes: 66 F0 60 AC 72 10 B0 81 [...]
-Send 512 bytes: 7F 7E 48 E0 7F 7E 48 E0 [...]
-Send 512 bytes: 54 4F 4E 75 3F 3C 0 4F [...]
-Send 512 bytes: 41 F9 0 0 BC 26 22 6F [...]
-Send 512 bytes: 33 C0 0 0 BB 26 70 4E [...]
-Send 512 bytes: 0 0 0 0 0 0 0 0 [...]
-Send 512 bytes: 20 20 20 20 20 20 20 20 [...]
-Send 512 bytes: FF FF FF FF FF FF FF FF [...]
-Send 512 bytes: 80 7 D0 1 80 2E 10 1 [...]
-Send 512 bytes: 80 1 90 0 C 0 B0 D [...]
-Send 512 bytes: 0 0 FF FF 0 19 0 19 [...]
-Send 512 bytes: 0 2 0 0 6 C 0 1 [...]
-Send 512 bytes: 0 19 FF FF FF FF 0 14 [...]
-Send 512 bytes: 0 5 0 0 0 0 0 24 [...]
-Send 512 bytes: 0 0 5 2 0 5 0 1 [...]
-Send 512 bytes: 0 11 FF FF FF FF 0 15 [...]
-Send 512 bytes: 31 32 20 48 6F 75 72 0 [...]
-Send 512 bytes: 5F 5F 5F 5F 5F 5F 5F 5F [...]
-Send 512 bytes: 0 0 A2 6E 0 0 A2 91 [...]
-Success
-Command  8 0 1 B9 1 0
-Send 512 bytes: 4F 4B 20 5D 0 5B 31 5D [...]
-Success
-Command  8 0 1 BA 1 0
-Send 512 bytes: A7 49 0 0 A7 4B 0 0 [...]
-Success
-Command  8 0 1 BB 2 0
-Send 512 bytes: 22 10 C 6 16 A 8 22 [...]
-Send 512 bytes: C6 12 12 C 12 6 24 C [...]
-Success
-Command  8 0 1 BD 1 0
-Send 512 bytes: C E 1A C 1A A C 6 [...]
-Success
-Command  8 0 1 BE 1 0
-Send 512 bytes: 4 4 4 4 4 4 4 4 [...]
-Success
-Command  8 0 0 44 1 0
-Send 512 bytes: 45 44 48 41 4B 5F 32 30 [...]
-Success
-Command  8 0 3 AB 1 0
-Send 512 bytes: 60 1A 0 0 EC 8 0 0 [...]
-Success
-Command  8 0 3 AC 1 0
-Send 512 bytes: 36 2C 31 39 38 37 2E 20 [...]
-Success
-Command  8 0 0 24 1 0
-Send 512 bytes: 0 0 0 0 0 0 0 0 [...]
-Success
-Command  8 0 3 AD 74 0
-Send 512 bytes: 0 E 0 0 F2 DE 33 EE [...]
-Send 512 bytes: 4E 5E 4E 75 4E 56 0 0 [...]
-Send 512 bytes: 0 14 48 54 61 0 FE D4 [...]
-Send 512 bytes: 67 28 16 33 0 0 18 31 [...]
-Send 512 bytes: 0 0 F3 30 3A 39 0 0 [...]
-Send 512 bytes: 0 0 EF 64 33 EE 0 C [...]
-Send 512 bytes: F2 D6 23 EE 0 8 0 0 [...]
-Send 512 bytes: 50 8F 33 EE 0 8 0 0 [...]
-Send 512 bytes: 58 8F 4C DF 6 6 2A 0 [...]
-Send 512 bytes: 6 6 52 79 0 0 F3 44 [...]
-Send 512 bytes: F3 6C 33 EE 0 A 0 0 [...]
-Send 512 bytes: 23 F9 0 0 F7 98 0 0 [...]
-Send 512 bytes: FF F4 3A 39 0 0 F7 2A [...]
-Send 512 bytes: 3A 39 0 0 F7 22 9A 79 [...]
-Send 512 bytes: 0 0 F7 5A BA 79 0 0 [...]
-Send 512 bytes: 3F 39 0 0 F7 56 1F 3C [...]
-Send 512 bytes: 42 45 48 45 DA B9 0 0 [...]
-Send 512 bytes: 4E FA 0 8 53 79 0 0 [...]
-Send 512 bytes: 3A 2E FF FE BA 79 0 0 [...]
-Send 512 bytes: 0 8 3D 54 FF F6 3A 2E [...]
-Send 512 bytes: 60 0 FF 1A 3A 2E FF F2 [...]
-Send 512 bytes: FF FE 48 45 42 45 48 45 [...]
-Send 512 bytes: 52 45 28 6E FF E2 38 85 [...]
-Send 512 bytes: 28 6E FF E2 3A 39 0 0 [...]
-Send 512 bytes: 3D 79 0 0 F7 20 FF FE [...]
-Send 512 bytes: 54 8F 28 79 0 0 F7 78 [...]
-Send 512 bytes: 0 0 F7 24 52 B9 0 0 [...]
-Send 512 bytes: FF FE 3F 5 3F 39 0 0 [...]
-Send 512 bytes: 42 79 0 0 F7 18 1F 3C [...]
-Send 512 bytes: 62 3A A0 9 55 8F 3F 3C [...]
-Send 512 bytes: 18 BC 0 20 3D 7C 0 1 [...]
-Send 512 bytes: F7 2E BA 79 0 0 F7 1E [...]
-Send 512 bytes: 0 8 4E 5E 4E 75 3F 39 [...]
-Send 512 bytes: 0 0 F3 7E 4E B9 0 0 [...]
-Send 512 bytes: 0 0 F3 4E BA AE FF FC [...]
-Send 512 bytes: 0 3 FF FC 66 DA 3A 2E [...]
-Send 512 bytes: 33 DF 0 0 F3 48 A0 A [...]
-Send 512 bytes: 42 A7 3F 2E FF FE 1F 3C [...]
-Send 512 bytes: 51 FE 47 F9 0 0 F8 1C [...]
-Send 512 bytes: 47 29 5D 5B 20 4F 4B 20 [...]
-Send 512 bytes: 2D 2D 2D 2D 2D 0 20 20 [...]
-Send 512 bytes: 54 0 48 45 58 0 44 45 [...]
-Send 512 bytes: 0 1A 0 44 0 0 0 0 [...]
-Send 512 bytes: 11 0 0 0 0 0 0 1E [...]
-Send 512 bytes: F8 3C 28 79 0 0 F8 4C [...]
-Send 512 bytes: 50 0 66 6 52 6E FF FE [...]
-Send 512 bytes: 42 79 0 0 F7 24 42 79 [...]
-Send 512 bytes: 47 F9 0 0 F9 6C 7A D [...]
-Send 512 bytes: 48 79 0 0 F8 82 3F 3C [...]
-Send 512 bytes: F7 88 23 C5 0 0 F7 78 [...]
-Send 512 bytes: 0 0 8 D6 4F EF 0 A [...]
-Send 512 bytes: FA 1C B0 57 63 4 4E FA [...]
-Send 512 bytes: 0 0 F7 2E 0 0 F3 7A [...]
-Send 512 bytes: 3A 39 0 0 FA 42 DA 79 [...]
-Send 512 bytes: 60 CC 4A 2E 0 8 67 26 [...]
-Send 512 bytes: 3F 3C 0 3A 48 79 0 0 [...]
-Send 512 bytes: FF FE 4E B9 0 0 A 54 [...]
-Send 512 bytes: FA 40 66 8 42 2E 0 A [...]
-Send 512 bytes: 0 E 4A 1F 66 A 4E B9 [...]
-Send 512 bytes: 0 0 F8 2A DA AE FF F4 [...]
-Send 512 bytes: C 79 8 0 0 0 FA 2A [...]
-Send 512 bytes: FF F3 C 79 0 1 0 0 [...]
-Send 512 bytes: 4E 56 0 0 33 FC 0 1 [...]
-Send 512 bytes: 65 10 3A 39 0 0 FA 2C [...]
-Send 512 bytes: F3 7E 64 12 3A 39 0 0 [...]
-Send 512 bytes: 0 1 4E B9 0 0 17 48 [...]
-Send 512 bytes: 28 79 0 0 FA 14 39 79 [...]
-Send 512 bytes: 38 BC FF FF 4E FA 0 36 [...]
-Send 512 bytes: 5C 8F 3A 39 0 0 FA 1E [...]
-Send 512 bytes: 0 2 4E B9 0 0 15 F0 [...]
-Send 512 bytes: 48 79 0 0 E2 6E 4E B9 [...]
-Send 512 bytes: 50 8F 33 DF 0 0 FA 40 [...]
-Send 512 bytes: 5C 8F 3A 1F 52 45 3F 5 [...]
-Send 512 bytes: 0 0 F7 84 FF DE 42 6E [...]
-Send 512 bytes: 4E B9 0 0 52 1A 4F EF [...]
-Send 512 bytes: 0 94 3A 39 0 0 FA 1E [...]
-Send 512 bytes: 3F 3C 0 1 3F 3C 0 16 [...]
-Send 512 bytes: 0 0 F7 24 3A 39 0 0 [...]
-Send 512 bytes: 93 6E 4F EF 0 A 55 8F [...]
-Send 512 bytes: 7A 0 3A 2E FF FE DA AE [...]
-Send 512 bytes: 0 0 93 FA 4F EF 0 A [...]
-Send 512 bytes: 66 A 4E B9 0 0 5F CE [...]
-Send 512 bytes: 66 8 42 2E 0 A 4E 5E [...]
-Send 512 bytes: FF E8 4A 6E FF E8 67 24 [...]
-Send 512 bytes: 48 79 0 0 F8 7C 42 27 [...]
-Send 512 bytes: 0 2 48 79 0 0 E9 1E [...]
-Send 512 bytes: FF EC 48 6E FF F8 48 6E [...]
-Send 512 bytes: 13 FC 0 1 0 0 F3 87 [...]
-Send 512 bytes: 0 A 67 32 4A 79 0 0 [...]
-Send 512 bytes: 42 2E FF C0 42 2E FF C1 [...]
-Send 512 bytes: 58 8F 4E FA 1 CE 28 6E [...]
-Send 512 bytes: 66 A 4E B9 0 0 23 A4 [...]
-Send 512 bytes: 4E FA 0 52 C 6E 40 0 [...]
-Send 512 bytes: FF FC 4E FA 0 16 49 F9 [...]
-Send 512 bytes: 67 A 4A 79 0 0 F7 24 [...]
-Send 512 bytes: C 6E 50 32 0 8 66 30 [...]
-Send 512 bytes: BA 79 0 0 F7 5A 6C 22 [...]
-Send 512 bytes: 4F EF 0 C 3A 2E 0 8 [...]
-Send 512 bytes: F7 14 0 0 F7 1C 42 27 [...]
-Send 512 bytes: 2 7A 4E FA 2 1E 55 8F [...]
-Send 512 bytes: 0 0 10 AC 50 8F 33 DF [...]
-Send 512 bytes: 0 0 15 F0 58 8F 4E 5E [...]
-Send 512 bytes: 0 0 FA F0 3F 39 0 0 [...]
-Send 512 bytes: 2 BE 2 BE 2 BE 2 BE [...]
-Send 512 bytes: 0 E4 55 8F 1F 3C 0 1 [...]
-Send 512 bytes: 0 0 FA 1C 42 79 0 0 [...]
-Send 512 bytes: D4 EA 4A 1F 67 16 4E B9 [...]
-Send 512 bytes: 0 0 4F 46 46 5D 0 0 [...]
-Send 512 bytes: 61 74 65 5D 5B 20 4F 4B [...]
-Send 512 bytes: 75 66 66 65 72 3A 7C 46 [...]
-Send 512 bytes: 69 6E 73 65 72 74 20 6D [...]
-Send 512 bytes: 20 3D 20 53 61 76 65 20 [...]
-Send 512 bytes: 69 67 20 48 61 72 76 65 [...]
-Send 512 bytes: 5B 32 5D 5B 20 20 20 46 [...]
-Send 512 bytes: 6C 6F 63 6B 20 74 6F 20 [...]
-Send 512 bytes: 20 66 72 6F 6D 20 41 43 [...]
-Success
-Command  8 0 4 21 1 0
-Send 512 bytes: 20 42 6F 78 20 37 31 35 [...]
-Success
-Command  8 0 4 22 1 0
-Send 512 bytes: 6 C 6 C 6 A 8 10 [...]
-Success
-Command  8 0 4 23 6 0
-Send 512 bytes: 8 6 C 6 6 A 8 8 [...]
-Send 512 bytes: 1A 8 24 A 18 6 E 16 [...]
-Send 512 bytes: 14 12 20 A 6 A 6 6 [...]
-Send 512 bytes: 6 8 A A 6 C 6 6 [...]
-Send 512 bytes: E A 16 24 A 1C A C [...]
-Send 512 bytes: 16 8 12 10 30 18 16 6 [...]
-Success
-Command  8 0 4 29 1 0
-Send 512 bytes: 8 A C A 6 8 A A [...]
-Success
-Command  8 0 4 2B 1 0
-Send 512 bytes: 60 1A 0 0 14 54 0 0 [...]
-Success
-Command  8 0 4 2C 1 0
-Send 512 bytes: 0 0 15 B0 20 40 E1 E8 [...]
-Success
-Command  8 0 4 2D C 0
-Send 512 bytes: 4E 5E 4E 75 4E 56 FF F8 [...]
-Send 512 bytes: 0 0 15 B0 4E B9 0 0 [...]
-Send 512 bytes: 0 1 D3 C9 D3 FC 0 0 [...]
-Send 512 bytes: 0 1 0 A 10 39 0 0 [...]
-Send 512 bytes: 5C 8F 3F 3C 0 2 3F 3C [...]
-Send 512 bytes: 4E 75 4E 56 FF FC 33 FC [...]
-Send 512 bytes: 4E 5E 4E 75 4E 56 FF FC [...]
-Send 512 bytes: 30 B9 0 0 2A 6 20 6E [...]
-Send 512 bytes: 4E 5E 4E 75 4E 56 FF FC [...]
-Send 512 bytes: FF FF 0 1C 0 0 0 0 [...]
-Send 512 bytes: 0 0 1A A6 0 0 0 0 [...]
-Send 512 bytes: 65 6D 75 6C 61 74 6F 72 [...]
-Success
-Command  8 0 4 39 1 0
-Send 512 bytes: 6F 20 72 65 74 75 72 6E [...]
-Success
-Command  8 0 4 3A 1 0
-Send 512 bytes: 18 18 18 30 18 30 18 30 [...]
-Success
-Command  8 0 0 B3 1 0
-Send 512 bytes: 23 61 30 30 30 30 30 30 [...]
-Success
-Command  8 0 0 B4 1 0
-Send 512 bytes: 41 50 50 40 20 40 20 D [...]
-Success
-Command  8 0 1 65 1 0
-Send 512 bytes: 41 3A 5C 43 50 58 5C 2A [...]
-Success
-Command  8 0 3F 7E 1 0
-Send 512 bytes: 50 52 4F 47 52 41 4D 53 [...]
-Success
+[+8]Device 0 command 8 [<0][<0][<0][<1][<0](6 bytes): 8 0 0 0 1 0
+Read 1 blocks starting at 0
+DMA send (512 bytes): 2F B 2F 3C 0 B FF FF 4E 4D 58 8F 8 0 0 3 [...]
+Send OK
+[>0]Success
+[+8]Device 0 command 8 [<0][<0][<2][<1][<0](6 bytes): 8 0 0 2 1 0
+Read 1 blocks starting at 2
+DMA send (512 bytes): 60 2C 49 43 44 49 4E 43 3 2A EB 0 2 2 1 0 [...]
+Send OK
+[>0]Success
+[+8]Device 0 command 8 [<0][<0][<23][<1][<0](6 bytes): 8 0 0 23 1 0
+Read 1 blocks starting at 23
+DMA send (512 bytes): 49 43 44 42 4F 4F 54 20 53 59 53 20 0 0 0 0 [...]
+Send OK
+[>0]Success
+[+8]Device 0 command 8 [<0][<0][<3][<10][<0](6 bytes): 8 0 0 3 10 0
+Read 16 blocks starting at 3
+DMA send (512 bytes): 0 0 0 0 3 0 4 0 5 0 6 0 7 0 8 0 [...]
+Send OK
+DMA send (512 bytes): 1 1 2 1 3 1 4 1 5 1 6 1 7 1 8 1 [...]
+Send OK
+DMA send (512 bytes): 1 2 2 2 3 2 4 2 5 2 6 2 7 2 8 2 [...]
+Send OK
+DMA send (512 bytes): 1 3 2 3 3 3 4 3 5 3 6 3 7 3 8 3 [...]
+Send OK
+DMA send (512 bytes): 1 4 2 4 3 4 4 4 5 4 6 4 FF FF 8 4 [...]
+Send OK
+DMA send (512 bytes): 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 [...]
+Send OK
+DMA send (512 bytes): 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 [...]
+Send OK
+DMA send (512 bytes): 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 [...]
+Send OK
+DMA send (512 bytes): 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 [...]
+Send OK
+DMA send (512 bytes): 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 [...]
+Send OK
+DMA send (512 bytes): 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 [...]
+Send OK
+DMA send (512 bytes): 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 [...]
+Send OK
+DMA send (512 bytes): 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 [...]
+Send OK
+DMA send (512 bytes): 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 [...]
+Send OK
+DMA send (512 bytes): 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 [...]
+Send OK
+DMA send (512 bytes): 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 [...]
+Send OK
+[>0]Success
+[+8]Device 0 command 8 [<0][<0][<33][<2][<0](6 bytes): 8 0 0 33 2 0
+Read 2 blocks starting at 33
+DMA send (512 bytes): 60 1A 0 0 B6 76 0 0 0 0 0 0 4 1E 0 0 [...]
+Send OK
+DMA send (512 bytes): C 32 0 64 0 0 67 6 4A 32 0 0 6A 1C 3F 0 [...]
+Send OK
+[>0]Success
+[+8]Device 0 command 8 [<0][<0][<35][<2][<0](6 bytes): 8 0 0 35 2 0
+Read 2 blocks starting at 35
+DMA send (512 bytes): 77 6C 61 0 74 C2 1B 59 20 5C 3C 4D 53 65 6E 73 [...]
+Send OK
+DMA send (512 bytes): 8 2E 0 4 0 5 56 F9 0 0 8C 9B 61 0 0 36 [...]
+Send OK
+[>0]Success
+[+8]Device 0 command 8 [<0][<0][<37][<2][<0](6 bytes): 8 0 0 37 2 0
+Read 2 blocks starting at 37
+DMA send (512 bytes): 66 1E BE AA 0 C 66 18 20 7 90 AA 0 8 B0 79 [...]
+Send OK
+DMA send (512 bytes): 66 A 4A 39 0 0 0 1E 66 0 0 62 20 3C 0 0 [...]
+Send OK
+[>0]Success
+[+8]Device 0 command 8 [<0][<0][<39][<2][<0](6 bytes): 8 0 0 39 2 0
+Read 2 blocks starting at 39
+DMA send (512 bytes): 0 4 4E 75 41 F9 0 0 8C 8A 23 C8 0 0 8C 8A [...]
+Send OK
+DMA send (512 bytes): 0 0 20 BB 33 FC 0 15 0 0 20 C2 D0 7C 0 20 [...]
+Send OK
+[>0]Success
+[+8]Device 0 command 8 [<0][<0][<3B][<2][<0](6 bytes): 8 0 0 3B 2 0
+Read 2 blocks starting at 3B
+DMA send (512 bytes): 20 20 20 20 20 20 20 20 20 20 1 2 1B 59 20 5C [...]
+Send OK
+DMA send (512 bytes): 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 [...]
+Send OK
+[>0]Success
+[+8]Device 0 command 8 [<0][<0][<3D][<2][<0](6 bytes): 8 0 0 3D 2 0
+Read 2 blocks starting at 3D
+DMA send (512 bytes): 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 [...]
+Send OK
+DMA send (512 bytes): 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 [...]
+Send OK
+[>0]Success
+[+8]Device 0 command 8 [<0][<0][<3F][<2][<0](6 bytes): 8 0 0 3F 2 0
+Read 2 blocks starting at 3F
+DMA send (512 bytes): 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 [...]
+Send OK
+DMA send (512 bytes): 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 [...]
+Send OK
+[>0]Success
+[+8]Device 0 command 8 [<0][<0][<41][<2][<0](6 bytes): 8 0 0 41 2 0
+Read 2 blocks starting at 41
+DMA send (512 bytes): 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 [...]
+Send OK
+DMA send (512 bytes): 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 [...]
+Send OK
+[>0]Success
+[+8]Device 0 command 8 [<0][<0][<43][<2][<0](6 bytes): 8 0 0 43 2 0
+Read 2 blocks starting at 43
+DMA send (512 bytes): 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 [...]
+Send OK
+DMA send (512 bytes): 0 0 8B 16 13 F0 50 0 0 0 5 3C 13 F1 50 0 [...]
+Send OK
+[>0]Success
+[+8]Device 0 command 8 [<0][<0][<45][<2][<0](6 bytes): 8 0 0 45 2 0
+Read 2 blocks starting at 45
+DMA send (512 bytes): 61 0 A 2E 61 0 8 70 4A 40 4E 75 20 6 13 C0 [...]
+Send OK
+DMA send (512 bytes): 26 40 C 39 0 A 0 0 5 3C 6D 18 4 39 0 1 [...]
+Send OK
+[>0]Success
+[+8]Device 0 command 8 [<0][<0][<47][<2][<0](6 bytes): 8 0 0 47 2 0
+Read 2 blocks starting at 47
+DMA send (512 bytes): 20 6 48 40 EB 48 13 C0 0 0 27 A5 3F 6 4A 39 [...]
+Send OK
+DMA send (512 bytes): 0 0 8F 46 3F 3C 0 2 3F 3C 0 1 2F 3C 0 0 [...]
+Send OK
+[>0]Success
+[+8]Device 0 command 8 [<0][<0][<49][<2][<0](6 bytes): 8 0 0 49 2 0
+Read 2 blocks starting at 49
+DMA send (512 bytes): 48 79 0 0 2D 62 48 79 0 0 8F 46 3F 3C 0 0 [...]
+Send OK
+DMA send (512 bytes): 0 2 23 C0 0 0 2E 10 20 3C 0 0 8 8 4E 7B [...]
+Send OK
+[>0]Success
+[+8]Device 0 command 8 [<0][<0][<4B][<2][<0](6 bytes): 8 0 0 4B 2 0
+Read 2 blocks starting at 4B
+DMA send (512 bytes): 13 FC 0 1 FF F0 0 D 13 FC 0 0 FF F0 0 11 [...]
+Send OK
+DMA send (512 bytes): 0 0 31 2D 80 39 0 0 40 8D 13 C0 FF F0 0 19 [...]
+Send OK
+[>0]Success
+[+8]Device 0 command 8 [<0][<0][<4D][<2][<0](6 bytes): 8 0 0 4D 2 0
+Read 2 blocks starting at 4D
+DMA send (512 bytes): 61 0 FA BA 4A 79 0 0 40 64 66 4 70 FF 4E 75 [...]
+Send OK
+DMA send (512 bytes): 67 40 41 F9 0 0 40 F6 10 FC 0 0 10 FC 0 0 [...]
+Send OK
+[>0]Success
+[+8]Device 0 command 8 [<0][<0][<4F][<2][<0](6 bytes): 8 0 0 4F 2 0
+Read 2 blocks starting at 4F
+DMA send (512 bytes): 13 E8 0 7 0 0 40 82 13 E8 0 8 0 0 40 83 [...]
+Send OK
+DMA send (512 bytes): 33 7C 0 0 0 2E 33 7C 0 0 0 22 33 7C 0 0 [...]
+Send OK
+[>0]Success
+[+8]Device 0 command 8 [<0][<0][<51][<2][<0](6 bytes): 8 0 0 51 2 0
+Read 2 blocks starting at 51
+DMA send (512 bytes): 0 0 23 C8 0 0 3D 1C 13 C0 0 0 3C 31 E0 98 [...]
+Send OK
+DMA send (512 bytes): 61 0 0 B4 33 F9 0 0 3D F6 0 0 40 82 4A 40 [...]
+Send OK
+[>0]Success
+[+8]Device 0 command 8 [<0][<0][<53][<2][<0](6 bytes): 8 0 0 53 2 0
+Read 2 blocks starting at 53
+DMA send (512 bytes): 67 12 13 FC 0 24 0 0 40 85 13 FC 0 6 0 0 [...]
+Send OK
+DMA send (512 bytes): 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 [...]
+Send OK
+[>0]Success
+[+8]Device 0 command 8 [<0][<0][<55][<2][<0](6 bytes): 8 0 0 55 2 0
+Read 2 blocks starting at 55
+DMA send (512 bytes): 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 [...]
+Send OK
+DMA send (512 bytes): 61 0 6 56 61 0 6 9E 36 3C 0 0 61 0 6 56 [...]
+Send OK
+[>0]Success
+[+8]Device 0 command 8 [<0][<0][<57][<2][<0](6 bytes): 8 0 0 57 2 0
+Read 2 blocks starting at 57
+DMA send (512 bytes): 0 6 67 0 0 4C 61 0 4 CC 8 3 0 5 67 DE [...]
+Send OK
+DMA send (512 bytes): 0 0 61 0 2 78 4A 38 FA 1 4A 38 FA 1 4A 38 [...]
+Send OK
+[>0]Success
+[+8]Device 0 command 8 [<0][<0][<59][<2][<0](6 bytes): 8 0 0 59 2 0
+Read 2 blocks starting at 59
+DMA send (512 bytes): 22 79 0 0 4C D8 42 80 10 39 0 0 4C DD 12 D8 [...]
+Send OK
+DMA send (512 bytes): 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 [...]
+Send OK
+[>0]Success
+[+8]Device 0 command 8 [<0][<0][<5B][<2][<0](6 bytes): 8 0 0 5B 2 0
+Read 2 blocks starting at 5B
+DMA send (512 bytes): 0 C 33 FC 0 0 0 0 53 A2 23 D7 0 0 4F E [...]
+Send OK
+DMA send (512 bytes): 20 80 4A 38 FA 1 4A 38 FA 1 4A 38 FA 1 4A 38 [...]
+Send OK
+[>0]Success
+[+8]Device 0 command 8 [<0][<0][<5D][<2][<0](6 bytes): 8 0 0 5D 2 0
+Read 2 blocks starting at 5D
+DMA send (512 bytes): 0 0 0 0 0 0 23 DF 0 0 55 4C 61 0 0 1C [...]
+Send OK
+DMA send (512 bytes): 20 39 0 0 61 68 61 0 24 80 61 0 22 BA 3E 0 [...]
+Send OK
+[>0]Success
+[+8]Device 0 command 8 [<0][<0][<5F][<2][<0](6 bytes): 8 0 0 5F 2 0
+Read 2 blocks starting at 5F
+DMA send (512 bytes): 20 3C 52 65 74 72 69 65 73 3A 20 24 0 0 20 39 [...]
+Send OK
+DMA send (512 bytes): 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 [...]
+Send OK
+[>0]Success
+[+8]Device 0 command 8 [<0][<0][<61][<2][<0](6 bytes): 8 0 0 61 2 0
+Read 2 blocks starting at 61
+DMA send (512 bytes): 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 [...]
+Send OK
+DMA send (512 bytes): 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 [...]
+Send OK
+[>0]Success
+[+8]Device 0 command 8 [<0][<0][<63][<2][<0](6 bytes): 8 0 0 63 2 0
+Read 2 blocks starting at 63
+DMA send (512 bytes): 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 [...]
+Send OK
+DMA send (512 bytes): 17 7C 0 0 0 8 4A 2B 0 E 17 7C 0 0 0 4 [...]
+Send OK
+[>0]Success
+[+8]Device 0 command 8 [<0][<0][<65][<2][<0](6 bytes): 8 0 0 65 2 0
+Read 2 blocks starting at 65
+DMA send (512 bytes): 17 7C 0 2 0 4 17 7C 0 0 0 E 39 7C 0 0 [...]
+Send OK
+DMA send (512 bytes): 65 FE 33 DF 0 0 66 2 13 F9 0 0 66 3 0 0 [...]
+Send OK
+[>0]Success
+[+8]Device 0 command 8 [<0][<0][<67][<2][<0](6 bytes): 8 0 0 67 2 0
+Read 2 blocks starting at 67
+DMA send (512 bytes): 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 [...]
+Send OK
+DMA send (512 bytes): C 39 0 5 0 0 8D 46 67 16 20 39 0 0 0 4 [...]
+Send OK
+[>0]Success
+[+8]Device 0 command 8 [<0][<0][<69][<2][<0](6 bytes): 8 0 0 69 2 0
+Read 2 blocks starting at 69
+DMA send (512 bytes): 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 [...]
+Send OK
+DMA send (512 bytes): 4A 38 FA 1 30 10 4A 38 FA 1 4A 38 FA 1 4A 38 [...]
+Send OK
+[>0]Success
+[+8]Device 0 command 8 [<0][<0][<6B][<2][<0](6 bytes): 8 0 0 6B 2 0
+Read 2 blocks starting at 6B
+DMA send (512 bytes): 71 69 4A 39 0 0 71 68 67 6E 20 2C 1 C6 C0 BC [...]
+Send OK
+DMA send (512 bytes): 0 6 0 4 67 0 0 74 C 2C 0 51 0 4 67 0 [...]
+Send OK
+[>0]Success
+[+8]Device 0 command 8 [<0][<0][<6D][<2][<0](6 bytes): 8 0 0 6D 2 0
+Read 2 blocks starting at 6D
+DMA send (512 bytes): 93 46 42 80 22 3C 0 0 0 FF D0 5C 51 C9 FF FC [...]
+Send OK
+DMA send (512 bytes): 0 0 23 C5 0 0 75 FC 3A 1 33 C5 0 0 76 2 [...]
+Send OK
+[>0]Success
+[+8]Device 0 command 8 [<0][<0][<6F][<2][<0](6 bytes): 8 0 0 6F 2 0
+Read 2 blocks starting at 6F
+DMA send (512 bytes): 50 F9 0 0 B2 BA 4C F9 7F FF 0 0 95 86 42 80 [...]
+Send OK
+DMA send (512 bytes): 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 [...]
+Send OK
+[>0]Success
+[+8]Device 0 command 8 [<0][<0][<71][<2][<0](6 bytes): 8 0 0 71 2 0
+Read 2 blocks starting at 71
+DMA send (512 bytes): 55 B9 0 0 7C 12 D3 F9 0 0 7C 12 13 E9 0 1 [...]
+Send OK
+DMA send (512 bytes): 61 0 5 D8 4A 39 0 0 82 45 67 0 0 1C 42 39 [...]
+Send OK
+[>0]Success
+[+8]Device 0 command 8 [<0][<0][<73][<2][<0](6 bytes): 8 0 0 73 2 0
+Read 2 blocks starting at 73
+DMA send (512 bytes): 0 0 82 3F 61 0 3 8 4A 39 0 0 82 3F 67 0 [...]
+Send OK
+DMA send (512 bytes): 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 [...]
+Send OK
+[>0]Success
+[+8]Device 0 command 8 [<0][<0][<75][<2][<0](6 bytes): 8 0 0 75 2 0
+Read 2 blocks starting at 75
+DMA send (512 bytes): 42 39 0 0 84 5A 3F 3C 0 2 3F 3C 0 1 4E 4D [...]
+Send OK
+DMA send (512 bytes): 0 0 8C 9C 2E 1F 4A 79 0 0 8C FC 67 0 0 E [...]
+Send OK
+[>0]Success
+[+8]Device 0 command 8 [<0][<0][<77][<2][<0](6 bytes): 8 0 0 77 2 0
+Read 2 blocks starting at 77
+DMA send (512 bytes): 67 14 4E 7A 0 2 23 C0 0 0 88 B0 20 3C 0 0 [...]
+Send OK
+DMA send (512 bytes): 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 [...]
+Send OK
+[>0]Success
+[+8]Device 0 command 8 [<0][<0][<79][<2][<0](6 bytes): 8 0 0 79 2 0
+Read 2 blocks starting at 79
+DMA send (512 bytes): 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 [...]
+Send OK
+DMA send (512 bytes): 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 [...]
+Send OK
+[>0]Success
+[+8]Device 0 command 8 [<0][<0][<7B][<2][<0](6 bytes): 8 0 0 7B 2 0
+Read 2 blocks starting at 7B
+DMA send (512 bytes): 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 [...]
+Send OK
+DMA send (512 bytes): 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 [...]
+Send OK
+[>0]Success
+[+8]Device 0 command 8 [<0][<0][<7D][<2][<0](6 bytes): 8 0 0 7D 2 0
+Read 2 blocks starting at 7D
+DMA send (512 bytes): 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 [...]
+Send OK
+DMA send (512 bytes): 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 [...]
+Send OK
+[>0]Success
+[+8]Device 0 command 8 [<0][<0][<7F][<2][<0](6 bytes): 8 0 0 7F 2 0
+Read 2 blocks starting at 7F
+DMA send (512 bytes): 67 0 0 46 C 80 0 2 0 0 66 20 13 FC 0 FF [...]
+Send OK
+DMA send (512 bytes): 58 8F C0 7C 0 20 33 C0 0 0 B3 82 42 81 32 39 [...]
+Send OK
+[>0]Success
+[+8]Device 0 command 8 [<0][<0][<81][<2][<0](6 bytes): 8 0 0 81 2 0
+Read 2 blocks starting at 81
+DMA send (512 bytes): 1 2 49 43 44 20 44 72 69 76 65 72 20 50 52 4F [...]
+Send OK
+DMA send (512 bytes): FA 1 8 38 0 5 FA 1 8 38 0 5 FA 1 8 38 [...]
+Send OK
+[>0]Success
+[+8]Device 0 command 8 [<0][<0][<83][<2][<0](6 bytes): 8 0 0 83 2 0
+Read 2 blocks starting at 83
+DMA send (512 bytes): 6E 0 0 88 B2 3C 0 62 66 A C 78 0 2 4 A6 [...]
+Send OK
+DMA send (512 bytes): C 79 0 1 0 0 74 8C 66 8 C 78 0 2 4 A6 [...]
+Send OK
+[>0]Success
+[+8]Device 0 command 8 [<0][<0][<85][<2][<0](6 bytes): 8 0 0 85 2 0
+Read 2 blocks starting at 85
+DMA send (512 bytes): 20 20 20 20 20 20 20 20 20 20 43 61 63 68 65 20 [...]
+Send OK
+DMA send (512 bytes): 8D C 3F 3C 0 0 3F 3C 0 7 4E 4E 5C 8F 3F 39 [...]
+Send OK
+[>0]Success
+[+8]Device 0 command 8 [<0][<0][<87][<2][<0](6 bytes): 8 0 0 87 2 0
+Read 2 blocks starting at 87
+DMA send (512 bytes): 60 0 0 84 61 0 D0 C0 20 49 43 44 42 4F 4F 54 [...]
+Send OK
+DMA send (512 bytes): 41 E8 FF F4 42 80 30 10 80 C1 33 C0 0 0 B2 B6 [...]
+Send OK
+[>0]Success
+[+8]Device 0 command 8 [<0][<0][<89][<2][<0](6 bytes): 8 0 0 89 2 0
+Read 2 blocks starting at 89
+DMA send (512 bytes): B2 B0 67 8 4A 79 0 0 B2 B0 66 26 23 FC 0 0 [...]
+Send OK
+DMA send (512 bytes): 0 0 7 FF FF 80 0 0 7F FC 3F FF E0 0 0 0 [...]
+Send OK
+[>0]Success
+[+8]Device 0 command 8 [<0][<0][<8B][<2][<0](6 bytes): 8 0 0 8B 2 0
+Read 2 blocks starting at 8B
+DMA send (512 bytes): FF FF FF FF C0 0 0 0 7F FC 0 3F FF FF FF E7 [...]
+Send OK
+DMA send (512 bytes): FE 3 FF FF FF FF E0 0 FE F FF FF FF FF F8 0 [...]
+Send OK
+[>0]Success
+[+8]Device 0 command 8 [<0][<0][<8D][<2][<0](6 bytes): 8 0 0 8D 2 0
+Read 2 blocks starting at 8D
+DMA send (512 bytes): 48 40 80 42 17 80 40 0 E6 AF 52 41 51 CC FF C2 [...]
+Send OK
+DMA send (512 bytes): 0 8F 30 82 4A 38 FA 1 4A 38 FA 1 4A 38 FA 1 [...]
+Send OK
+[>0]Success
+[+8]Device 0 command 8 [<0][<0][<8F][<2][<0](6 bytes): 8 0 0 8F 2 0
+Read 2 blocks starting at 8F
+DMA send (512 bytes): 44 8 8 8 8 8 6 6 2C C 8 8 8 8 8 6 [...]
+Send OK
+DMA send (512 bytes): A 18 1 1 88 E 4 4 4 4 4 4 4 8 8 8 [...]
+Send OK
+[>0]Success
+[+8]Device 0 command 8 [<0][<0][<91][<2][<0](6 bytes): 8 0 0 91 2 0
+Read 2 blocks starting at 91
+DMA send (512 bytes): 6 6 6 6 8 6 4 6 4 A 1E 1 58 C 22 1C [...]
+Send OK
+DMA send (512 bytes): 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 [...]
+Send OK
+[>0]Success
+[+0]Device 0 command 0 [<0][<0][<0][<0][<0](6 bytes): 0 0 0 0 0 0
+[>0]Success
+[+12]Device 0 command 12 [<0][<0][<0][<24][<0](6 bytes): 12 0 0 0 24 0
+DMA send (36 bytes): 0 80 1 0 1F 0 0 0 41 43 53 49 32 53 54 4D [...]
+Send OK
+[>0]Success
+[+0]Device 0 command 0 [<0][<0][<0][<0][<0](6 bytes): 0 0 0 0 0 0
+[>0]Success
+[+0]Device 0 command 0 [<0][<0][<0][<0][<0](6 bytes): 0 0 0 0 0 0
+[>0]Success
+[+8]Device 0 command 8 [<0][<0][<0][<1][<0](6 bytes): 8 0 0 0 1 0
+Read 1 blocks starting at 0
+DMA send (512 bytes): 2F B 2F 3C 0 B FF FF 4E 4D 58 8F 8 0 0 3 [...]
+Send OK
+[>0]Success
+[+A]Device 0 command A [<0][<0][<0][<1][<0](6 bytes): A 0 0 0 1 0
+WARNING: Write to boot sector
+Write 1 blocks starting at 0
+DMA read (512 bytes): 2F B 2F 3C 0 B FF FF 4E 4D 58 8F 8 0 0 3 [...]
+[>0]Success
+[+8]Device 0 command 8 [<0][<0][<2][<1][<0](6 bytes): 8 0 0 2 1 0
+Read 1 blocks starting at 2
+DMA send (512 bytes): 60 2C 49 43 44 49 4E 43 3 2A EB 0 2 2 1 0 [...]
+Send OK
+[>0]Success
+[+32]Device 1 command 12 [<0][<0][<0][<24][<0](6 bytes): 12 0 0 0 24 0
+SD 1 init error
+DMA send (36 bytes): 0 80 1 0 1F 0 0 0 41 43 53 49 32 53 54 4D [...]
+Send OK
+[>0]Success
+[+20]Device 1 command 0 [<0][<0][<0][<0][<0](6 bytes): 0 0 0 0 0 0
+[>0]Success
+[+20]Device 1 command 0 [<0][<0][<0][<0][<0](6 bytes): 0 0 0 0 0 0
+[>0]Success
+[+28]Device 1 command 8 [<0][<0][<0][<1][<0](6 bytes): 8 0 0 0 1 0
+[>2]Error 23A
+[+23]Device 1 command 3 [<0][<0][<0][<12][<0](6 bytes): 3 0 0 0 12 0
+SD 1 init error
+DMA send (18 bytes): 70 0 2 0 0 0 0 E 0 0 0 0 3A 0 0 0 [...]
+Send OK
+[>0]Success
+[+52]Device 2 command 12 [<0][<0][<0][<24][<0](6 bytes): 12 0 0 0 24 0
+SD 2 init error
+DMA send (36 bytes): 0 80 1 0 1F 0 0 0 41 43 53 49 32 53 54 4D [...]
+Send OK
+[>0]Success
+[+40]Device 2 command 0 [<0][<0][<0][<0][<0](6 bytes): 0 0 0 0 0 0
+[>0]Success
+[+40]Device 2 command 0 [<0][<0][<0][<0][<0](6 bytes): 0 0 0 0 0 0
+[>0]Success
+[+48]Device 2 command 8 [<0][<0][<0][<1][<0](6 bytes): 8 0 0 0 1 0
+[>2]Error 23A
+[+43]Device 2 command 3 [<0][<0][<0][<12][<0](6 bytes): 3 0 0 0 12 0
+SD 2 init error
+DMA send (18 bytes): 70 0 2 0 0 0 0 E 0 0 0 0 3A 0 0 0 [...]
+Send OK
+[>0]Success
+[+72]Device 3 command 12 [<0][<0][<0][<24][<0](6 bytes): 12 0 0 0 24 0
+SD 3 init error
+DMA send (36 bytes): 0 80 1 0 1F 0 0 0 41 43 53 49 32 53 54 4D [...]
+Send OK
+[>0]Success
+[+60]Device 3 command 0 [<0][<0][<0][<0][<0](6 bytes): 0 0 0 0 0 0
+[>0]Success
+[+60]Device 3 command 0 [<0][<0][<0][<0][<0](6 bytes): 0 0 0 0 0 0
+[>0]Success
+[+68]Device 3 command 8 [<0][<0][<0][<1][<0](6 bytes): 8 0 0 0 1 0
+[>2]Error 23A
+[+63]Device 3 command 3 [<0][<0][<0][<12][<0](6 bytes): 3 0 0 0 12 0
+SD 3 init error
+DMA send (18 bytes): 70 0 2 0 0 0 0 E 0 0 0 0 3A 0 0 0 [...]
+Send OK
+[>0]Success
+[+92]Device 4 command 12 [<0][<0][<0][<24][<0](6 bytes): 12 0 0 0 24 0
+SD 4 init error
+DMA send (36 bytes): 0 80 1 0 1F 0 0 0 41 43 53 49 32 53 54 4D [...]
+Send OK
+[>0]Success
+[+80]Device 4 command 0 [<0][<0][<0][<0][<0](6 bytes): 0 0 0 0 0 0
+[>0]Success
+[+80]Device 4 command 0 [<0][<0][<0][<0][<0](6 bytes): 0 0 0 0 0 0
+[>0]Success
+[+88]Device 4 command 8 [<0][<0][<0][<1][<0](6 bytes): 8 0 0 0 1 0
+[>2]Error 23A
+[+83]Device 4 command 3 [<0][<0][<0][<12][<0](6 bytes): 3 0 0 0 12 0
+SD 4 init error
+DMA send (18 bytes): 70 0 2 0 0 0 0 E 0 0 0 0 3A 0 0 0 [...]
+Send OK
+[>0]Success
+[+0]Device 0 command 0 [<0][<0][<0][<0][<0](6 bytes): 0 0 0 0 0 0
+[>0]Success
+[+8]Device 0 command 8 [<0][<0][<23][<1][<0](6 bytes): 8 0 0 23 1 0
+Read 1 blocks starting at 23
+DMA send (512 bytes): 49 43 44 42 4F 4F 54 20 53 59 53 20 0 0 0 0 [...]
+Send OK
+[>0]Success
+[+8]Device 0 command 8 [<0][<9][<4B][<1][<0](6 bytes): 8 0 9 4B 1 0
+Read 1 blocks starting at 94B
+DMA send (512 bytes): 23 61 30 30 30 30 30 30 D A 23 62 30 30 30 30 [...]
+Send OK
+[>0]Success
+[+
