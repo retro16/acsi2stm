@@ -57,7 +57,7 @@ struct Ahdi {
 protected:
 
   // Compute the checksum inside dataBuf
-  int computeChecksum();
+  uint16_t computeChecksum();
 
   bool readStart(uint32_t block);
   bool readData(uint8_t *data);

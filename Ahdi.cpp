@@ -468,7 +468,7 @@ void Ahdi::getDeviceString(char *target) {
   }
 }
 
-int Ahdi::computeChecksum() {
+uint16_t Ahdi::computeChecksum() {
   int checksum = 0;
   for(int i = 0; i < ACSI_BLOCKSIZE; i += 2) {
     checksum += ((int)dataBuf[i] << 8) + (dataBuf[i+1]);
