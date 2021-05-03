@@ -299,7 +299,7 @@ DMA send (512 bytes): 2F B 2F 3C 0 B FF FF 4E 4D 58 8F 8 0 0 3 [...] OK
 [>0]Success
 [+A]SD0 cmd A [<0][<0][<0][<1][<0](6 bytes)
 WARNING: Write to boot sector
-Write Read 1 blocks from 0
+Write 1 blocks from 0
 DMA read (512 bytes): 2F B 2F 3C 0 B FF FF 4E 4D 58 8F 8 0 0 3 [...] OK
 [>0]Success
 [+8]SD0 cmd 8 [<0][<0][<2][<1][<0](6 bytes)
@@ -319,7 +319,7 @@ DMA send (512 bytes): 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 [...] OK
 [>0]Success
 [+2A]SD1 cmd A [<0][<0][<0][<1][<0](6 bytes)
 WARNING: Write to boot sector
-Write Read 1 blocks from 0
+Write 1 blocks from 0
 DMA read (512 bytes): 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 [...] OK
 [>0]Success
 [+28]SD1 cmd 8 [<0][<0][<2][<1][<0](6 bytes)
