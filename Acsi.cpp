@@ -153,6 +153,7 @@ DMA block transfer stop process:
 */
 
 #include "acsi2stm.h"
+#include "Debug.h"
 #include "Acsi.h"
 #include <libmaple/dma.h>
 
@@ -328,6 +329,7 @@ void Acsi::readDma(uint8_t *bytes, int count) {
   systick_enable();
 
   acsiVerboseDump(&bytes[-i], i);
+  acsiVerboseln(" OK");
 }
 
 void Acsi::sendDma(const uint8_t *bytes, int count) {
@@ -379,7 +381,7 @@ void Acsi::sendDma(const uint8_t *bytes, int count) {
   // Restore systick
   systick_enable();
 
-  acsiVerboseln("Send OK");
+  acsiVerboseln(" OK");
 }
 
 void Acsi::releaseRq() {

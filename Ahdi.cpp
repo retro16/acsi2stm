@@ -16,6 +16,7 @@
  */
 
 #include "acsi2stm.h"
+#include "Debug.h"
 #include "Ahdi.h"
 #include "SdFat.h"
 #include "Acsi.h"
@@ -35,10 +36,6 @@ bool Ahdi::initSd() {
 
   if(!card.begin(SdSpiConfig(csPin, SHARED_SPI))) {
     resetState();
-    lastErr = LASTERR_NOMEDIUM;
-    acsiDbg("SD ");
-    acsiDbg(acsiId);
-    acsiDbgln(" init error");
     return false;
   }
 
@@ -80,7 +77,11 @@ bool Ahdi::initSd() {
 void Ahdi::processCmd(uint8_t cmd) {
   readCmdBuf(cmd);
 
-  acsiDbgDump(cmdBuf, cmdLen, cmdLen);
+#if ACSI_VERBOSE
+  acsiDbgDumpln(cmdBuf, cmdLen, 0);
+#else
+  acsiDbgDumpln(cmdBuf, cmdLen, cmdLen);
+#endif
 
   // Command preprocessing
   switch(cmdBuf[0]) {
@@ -89,8 +90,6 @@ void Ahdi::processCmd(uint8_t cmd) {
     return;
   default:
     if(getLun() > 0) {
-      acsiDbg("Invalid LUN:");
-      acsiDbgln(getLun());
       commandError(LASTERR_INVLUN);
       return;
     }
@@ -168,6 +167,7 @@ void Ahdi::processCmd(uint8_t cmd) {
     // Initialize the SD card if reading the boot sector
     if(lastBlock == 0 && !initSd()) {
       // SD card not initialized
+      sdError();
       commandError();
       return;
     }
@@ -315,26 +315,22 @@ void Ahdi::readCmdBuf(uint8_t cmd) {
 }
 
 bool Ahdi::processBlockRead(uint32_t block, int count) {
-  acsiVerbose("Read ");
-  acsiVerbose(count);
-  acsiVerbose(" blocks starting at ");
-  acsiVerboseln(block, HEX);
+  acsiDbg("Read ");
+  acsiDbg(count);
+  acsiDbg(" blocks from ");
+  acsiDbgln(block);
 
   if(block + count - 1 >= blocks) {
-    acsiDbg("Requested block ");
-    acsiDbg(block, HEX);
-    acsiDbgln(" out of range");
+    acsiDbgln("Out of range");
     lastErr = LASTERR_INVADDR;
     return false; // Block out of range
   }
 
   if(!readStart(block)) {
     if(!initSd() || !readStart(block)) {
-      acsiDbgln("SD read start error");
-      lastErr = LASTERR_NOMEDIUM;
+      sdError();
       return false;
     }
-    acsiVerbose("SD reset for read operation");
   }
 
   for(int s = 0; s < count; ++s) {
@@ -353,15 +349,14 @@ bool Ahdi::processBlockRead(uint32_t block, int count) {
 }
 
 bool Ahdi::processBlockWrite(uint32_t block, int count) {
-  acsiVerbose("Write ");
-  acsiVerbose(count);
-  acsiVerbose(" blocks starting at ");
-  acsiVerboseln(block, HEX);
+  acsiDbg("Write ");
+  acsiDbg("Read ");
+  acsiDbg(count);
+  acsiDbg(" blocks from ");
+  acsiDbgln(block);
 
   if(block + count - 1 >= blocks) {
-    acsiDbg("Requested block ");
-    acsiDbg(block, HEX);
-    acsiDbgln(" out of range");
+    acsiDbgln("Out of range");
     lastErr = LASTERR_INVADDR;
     return false; // Block out of range
   }
@@ -377,11 +372,9 @@ bool Ahdi::processBlockWrite(uint32_t block, int count) {
 
   if(!writeStart(block)) {
     if(!initSd() || !writeStart(block)) {
-      acsiDbg("SD write start error");
-      lastErr = LASTERR_NOMEDIUM;
+      sdError();
       return false;
     }
-    acsiVerbose("SD reset for write operation");
   }
 
   for(int s = 0; s < count; ++s) {
@@ -425,8 +418,11 @@ int Ahdi::getLun() {
 }
 
 void Ahdi::getDeviceString(char *target) {
+  sprintf(target, "ACSI2STM SD%1d ", acsiId);
+  target += 13;
+
   if(format == NONE) {
-    sprintf(target, "ACSI2STM SD%1d NO SD CARD v" ACSI2STM_VERSION, acsiId);
+    sprintf(target, "NO SD CARD v" ACSI2STM_VERSION);
     return;
   }
 
@@ -444,32 +440,34 @@ void Ahdi::getDeviceString(char *target) {
   if(format != IMAGE && card.cardSize() > maxBlocks)
     capped = '+';
 
-  sprintf(target, "ACSI2STM SD%1d %4d%c%cB    v" ACSI2STM_VERSION, acsiId, sz, capped, unit);
-
   // Add format at the end
+  const char *formatString = "   ";
   if(format == FAT) {
-    target[21] = 'F';
-    target[22] = 'A';
-    target[23] = 'T';
+    formatString = "FAT";
   } else if(format == EXFAT) {
-    target[21] = 'E';
-    target[22] = 'X';
-    target[23] = 'F';
+    formatString = "EXF";
   } else if(format == IMAGE) {
-    target[21] = 'I';
-    target[22] = 'M';
-    target[23] = 'G';
+    formatString = "IMG";
   }
+
+  sprintf(target, "%4d%c%cB %sv" ACSI2STM_VERSION, sz, capped, unit, formatString);
 
   // Add the Atari logo if bootable
   if(bootable) {
-    target[22] = 0x0E;
-    target[23] = 0x0F;
+    target[9] = 0x0E;
+    target[10] = 0x0F;
   }
 }
 
+void Ahdi::sdError() {
+  lastErr = LASTERR_NOMEDIUM;
+  acsiDbg("SD");
+  acsiDbg(acsiId);
+  acsiDbgln(" error");
+}
+
 uint16_t Ahdi::computeChecksum() {
-  int checksum = 0;
+  uint16_t checksum = 0;
   for(int i = 0; i < ACSI_BLOCKSIZE; i += 2) {
     checksum += ((int)dataBuf[i] << 8) + (dataBuf[i+1]);
   }
