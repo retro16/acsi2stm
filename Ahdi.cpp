@@ -350,7 +350,6 @@ bool Ahdi::processBlockRead(uint32_t block, int count) {
 
 bool Ahdi::processBlockWrite(uint32_t block, int count) {
   acsiDbg("Write ");
-  acsiDbg("Read ");
   acsiDbg(count);
   acsiDbg(" blocks from ");
   acsiDbgln(block);
@@ -381,7 +380,6 @@ bool Ahdi::processBlockWrite(uint32_t block, int count) {
     Acsi::readDma(dataBuf, ACSI_BLOCKSIZE);
     if(!writeData(dataBuf)) {
       acsiDbg("SD write error");
-      acsiDbgln(block);
       lastErr = LASTERR_WRITEERR;
       writeStop();
       return false;
