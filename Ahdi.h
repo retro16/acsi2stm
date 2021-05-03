@@ -54,6 +54,9 @@ struct Ahdi {
   }
 
   void getDeviceString(char *target);
+
+  // SD card error feedback
+  void sdError();
 protected:
 
   // Compute the checksum inside dataBuf

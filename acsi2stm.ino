@@ -35,6 +35,7 @@ const int sdCs[] = {
 };
 
 // Includes
+#include "Debug.h"
 #include "Watchdog.h"
 #include "Acsi.h"
 #include "Ahdi.h"
@@ -101,23 +102,22 @@ void setup() {
     if(sdCs[i] == -1)
       continue;
     acsi.addDevice(i);
-    acsiDbg("Device ");
+    acsiDbg("SD");
     acsiDbg(i);
     acsiDbg(':');
     if(ahdi[i].begin(i, sdCs[i], AHDI_MAX_BLOCKS)) {
-      char str[64];
+      char str[32];
       ahdi[i].getDeviceString(str);
       // Replace atari logo
       if(str[22] == 0x0e) {
-        sprintf(str+21, "ATARI BOOT");
+        strcpy(str+22, " BOOT");
       } else {
         str[24] = 0;
       }
-      acsiDbg(str);
-      acsiDbgln("");
+      acsiDbgln(str);
       sdCount++;
     } else {
-      acsiDbgln("unavailable");
+      ahdi[i].sdError();
     }
   }
 
@@ -144,9 +144,9 @@ void loop() {
   watchdog.resume();
   uint8_t deviceId = acsi.cmdDeviceId(cmd); // Parse device id
   cmd = acsi.cmdCommand(cmd); // Parse command id
-  acsiDbg("Device ");
+  acsiDbg("SD");
   acsiDbg(deviceId);
-  acsiDbg(" command ");
+  acsiDbg(" cmd ");
   acsiDbg(cmd, HEX);
   acsiDbg(" ");
   ahdi[deviceId].processCmd(cmd); // Process the command
