@@ -105,7 +105,6 @@ void Ahdi::processCmd(uint8_t cmd) {
     break;
   }
 
-
   // Execute the command
   switch(cmdBuf[0]) {
   default: // Unknown command
@@ -394,8 +393,8 @@ bool Ahdi::processBlockWrite(uint32_t block, int count) {
 
 void Ahdi::commandSuccess() {
   lastErr = LASTERR_OK;
-  Acsi::sendIrq(0);
   acsiDbgln("Success");
+  Acsi::sendIrq(0);
 }
 
 void Ahdi::commandError(int err) {
@@ -404,9 +403,9 @@ void Ahdi::commandError(int err) {
 }
 
 void Ahdi::commandError() {
-  Acsi::sendIrq(2);
   acsiDbg("Error ");
   acsiDbgln(lastErr, HEX);
+  Acsi::sendIrq(2);
 }
 
 int Ahdi::getLun() {

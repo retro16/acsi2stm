@@ -185,8 +185,6 @@ void Acsi::waitBusReady() {
 uint8_t Acsi::waitCommand(uint8_t mask) {
   uint16_t port;
 
-  acsiVerbose("[+");
-
   // Disable systick that introduces jitter.
   systick_disable();
 
@@ -206,6 +204,7 @@ uint8_t Acsi::waitCommand(uint8_t mask) {
 
   uint8_t byte = (uint8_t)(port >> 8);
 
+  acsiVerbose("[+");
   acsiVerbose(byte, HEX);
   acsiVerbose(']');
 
@@ -263,6 +262,7 @@ void Acsi::sendIrq(const uint8_t *bytes, int count) {
 void Acsi::sendIrq(uint8_t byte) {
   acsiVerbose("[>");
   acsiVerbose(byte,HEX);
+  acsiVerbose(']');
 
   // Disable systick that introduces jitter.
   systick_disable();
@@ -277,7 +277,6 @@ void Acsi::sendIrq(uint8_t byte) {
   // Restore systick
   systick_enable();
 
-  acsiVerbose(']');
 }
 
 void Acsi::readDma(uint8_t *bytes, int count) {
