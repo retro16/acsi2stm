@@ -46,6 +46,10 @@
 // Activity LED pin. Leave undefined to remove activity LED.
 #define ACTIVITY_LED LED_BUILTIN
 
+// DMA data sample delay
+// Does this improve stability ? Let me know.
+#define DMA_SAMPLE_DELAY 1
+
 // Hard disk image file name. It can be placed in a subfolder.
 #define IMAGE_FILE_NAME "/acsi2stm.img"
 

@@ -1,4 +1,4 @@
-** Version 2.0: Now with reliability and features ! **
+**WARNING** This is a test branch. If you don't mind testing, please give feedback about write operation stability.
 
 ** Beware, the pinout has changed since version 1.0 **
 
