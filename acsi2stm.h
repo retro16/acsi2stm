@@ -22,7 +22,7 @@
 
 // acsi2stm global configuration
 
-#define ACSI2STM_VERSION "2.0"
+#define ACSI2STM_VERSION "2b1"
 
 // Set to 1 to enable debug output on the serial port
 #define ACSI_DEBUG 0
@@ -46,9 +46,15 @@
 // Activity LED pin. Leave undefined to remove activity LED.
 #define ACTIVITY_LED LED_BUILTIN
 
-// DMA data sample delay
-// Does this improve stability ? Let me know.
-#define DMA_SAMPLE_DELAY 1
+// DMA data sample delay.
+// Delay in timer clock periods (36MHz, 27ns) between the ACK pulse and data sampling.
+#define ACSI_DMA_SAMPLE_DELAY 0
+
+// Delay between bytes during DMA operations.
+// Delay in timer clock periods (36MHz, 27ns) between the ACK pulse and the next DRQ.
+// Enables simulating a slow hard drive, or testing purposes.
+// Requires a non-zero ACSI_DMA_SAMPLE_DELAY to work.
+#define ACSI_DMA_BYTE_DELAY 0
 
 // Hard disk image file name. It can be placed in a subfolder.
 #define IMAGE_FILE_NAME "/acsi2stm.img"

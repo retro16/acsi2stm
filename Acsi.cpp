@@ -15,6 +15,11 @@
  * along with the program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "acsi2stm.h"
+#include "Debug.h"
+#include "Acsi.h"
+#include <libmaple/dma.h>
+
 #define A1 PB6 // Must be on port B
 #define CS PB7 // Must be on port B
 #define IRQ PA8
@@ -29,8 +34,18 @@
 #define DRQ_MASK 0b0000100000000000
 #define ACK_MASK 0b0001000000000000
 
-// Timer
+// Define dependencies
+#if ACSI_DMA_SAMPLE_DELAY
+#ifndef ACSI_DMA_BYTE_DELAY
+#define ACSI_DMA_BYTE_DELAY 0
+#endif
+#endif
+
+// Timers
 #define ACSI_TIMER TIMER1_BASE
+#if ACSI_DMA_SAMPLE_DELAY
+#define ACSI_SAMPLE_TIMER TIMER3_BASE
+#endif
 
 /* How ACSI DMA is handled (DRQ/ACK pulses and data sampling):
 
@@ -76,12 +91,24 @@ access.
 
 The current implementation uses STM32 timers and its DMA engine to process
 these signals. Data flow:
+
              __________
          CLK|          |CH4
   ACK ----->|  Timer1  |-----> PA11 (DRQ)
             |          |
             |          |CH3
             |          |------------
+            |__________|            |
+                                    |Trigger
+                                    |
+     -------------------------------
+    |
+    |        __________
+    |    CLK|          |
+     ------>|  Timer3  |
+            |          |CH1
+            |          |------------
+            |          |            |
             |__________|            |
                                     |Trigger (DMA1 CH6)
                       _______     __V___     __________
@@ -92,16 +119,14 @@ these signals. Data flow:
 
  * ACK is used as Timer1 clock.
  * PA11 (DRQ) is used as a PWM output that goes up whenever Timer1 receives a clock tick.
- * Timer1 triggers a STM32 DMA transfer whenever Timer1 receives a clock tick.
+ * Timer3 is started by Timer1.
+ * Timer3 triggers a STM32 DMA transfer after a fixed delay (adjusted by ACSI_DMA_SAMPLE_DELAY).
  * The STM32 DMA engine copies GPIOB to Timer1 CH1 compare value.
  * Timer1 CH1 is used as a simple buffer because GPIOB is considered as memory
    by the STM32 DMA engine and memory to memory copies cannot be triggered by
    a timer, so it has to be a memory to peripheral copy. Any unused peripheral
    register can be used for this task.
- * If multiple ACK signals are received, this can be detected by having an incorrect
-   counter value. This avoids silent data corruption in case of problems. This check is
-   only done if ACSI_CAREFUL_DMA is enabled.
-
+ * When ACSI_DMA_SAMPLE_DELAY is 0, Timer1 CH3 directly triggers DMA1 CH6 and does not go through Timer3.
 
 DMA read process
 ----------------
@@ -110,7 +135,6 @@ DMA block transfer initialization process:
 
  * Set Timer1 counter to a high value so DRQ will be high when enabled
  * Enable DRQ in PWM mode (high if Timer1 > 0, low if Timer1 = 0)
- * Enable Timer1
 
 DMA byte read process:
 
@@ -123,7 +147,6 @@ DMA byte read process:
 DMA block transfer stop process:
 
  * Set DRQ pin as input
- * Disable Timer1
 
 
 DMA write process
@@ -133,29 +156,22 @@ DMA block transfer initialization process:
 
  * Set Timer1 counter to a high value so DRQ will be high when enabled
  * Enable DRQ in PWM mode (high if Timer1 > 0, low if Timer1 = 0)
- * Enable Timer1
 
 DMA byte write process:
 
  * Set Timer1 counter to 0, this will pull DRQ low.
  * When ACK goes low, Timer1 counts to 1.
  * Timer1 counting will set DRQ high.
- * Timer1 counting will trigger the STM32 DMA CH6.
+ * Timer1 will trigger Timer3
+ * Timer3 counting will trigger the STM32 DMA CH6.
  * The STM32 DMA will copy GPIOB to Timer1 CH1 compare value.
- * Wait until ACK goes high.
  * Read Timer1 CH1 compare value to get the data byte.
 
 DMA block transfer stop process:
 
  * Set DRQ pin as input
- * Disable Timer1
 
 */
-
-#include "acsi2stm.h"
-#include "Debug.h"
-#include "Acsi.h"
-#include <libmaple/dma.h>
 
 void Acsi::begin(uint8_t mask) {
   deviceMask = mask;
@@ -290,11 +306,19 @@ void Acsi::readDma(uint8_t *bytes, int count) {
   // Unroll for speed
   int i;
   for(i = 0; i <= count - 16; i += 16) {
+#if ACSI_DMA_SAMPLE_DELAY
 #define ACSI_READ_BYTE(b) do { \
       ACSI_TIMER->CNT = 0; \
-      while(ACSI_TIMER->CNT == 0 || TIMER3_BASE->CNT != 0); \
+      while(ACSI_TIMER->CNT == 0 || ACSI_SAMPLE_TIMER->CNT != 0); \
       bytes[b] = (uint8_t)(ACSI_TIMER->CCR1 >> 8); \
     } while(0)
+#else
+#define ACSI_READ_BYTE(b) do { \
+      ACSI_TIMER->CNT = 0; \
+      while(ACSI_TIMER->CNT == 0); \
+      bytes[b] = (uint8_t)(ACSI_TIMER->CCR1 >> 8); \
+    } while(0)
+#endif
     ACSI_READ_BYTE(0);
     ACSI_READ_BYTE(1);
     ACSI_READ_BYTE(2);
@@ -344,11 +368,19 @@ void Acsi::sendDma(const uint8_t *bytes, int count) {
   // Unroll for speed
   int i;
   for(i = 0; i <= count - 16; i += 16) {
+#if ACSI_DMA_SAMPLE_DELAY && ACSI_DMA_BYTE_DELAY
+#define ACSI_SEND_BYTE(b) do { \
+      writeData(bytes[b]); \
+      ACSI_TIMER->CNT = 0; \
+      while(ACSI_TIMER->CNT == 0 || ACSI_SAMPLE_TIMER->CNT != 0); \
+    } while(0)
+#else
 #define ACSI_SEND_BYTE(b) do { \
       writeData(bytes[b]); \
       ACSI_TIMER->CNT = 0; \
       while(ACSI_TIMER->CNT == 0); \
     } while(0)
+#endif
     ACSI_SEND_BYTE(0);
     ACSI_SEND_BYTE(1);
     ACSI_SEND_BYTE(2);
@@ -429,32 +461,41 @@ void Acsi::writeData(uint8_t byte) {
 
 void Acsi::setupDrqTimer() {
   ACSI_TIMER->CR1 = TIMER_CR1_OPM;
+#if ACSI_DMA_SAMPLE_DELAY
   ACSI_TIMER->CR2 = TIMER_CR2_MMS_COMPARE_OC4REF;
+#else
+  ACSI_TIMER->CR2 = 0;
+#endif
   ACSI_TIMER->SMCR = TIMER_SMCR_ETP | TIMER_SMCR_TS_ETRF | TIMER_SMCR_SMS_EXTERNAL;
   ACSI_TIMER->PSC = 0; // Prescaler
   ACSI_TIMER->ARR = 65535; // Overflow (0 = counter stopped)
-  ACSI_TIMER->DIER = 0; // TIMER_DIER_CC3DE;
+#if ACSI_DMA_SAMPLE_DELAY
+  ACSI_TIMER->DIER = 0;
+#else
+  ACSI_TIMER->DIER = TIMER_DIER_CC3DE;
+#endif
   ACSI_TIMER->CCMR1 = 0;
   ACSI_TIMER->CCMR2 = TIMER_CCMR2_OC4M;
   ACSI_TIMER->CCER = TIMER_CCER_CC4E; // Enable output
   ACSI_TIMER->EGR = TIMER_EGR_UG;
-  ACSI_TIMER->CCR2 = 0xcafe; // Disable unused CC channel
+  ACSI_TIMER->CCR2 = 65535; // Disable unused CC channel
   ACSI_TIMER->CCR3 = 1; // Compare value
   ACSI_TIMER->CCR4 = 1; // Compare value
   ACSI_TIMER->CNT = 2;
   ACSI_TIMER->CR1 |= TIMER_CR1_CEN;
 
-  TIMER3_BASE->CR1 = TIMER_CR1_OPM;
-  TIMER3_BASE->CR2 = 0;
-  TIMER3_BASE->SMCR = TIMER_SMCR_TS_ITR0 | TIMER_SMCR_SMS_TRIGGER;
-  TIMER3_BASE->PSC = 0; // Prescaler
-  TIMER3_BASE->ARR = DMA_SAMPLE_DELAY+1; // Overflow
-  TIMER3_BASE->DIER = TIMER_DIER_CC1DE;
-  TIMER3_BASE->CCMR1 = TIMER_CCMR1_OC1M;
-  TIMER3_BASE->EGR = TIMER_EGR_UG;
-  TIMER3_BASE->CCR1 = DMA_SAMPLE_DELAY; // Compare value (DMA sample delay)
-  TIMER3_BASE->CNT = DMA_SAMPLE_DELAY; // Don't trigger now
-  TIMER3_BASE->CR1 |= TIMER_CR1_CEN;
+#if ACSI_DMA_SAMPLE_DELAY
+  ACSI_SAMPLE_TIMER->CR1 = TIMER_CR1_OPM;
+  ACSI_SAMPLE_TIMER->CR2 = 0;
+  ACSI_SAMPLE_TIMER->SMCR = TIMER_SMCR_TS_ITR0 | TIMER_SMCR_SMS_TRIGGER;
+  ACSI_SAMPLE_TIMER->PSC = 0; // Prescaler
+  ACSI_SAMPLE_TIMER->ARR = ACSI_DMA_SAMPLE_DELAY + ACSI_DMA_BYTE_DELAY; // Overflow
+  ACSI_SAMPLE_TIMER->DIER = TIMER_DIER_CC1DE;
+  ACSI_SAMPLE_TIMER->CCMR1 = TIMER_CCMR1_OC1M;
+  ACSI_SAMPLE_TIMER->EGR = TIMER_EGR_UG;
+  ACSI_SAMPLE_TIMER->CCR1 = ACSI_DMA_SAMPLE_DELAY - 1; // Compare value (DMA sample delay)
+  ACSI_SAMPLE_TIMER->CNT = 0;
+#endif
 }
 
 void Acsi::setupAckDmaTransfer() {

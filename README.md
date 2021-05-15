@@ -1,4 +1,5 @@
-**WARNING** This is a test branch. If you don't mind testing, please give feedback about write operation stability.
+**BETA** If you have write corruption, please set ACSI_DMA_SAMPLE_DELAY to 1 in acsi2stm.h and report this in issue #7 in github.
+Thanks a lot.
 
 ** Beware, the pinout has changed since version 1.0 **
 
