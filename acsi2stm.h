@@ -22,7 +22,7 @@
 
 // acsi2stm global configuration
 
-#define ACSI2STM_VERSION "2.0"
+#define ACSI2STM_VERSION "2.1"
 
 // Set to 1 to enable debug output on the serial port
 #define ACSI_DEBUG 0
@@ -33,6 +33,22 @@
 // Number of bytes per DMA transfer to dump in verbose mode
 // Set to 0 to disable data dump
 #define ACSI_DUMP_LEN 16
+
+// Serial port used for debug/verbose output.
+#define ACSI_SERIAL Serial
+
+// Filter/delay data acquisition on ACK pulse.
+// Set this to 1 to sample 13.8ns later
+// Set this to 2 to sample 41.6ns later
+// Only impacts DMA writes (ST -> STM32)
+#define ACSI_ACK_FILTER 0
+
+// Filter/delay data acquisition on CS pulse.
+// Set this to 1 to sample 13.8ns later
+// Set this to 2 to sample 41.6ns later
+// Set this to 3 to sample 97.1ns later
+// Only impacts command send (ST -> STM32)
+#define ACSI_CS_FILTER 1
 
 // Set to 1 to make all SD cards readonly (returns an error if writing)
 // Set to 2 to ignore writes silently (returns OK but does not actually write)

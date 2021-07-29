@@ -1,6 +1,6 @@
-** Version 2.0: Now with reliability and features ! **
+*Version 2.1: More reliability upgrades*
 
-** Beware, the pinout has changed since version 1.0 **
+*Beware, the pinout has changed since version 1.0*
 
 ACSI2STM: Atari ST ACSI hard drive emulator
 ===========================================
@@ -16,6 +16,7 @@ It can work in 2 ways:
  * Expose a raw SD card as a hard disk to the Atari.
  * Expose a hard disk image file to the Atari.
 
+
 Hardware needed
 ---------------
 
@@ -26,7 +27,12 @@ Hardware needed
  * One or more SD card(s).
  * A male DB19 port (you can modify a DB25 port to fit) with a ribbon cable.
  * (recommended) A protoboard PCB to solder all the components and wires together.
- * Do *NOT* connect USB on the STM32. Use the +5V or +3.3V pin to power it.
+ * Do *NOT* connect USB data lines on the STM32. Use the +5V or +3.3V pin to power it if you are unsure.
+
+Note: some people reported problems with STM32 clones. I have many variants of the blue pill STM32, all of them work exactly the
+same. Variants I had and that worked: round and rectangle reset buttons, some chips marked STM32F / 103 and other marked
+STM32 / F103. If anyone has concrete proof of misbehaving clones and information on how to spot them, feel free to contact me
+or create an issue on GitHub to let people know about that.
 
 
 Software needed
@@ -204,9 +210,12 @@ Settings that you might wish to change:
  * ACSI_DEBUG: Enables debug output on the serial port. Moderate performance penalty.
  * ACSI_VERBOSE: Requires ACSI_DEBUG. Logs all commands on the serial port. High performance penalty.
  * ACSI_DUMP_LEN: Requires ACSI_VERBOSE. Dumps N bytes for each DMA transfer. It helps finding data corruption. Even higher performance penalty.
+ * ACSI_SERIAL: The serial port used for debug output.
  * AHDI_MAX_BLOCKS: Limits the number of SD card blocks exposed to the ST. This may be useful to test specific setups or emulate an old hard drive of a specific size.
  * ACTIVITY_LED: The pin to use as an activity LED.
  * IMAGE_FILE_NAME: The image file to use as a hard disk image on the SD card.
+ * ACSI_ACK_FILTER: Enables filtering the ACK line, adding a tiny latency. May improve DMA write reliability at the expense of write speed.
+ * ACSI_CS_FILTER: Enables filtering on the CS line, adding a tiny latency. This is necessary to sample the data bus at the right time. Adjust this if commands are corrupt.
 
 If you need a reference debug output, see the debug_output.txt file. This contains a full trace of a standard ICD PRO setup booting.
 

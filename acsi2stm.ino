@@ -73,7 +73,7 @@ static inline void ledSet(int l) {
 // Main setup function
 void setup() {
 #if ACSI_DEBUG
-  Serial.begin(115200); // Init the serial port only if needed
+  ACSI_SERIAL.begin(115200); // Init the serial port only if needed
 
   // Send a few characters to synchronize autoconfigured USB-serial dongles.
   acsiDbgln("");
