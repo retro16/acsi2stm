@@ -399,13 +399,14 @@ void Acsi::sendDma(const uint8_t *bytes, int count) {
   acquireDrq();
 
   // Unroll for speed
-  int i;
-  for(i = 0; i <= count - 16; i += 16) {
+  int i = 0;
 #define ACSI_SEND_BYTE(b) do { \
       writeData(bytes[b]); \
       ACSI_TIMER->CNT = 0; \
       while(ACSI_TIMER->CNT == 0); \
     } while(0)
+#if ACSI_FAST_DMA
+  for(i = 0; i <= count - 16; i += 16) {
     ACSI_SEND_BYTE(0);
     ACSI_SEND_BYTE(1);
     ACSI_SEND_BYTE(2);
@@ -424,11 +425,13 @@ void Acsi::sendDma(const uint8_t *bytes, int count) {
     ACSI_SEND_BYTE(15);
     bytes += 16;
   }
+#endif
 
   while(i < count) {
     ACSI_SEND_BYTE(0);
     ++i;
     ++bytes;
+    asm("nop");
   }
 
 #undef ACSI_SEND_BYTE

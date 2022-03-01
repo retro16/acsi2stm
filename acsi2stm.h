@@ -50,6 +50,16 @@
 // Only impacts command send (ST -> STM32)
 #define ACSI_CS_FILTER 1
 
+// Push data faster in DMA reads (STM32 -> ST)
+// Setting to 1 unrolls the DMA transfer code but may be less compatible
+// with some ST DMA controllers.
+#define ACSI_FAST_DMA 0
+
+// Fast SD card access.
+// If set to 1, use 25MHz SPI clock for SD card access.
+// If set to 0, use 18MHz.
+#define AHDI_FAST_SD 0
+
 // Set to 1 to make all SD cards readonly (returns an error if writing)
 // Set to 2 to ignore writes silently (returns OK but does not actually write)
 #define AHDI_READONLY 0
