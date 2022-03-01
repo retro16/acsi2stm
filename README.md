@@ -1,4 +1,4 @@
-*Version 2.1: More reliability upgrades*
+*Version 2.2: Reliability upgrades and SdFat compatibility*
 
 *Beware, the pinout has changed since version 1.0*
 
@@ -185,11 +185,13 @@ Notes:
  * CS pins must be on GPIO port A (PA pins).
 
 
-Using on a "Black pill" STM32 board
------------------------------------
+Using on an old "Black pill" STM32 board
+----------------------------------------
 
 If you have these cheap "STM32 minimum development boards" from eBay, Amazon, Banggood or other chinese sellers, chances are that
 you have either a "blue pill" or a "black pill" board. "blue" or "black" refers to the color of the PCB.
+
+**WARNING**: There are newer STM32F4xx boards also called "black pill". These newer boards are currently not tested. This part refers to older STM32F103C8T6 black pill boards.
 
 The problem with black pill designs is that the onboard LED is wired on PB12 instead of PC13, messing with data signals.
 
@@ -216,6 +218,8 @@ Settings that you might wish to change:
  * IMAGE_FILE_NAME: The image file to use as a hard disk image on the SD card.
  * ACSI_ACK_FILTER: Enables filtering the ACK line, adding a tiny latency. May improve DMA write reliability at the expense of write speed.
  * ACSI_CS_FILTER: Enables filtering on the CS line, adding a tiny latency. This is necessary to sample the data bus at the right time. Adjust this if commands are corrupt.
+ * ACSI_FAST_DMA: If set to 1, unroll DMA code for faster performance. Fast timings may not be compatible with some ST DMA chips.
+ * AHDI_FAST_SD: If set to 1, use 25MHz SPI clock for the SD card. If set to 0, use 18MHz.
 
 If you need a reference debug output, see the debug_output.txt file. This contains a full trace of a standard ICD PRO setup booting.
 
@@ -278,4 +282,4 @@ time. Without them, this project would have not existed.
  * The UltraSatan project for their documentation.
  * Sr Antonio, Edu Arana, Frederick321, Ulises74, Maciej G., Olivier Gossuin and Marcel Prisi for their very detailed feedback
    that helped me a lot for fine tuning the DRQ/ACK signals and other various aspects of the projects.
-
+ * All people contributing on GitHub.

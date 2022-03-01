@@ -34,12 +34,19 @@ bool Ahdi::initSd() {
   if(image)
     image.close();
 
+#if AHDI_FAST_SD
   if(!card.begin(SdSpiConfig(csPin, SHARED_SPI))) {
+#else
+  if(!card.begin(SdSpiConfig(csPin, SHARED_SPI, SD_SCK_MHZ(18), &SPI))) {
+#endif
     resetState();
     return false;
   }
 
-  blocks = card.cardSize();
+  // Give some time to the internal SD electronics to initialize properly
+  delay(250);
+
+  blocks = card.sectorCount();
   if(blocks > maxBlocks)
     blocks = maxBlocks;
 
@@ -434,7 +441,7 @@ void Ahdi::getDeviceString(char *target) {
   }
 
   // Add a + symbol if capacity is artificially capped
-  if(format != IMAGE && card.cardSize() > maxBlocks)
+  if(format != IMAGE && card.sectorCount() > maxBlocks)
     capped = '+';
 
   // Add format at the end
