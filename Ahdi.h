@@ -26,11 +26,13 @@
 #define LASTERR_NOMEDIUM 0x023A
 #define LASTERR_READERR 0x0311
 #define LASTERR_WRITEERR 0x0303
+#define LASTERR_WRITEPROT 0x0727
 #define LASTERR_NOSECTOR 0x0401
 #define LASTERR_OPCODE 0x0520
 #define LASTERR_INVADDR 0x0521
 #define LASTERR_INVARG 0x0524
 #define LASTERR_INVLUN 0x0525
+#define LASTERR_MEDIACHANGE 0x0600
 
 // AHDI implementation using SD card
 struct Ahdi {
@@ -63,14 +65,17 @@ protected:
   uint16_t computeChecksum();
 
   bool readStart(uint32_t block);
-  bool readData(uint8_t *data);
+  bool readData(uint8_t *data, int count = 1);
   bool readStop();
   bool writeStart(uint32_t block);
-  bool writeData(const uint8_t *data);
+  bool writeData(const uint8_t *data, int count = 1);
   bool writeStop();
 
   // Read AHDI command parameters to cmdBuf
-  void readCmdBuf(uint8_t cmd);
+  bool readCmdBuf(uint8_t cmd);
+
+  void modeSense0(uint8_t *buf);
+  void modeSense4(uint8_t *buf);
 
   bool processBlockRead(uint32_t block, int count);
   bool processBlockWrite(uint32_t block, int count);
@@ -99,8 +104,8 @@ protected:
   SdSpiCard card;
   FsVolume fs;
   FsBaseFile image;
-  static uint8_t dataBuf[ACSI_BLOCKSIZE];
-  static uint8_t cmdBuf[32];
+  static uint8_t dataBuf[ACSI_BLOCKSIZE * ACSI_BLOCKS];
+  static uint8_t cmdBuf[10];
   static int cmdLen;
 };
 

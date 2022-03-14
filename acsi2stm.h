@@ -22,7 +22,7 @@
 
 // acsi2stm global configuration
 
-#define ACSI2STM_VERSION "2.1"
+#define ACSI2STM_VERSION "2.3"
 
 // Set to 1 to enable debug output on the serial port
 #define ACSI_DEBUG 0
@@ -30,9 +30,12 @@
 // Set to 1 to enable verbose command output on the serial port
 #define ACSI_VERBOSE 0
 
+// Data buffer size in 512 bytes blocks
+#define ACSI_BLOCKS 8
+
 // Number of bytes per DMA transfer to dump in verbose mode
 // Set to 0 to disable data dump
-#define ACSI_DUMP_LEN 16
+#define ACSI_DUMP_LEN 26
 
 // Serial port used for debug/verbose output.
 #define ACSI_SERIAL Serial
@@ -41,7 +44,7 @@
 // Set this to 1 to sample 13.8ns later
 // Set this to 2 to sample 41.6ns later
 // Only impacts DMA writes (ST -> STM32)
-#define ACSI_ACK_FILTER 0
+#define ACSI_ACK_FILTER 1
 
 // Filter/delay data acquisition on CS pulse.
 // Set this to 1 to sample 13.8ns later
