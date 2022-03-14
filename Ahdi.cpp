@@ -82,7 +82,12 @@ bool Ahdi::initSd() {
 }
 
 void Ahdi::processCmd(uint8_t cmd) {
-  readCmdBuf(cmd);
+  if(!readCmdBuf(cmd)) {
+    acsiDbgln("Unknown command");
+    lastSeek = false;
+    commandError(LASTERR_OPCODE);
+    return;
+  }
 
 #if ACSI_VERBOSE
   acsiDbgDumpln(cmdBuf, cmdLen, 0);
@@ -106,9 +111,10 @@ void Ahdi::processCmd(uint8_t cmd) {
       return;
     }
     break;
-  case 0x03: // Request Sense
   case 0x12: // Inquiry
     initSd();
+    break;
+  case 0x03: // Request sense
     break;
   }
 
@@ -126,13 +132,12 @@ void Ahdi::processCmd(uint8_t cmd) {
     lastSeek = false;
     commandSuccess();
     return;
-  case 0x04: // Format drive
-    // Possibly format to FAT32/EXFAT
-  case 0x05: // Verify track
-  case 0x06: // Format track
-    lastSeek = false;
-    // fall through case
   case 0x03: // Request Sense
+    if(getLun() > 0) {
+      acsiDbg("Invalid LUN sense ... ");
+      lastErr = LASTERR_INVLUN;
+    }
+
     for(int b = 0; b < cmdBuf[4]; ++b)
       dataBuf[b] = 0;
 
@@ -174,7 +179,7 @@ void Ahdi::processCmd(uint8_t cmd) {
     if(lastBlock == 0 && !initSd()) {
       // SD card not initialized
       sdError();
-      commandError();
+      commandError(LASTERR_NOMEDIUM);
       return;
     }
 
@@ -182,7 +187,7 @@ void Ahdi::processCmd(uint8_t cmd) {
     if(processBlockRead(lastBlock, cmdBuf[4]))
       commandSuccess();
     else
-      commandError();
+      commandError(LASTERR_READERR);
     return;
   case 0x0a: // Write block
     // Compute the block number
@@ -196,7 +201,7 @@ void Ahdi::processCmd(uint8_t cmd) {
     if(processBlockWrite(lastBlock, cmdBuf[4]))
       commandSuccess();
     else
-      commandError();
+      commandError(LASTERR_WRITEERR);
     return;
   case 0x0b: // Seek
     lastBlock = (((int)cmdBuf[1]) << 16) | (((int)cmdBuf[2]) << 8) | (cmdBuf[3]);
@@ -208,7 +213,7 @@ void Ahdi::processCmd(uint8_t cmd) {
     return;
   case 0x12: // Inquiry
     // Fill the response with zero bytes
-    for(uint8_t b = 0; b < cmdBuf[4]; ++b)
+    for(uint8_t b = 0; b <= cmdBuf[4]; ++b)
       dataBuf[b] = 0;
 
     if(getLun() > 0)
@@ -220,7 +225,7 @@ void Ahdi::processCmd(uint8_t cmd) {
     // Build the product string with the SD card size
     getDeviceString((char *)dataBuf + 8);
    
-    Acsi::sendDma(dataBuf, cmdBuf[4]);
+    Acsi::sendDma(dataBuf, cmdBuf[4] + 1);
 
     lastSeek = false;
     commandSuccess();
@@ -230,94 +235,126 @@ void Ahdi::processCmd(uint8_t cmd) {
       lastSeek = false;
       switch(cmdBuf[2]) { // Sub-command
       case 0x00:
-        for(uint8_t b = 0; b < 16; ++b) {
-          dataBuf[b] = 0;
-        }
-        // Values got from the Hatari emulator
-        dataBuf[1] = 14;
-        dataBuf[3] = 8;
-        // Send the number of blocks of the SD card
-        dataBuf[5] = (blocks >> 16) & 0xFF;
-        dataBuf[6] = (blocks >> 8) & 0xFF;
-        dataBuf[7] = (blocks) & 0xFF;
-        // Sector size middle byte
-        dataBuf[10] = 2;
+        modeSense0(dataBuf);
         Acsi::sendDma(dataBuf, 16);
         break;
       case 0x04:
-        for(uint8_t b = 0; b < 24; ++b) {
-          dataBuf[b] = 0;
-        }
-        // Values got from the Hatari emulator
-        dataBuf[0] = 4;
-        dataBuf[1] = 22;
-        // Send the number of blocks in CHS format
-        dataBuf[2] = (blocks >> 23) & 0xFF;
-        dataBuf[3] = (blocks >> 15) & 0xFF;
-        dataBuf[4] = (blocks >> 7) & 0xFF;
-        // Hardcode 128 heads
-        dataBuf[5] = 128;
+        modeSense4(dataBuf);
         Acsi::sendDma(dataBuf, 24);
         break;
+      case 0x3f:
+        dataBuf[0] = 44;
+        dataBuf[1] = 0;
+        dataBuf[2] = 0;
+        dataBuf[3] = 0;
+        modeSense4(dataBuf + 4);
+        modeSense0(dataBuf + 28);
+        Acsi::sendDma(dataBuf, 44);
+        break;
       default:
+        acsiDbg("Error: unsupported mode sense ");
+        acsiDbgln((int)cmdBuf[3], HEX);
         commandError(LASTERR_INVARG);
         return;
       }
       commandSuccess();
       return;
     }
-  case 0x1f: // ICD extended command
-    switch(cmdBuf[1]) { // Sub-command
-    case 0x25: // Read capacity
-      // Send the number of blocks of the SD card
-      dataBuf[0] = (blocks >> 24) & 0xFF;
-      dataBuf[1] = (blocks >> 16) & 0xFF;
-      dataBuf[2] = (blocks >> 8) & 0xFF;
-      dataBuf[3] = (blocks) & 0xFF;
-      // Send the block size (which is always 512)
-      dataBuf[4] = 0x00;
-      dataBuf[5] = 0x00;
-      dataBuf[6] = 0x02;
-      dataBuf[7] = 0x00;
-      
-      Acsi::sendDma(dataBuf, 8);
-      
-      commandSuccess();
-      return;
-    case 0x28: // Read blocks
-      {
-        // Compute the block number
-        int block = (((int)cmdBuf[3]) << 24) | (((int)cmdBuf[4]) << 16) | (((int)cmdBuf[5]) << 8) | (cmdBuf[6]);
-        int count = (((int)cmdBuf[8]) << 8) | (cmdBuf[9]);
-  
-        // Do the actual read operation
-        if(processBlockRead(block, count))
-          commandSuccess();
-        else
-          commandError(LASTERR_READERR);
-      }
-      return;
-    case 0x2a: // Write blocks
-      {
-        // Compute the block number
-        int block = (((int)cmdBuf[3]) << 24) | (((int)cmdBuf[4]) << 16) | (((int)cmdBuf[5]) << 8) | (cmdBuf[6]);
-        int count = (((int)cmdBuf[8]) << 8) | (cmdBuf[9]);
-  
-        // Do the actual write operation
-        if(processBlockWrite(block, count))
-          commandSuccess();
-        else
-          commandError(LASTERR_WRITEERR);
-      }
-      return;
+  case 0x25: // Read capacity
+    // Send the number of blocks of the SD card
+    dataBuf[0] = (blocks >> 24) & 0xFF;
+    dataBuf[1] = (blocks >> 16) & 0xFF;
+    dataBuf[2] = (blocks >> 8) & 0xFF;
+    dataBuf[3] = (blocks) & 0xFF;
+    // Send the block size (which is always 512)
+    dataBuf[4] = 0x00;
+    dataBuf[5] = 0x00;
+    dataBuf[6] = 0x02;
+    dataBuf[7] = 0x00;
+
+    Acsi::sendDma(dataBuf, 8);
+
+    commandSuccess();
+    return;
+  case 0x28: // Read blocks
+    {
+      // Compute the block number
+      int block = (((int)cmdBuf[2]) << 24) | (((int)cmdBuf[3]) << 16) | (((int)cmdBuf[4]) << 8) | (cmdBuf[5]);
+      int count = (((int)cmdBuf[7]) << 8) | (cmdBuf[8]);
+
+      // Do the actual read operation
+      if(processBlockRead(block, count))
+        commandSuccess();
+      else
+        commandError(LASTERR_READERR);
     }
+    return;
+  case 0x2a: // Write blocks
+    {
+      // Compute the block number
+      int block = (((int)cmdBuf[2]) << 24) | (((int)cmdBuf[3]) << 16) | (((int)cmdBuf[4]) << 8) | (cmdBuf[5]);
+      int count = (((int)cmdBuf[7]) << 8) | (cmdBuf[8]);
+
+      // Do the actual write operation
+      if(processBlockWrite(block, count))
+        commandSuccess();
+      else
+        commandError(LASTERR_WRITEERR);
+    }
+    return;
   }
 }
 
-void Ahdi::readCmdBuf(uint8_t cmd) {
-  cmdBuf[0] = cmd;
-  cmdLen = cmd == 0x1f ? 11 : 6;
-  Acsi::readIrq(&cmdBuf[1], cmdLen - 1);
+bool Ahdi::readCmdBuf(uint8_t cmd) {
+  if(cmd == 0x1f)
+    // ICD extended command marker
+    Acsi::readIrq(cmdBuf, 1);
+
+  if(cmdBuf[0] > 0x60) {
+    // Unsupported command
+    return false;
+  } else if(cmdBuf[0] > 0x20) {
+    // 10 bytes command
+    Acsi::readIrq(&cmdBuf[1], 9);
+    cmdLen = 10;
+  } else {
+    // 6 bytes command
+    cmdBuf[0] = cmd;
+    Acsi::readIrq(&cmdBuf[1], 5);
+    cmdLen = 6;
+  }
+
+  return true;
+}
+
+void Ahdi::modeSense0(uint8_t *buf) {
+  for(uint8_t b = 0; b < 16; ++b) {
+    buf[b] = 0;
+  }
+  // Values got from the Hatari emulator
+  buf[1] = 14;
+  buf[3] = 8;
+  // Send the number of blocks of the SD card
+  buf[5] = (blocks >> 16) & 0xFF;
+  buf[6] = (blocks >> 8) & 0xFF;
+  buf[7] = (blocks) & 0xFF;
+  // Sector size middle byte
+  buf[10] = 2;
+}
+
+void Ahdi::modeSense4(uint8_t *buf) {
+  for(uint8_t b = 0; b < 24; ++b) {
+    buf[b] = 0;
+  }
+  // Values got from the Hatari emulator
+  buf[0] = 4;
+  buf[1] = 22;
+  // Send the number of blocks in CHS format
+  buf[2] = (blocks >> 23) & 0xFF;
+  buf[3] = (blocks >> 15) & 0xFF;
+  buf[4] = (blocks >> 7) & 0xFF;
+  // Hardcode 128 heads
+  buf[5] = 128;
 }
 
 bool Ahdi::processBlockRead(uint32_t block, int count) {
@@ -339,14 +376,20 @@ bool Ahdi::processBlockRead(uint32_t block, int count) {
     }
   }
 
-  for(int s = 0; s < count; ++s) {
-    if(!readData(dataBuf)) {
+  for(int s = 0; s < count;) {
+    int burst = ACSI_BLOCKS;
+    if(burst > count - s)
+      burst = count - s;
+
+    if(!readData(dataBuf, burst)) {
       acsiDbg("SD read error");
       lastErr = LASTERR_READERR;
       readStop();
       return false;
     }
-    Acsi::sendDma(dataBuf, ACSI_BLOCKSIZE);
+    Acsi::sendDma(dataBuf, ACSI_BLOCKSIZE * burst);
+
+    s += burst;
   }
 
   readStop();
@@ -371,7 +414,7 @@ bool Ahdi::processBlockWrite(uint32_t block, int count) {
     Acsi::readDma(dataBuf, ACSI_BLOCKSIZE);
   return true;
 #elif AHDI_READONLY == 1
-  lastErr = LASTERR_WRITEERR;
+  lastErr = LASTERR_WRITEPROT;
   return false;
 #else
 
@@ -383,13 +426,19 @@ bool Ahdi::processBlockWrite(uint32_t block, int count) {
   }
 
   for(int s = 0; s < count; ++s) {
-    Acsi::readDma(dataBuf, ACSI_BLOCKSIZE);
-    if(!writeData(dataBuf)) {
+    int burst = ACSI_BLOCKS;
+    if(burst > count - s)
+      burst = count - s;
+
+    Acsi::readDma(dataBuf, ACSI_BLOCKSIZE * burst);
+    if(!writeData(dataBuf, burst)) {
       acsiDbg("SD write error");
       lastErr = LASTERR_WRITEERR;
       writeStop();
       return false;
     }
+
+    s += burst;
   }
 
   writeStop();
@@ -406,19 +455,13 @@ void Ahdi::commandSuccess() {
 
 void Ahdi::commandError(int err) {
   lastErr = err;
-  commandError();
-}
-
-void Ahdi::commandError() {
   acsiDbg("Error ");
   acsiDbgln(lastErr, HEX);
   Acsi::sendIrq(2);
 }
 
 int Ahdi::getLun() {
-  if(cmdBuf[0] == 0x1f)
-    return (cmdBuf[2] & 0xe0) >> 5;
-  return (cmdBuf[1] & 0xe0) >> 5;
+  return cmdBuf[1] >> 5;
 }
 
 void Ahdi::getDeviceString(char *target) {
@@ -464,7 +507,6 @@ void Ahdi::getDeviceString(char *target) {
 }
 
 void Ahdi::sdError() {
-  lastErr = LASTERR_NOMEDIUM;
   acsiDbg("SD");
   acsiDbg(acsiId);
   acsiDbgln(" error");
@@ -484,10 +526,17 @@ bool Ahdi::readStart(uint32_t block) {
   return card.readStart(block);
 }
 
-bool Ahdi::readData(uint8_t *data) {
+bool Ahdi::readData(uint8_t *data, int count) {
   if(image)
-    return image.read(data, ACSI_BLOCKSIZE);
-  return card.readData(data);
+    return image.read(data, ACSI_BLOCKSIZE * count);
+
+  while(count-- > 0) {
+    if(!card.readData(data))
+      return false;
+    data += ACSI_BLOCKSIZE;
+  }
+
+  return true;
 }
 
 bool Ahdi::readStop() {
@@ -505,13 +554,20 @@ bool Ahdi::writeStart(uint32_t block) {
   return card.writeStart(block);
 }
 
-bool Ahdi::writeData(const uint8_t *data) {
+bool Ahdi::writeData(const uint8_t *data, int count) {
   if(image)
     if(image.isWritable())
-      return image.write(data, ACSI_BLOCKSIZE);
+      return image.write(data, ACSI_BLOCKSIZE * count);
     else
       return false;
-  return card.writeData(data);
+
+  while(count-- > 0) {
+    if(!card.writeData(data))
+      return false;
+    data += ACSI_BLOCKSIZE;
+  }
+
+  return true;
 }
 
 bool Ahdi::writeStop() {
@@ -531,8 +587,8 @@ void Ahdi::resetState() {
   bootable = false;
 }
 
-uint8_t Ahdi::dataBuf[ACSI_BLOCKSIZE];
-uint8_t Ahdi::cmdBuf[32];
+uint8_t Ahdi::dataBuf[ACSI_BLOCKSIZE * ACSI_BLOCKS];
+uint8_t Ahdi::cmdBuf[10];
 int Ahdi::cmdLen;
 
 // vim: ts=2 sw=2 sts=2 et

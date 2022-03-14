@@ -29,9 +29,6 @@ const int sdCs[] = {
   PA2, // ACSI ID 2
   PA1, // ACSI ID 3
   PA0, // ACSI ID 4
-  -1,  // ACSI ID 5
-  -1,  // ACSI ID 6
-  -1,  // ACSI ID 7
 };
 
 // Includes
