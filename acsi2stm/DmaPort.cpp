@@ -15,24 +15,6 @@
  * along with the program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#define A1 PB6 // Must be on port B
-#define CS PB7 // Must be on port B
-#define IRQ PA8
-#define DRQ PA11 // Must be on Timer1 channel output
-#define ACK PA12 // Must be on Timer1 external clock
-// Data pins are on PC8-PB15
-
-// Pin masks for direct port access
-#define A1_MASK  0b0000000001000000
-#define CS_MASK  0b0000000010000000
-#define IRQ_MASK 0b0000000100000000
-#define DRQ_MASK 0b0000100000000000
-#define ACK_MASK 0b0001000000000000
-
-// Timer
-#define ACSI_TIMER TIMER1_BASE
-#define CS_TIMER TIMER4_BASE
-
 /*
 How CS and A1 signals are handled
 =================================
@@ -235,27 +217,37 @@ DMA block transfer stop process:
 */
 
 #include "acsi2stm.h"
-#include "Debug.h"
 #include "Acsi.h"
+#include "DmaPort.h"
 #include <libmaple/dma.h>
 
-void Acsi::begin(uint8_t mask) {
-  deviceMask = mask;
-  init();
-}
+// Timer
+#define DMA_TIMER TIMER1_BASE
+#define CS_TIMER TIMER4_BASE
 
-void Acsi::init() {
+void DmaPort::begin() {
+  deviceMask = 0;
   dma_init(DMA1);
   setupDrqTimer();
   setupAckDmaTransfer();
   setupGpio();
 }
 
-bool Acsi::idle() {
+void DmaPort::addDevice(int id) {
+  if(id >= 0 && id < 8)
+    deviceMask |= 1 << id;
+}
+
+void DmaPort::removeDevice(int id) {
+  if(id >= 0 && id < 8)
+    deviceMask &= ~(1 << id);
+}
+
+bool DmaPort::idle() {
   return (GPIOA->regs->IDR & (IRQ_MASK | DRQ_MASK | ACK_MASK)) == IRQ_MASK | DRQ_MASK | ACK_MASK;
 }
 
-void Acsi::waitBusReady() {
+void DmaPort::waitBusReady() {
   pinMode(CS, INPUT_PULLDOWN);
   pinMode(A1, INPUT_PULLDOWN);
 
@@ -267,21 +259,24 @@ void Acsi::waitBusReady() {
   setupCsTimer();
 }
 
-uint8_t Acsi::waitCommand(uint8_t mask) {
-  uint8_t byte;
-
-  do {
-    byte = waitA1();
-  } while(!((1 << (byte >> 5)) & mask) || !idle()); // Check the device ID and Ack line
-
-  acsiVerbose("[+");
-  acsiVerbose(byte, HEX);
-  acsiVerbose(']');
-
-  return byte;
+bool DmaPort::checkCommand() {
+  return (CS_TIMER->SR & TIMER_SR_CC3IF)
+    && (1 << ((CS_TIMER->CCR4) >> 13) & deviceMask)
+    && idle();
 }
 
-void Acsi::readIrq(uint8_t *bytes, int count) {
+uint8_t DmaPort::readCommand() {
+  uint8_t cmd = (CS_TIMER->CCR4) >> 8;
+  Acsi::verboseHex('[', cmdDeviceId(cmd), ':', cmdCommand(cmd), ']');
+  return cmd;
+}
+
+uint8_t DmaPort::waitCommand() {
+  while(!checkCommand());
+  return readCommand();
+}
+
+void DmaPort::readIrq(uint8_t *bytes, int count) {
   // Disable systick that introduces jitter.
   systick_disable();
 
@@ -295,23 +290,20 @@ void Acsi::readIrq(uint8_t *bytes, int count) {
   systick_enable();
 }
 
-uint8_t Acsi::readIrq() {
-  acsiVerbose("[<");
+uint8_t DmaPort::readIrq() {
+  Acsi::verbose("[<");
 
   pullIrq();
   uint8_t byte = waitCs(); // Wait CS pulse and read data
   releaseRq();
 
-  acsiVerbose(byte,HEX);
-  acsiVerbose(']');
+  Acsi::verboseHex(byte, ']');
 
   return byte;
 }
 
-void Acsi::sendIrq(uint8_t byte) {
-  acsiVerbose("[>");
-  acsiVerbose(byte,HEX);
-  acsiVerbose(']');
+void DmaPort::sendIrq(uint8_t byte) {
+  Acsi::verboseHex("[>", byte, "]\n");
 
   // Disable systick that introduces jitter.
   systick_disable();
@@ -326,15 +318,15 @@ void Acsi::sendIrq(uint8_t byte) {
   systick_enable();
 }
 
-void Acsi::readDma(uint8_t *bytes, int count) {
+void DmaPort::readDma(uint8_t *bytes, int count) {
   // Disable systick that introduces jitter.
   systick_disable();
 
-  acsiVerbose("DMA read ");
+  Acsi::verbose("DMA read ");
 
 #if ACSI_ACK_FILTER
   // Enable ACK filter/delay
-  ACSI_TIMER->SMCR = (ACSI_TIMER->SMCR & ~(0xf << 8)) | ((ACSI_ACK_FILTER) << 8);
+  DMA_TIMER->SMCR = (DMA_TIMER->SMCR & ~(0xf << 8)) | ((ACSI_ACK_FILTER) << 8);
 #endif
 
   acquireDrq();
@@ -343,9 +335,9 @@ void Acsi::readDma(uint8_t *bytes, int count) {
   int i;
   for(i = 0; i <= count - 16; i += 16) {
 #define ACSI_READ_BYTE(b) do { \
-      ACSI_TIMER->CNT = 0; \
-      while(ACSI_TIMER->CNT == 0); \
-      bytes[b] = (uint8_t)(ACSI_TIMER->CCR1 >> 8); \
+      DMA_TIMER->CNT = 0; \
+      while(DMA_TIMER->CNT == 0); \
+      bytes[b] = (uint8_t)(DMA_TIMER->CCR1 >> 8); \
     } while(0)
     ACSI_READ_BYTE(0);
     ACSI_READ_BYTE(1);
@@ -378,19 +370,19 @@ void Acsi::readDma(uint8_t *bytes, int count) {
 
 #if ACSI_ACK_FILTER
   // Disable ACK filter/delay
-  ACSI_TIMER->SMCR = (ACSI_TIMER->SMCR & ~(0xf << 8));
+  DMA_TIMER->SMCR = (DMA_TIMER->SMCR & ~(0xf << 8));
 #endif
 
   // Restore systick
   systick_enable();
 
-  acsiVerboseDump(&bytes[-i], i);
-  acsiVerboseln(" OK");
+  Acsi::verboseDump(&bytes[-i], i);
+  Acsi::verbose(" OK\n");
 }
 
-void Acsi::sendDma(const uint8_t *bytes, int count) {
-  acsiVerbose("DMA send ");
-  acsiVerboseDump(&bytes[0], count);
+void DmaPort::sendDma(const uint8_t *bytes, int count) {
+  Acsi::verbose("DMA send ");
+  Acsi::verboseDump(&bytes[0], count);
 
   // Disable systick that introduces jitter.
   systick_disable();
@@ -402,8 +394,8 @@ void Acsi::sendDma(const uint8_t *bytes, int count) {
   int i = 0;
 #define ACSI_SEND_BYTE(b) do { \
       writeData(bytes[b]); \
-      ACSI_TIMER->CNT = 0; \
-      while(ACSI_TIMER->CNT == 0); \
+      DMA_TIMER->CNT = 0; \
+      while(DMA_TIMER->CNT == 0); \
     } while(0)
 #if ACSI_FAST_DMA
   for(i = 0; i <= count - 16; i += 16) {
@@ -440,23 +432,27 @@ void Acsi::sendDma(const uint8_t *bytes, int count) {
   // Restore systick
   systick_enable();
 
-  acsiVerboseln(" OK");
+  Acsi::verbose(" OK\n");
 }
 
-void Acsi::releaseRq() {
+void DmaPort::endTransaction() {
+  CS_TIMER->SR &= ~TIMER_SR_CC3IF; // Clear A1 received flag
+}
+
+void DmaPort::releaseRq() {
   GPIOA->regs->CRH = 0x44444BB4; // Set ACK, IRQ and DRQ as inputs
 }
 
-void Acsi::releaseDataBus() {
+void DmaPort::releaseDataBus() {
   GPIOB->regs->CRH = 0x44444444; // Set PORTB[8:15] to input
 }
 
-void Acsi::releaseBus() {
+void DmaPort::releaseBus() {
   releaseRq();
   releaseDataBus();
 }
 
-void Acsi::acquireDrq() {
+void DmaPort::acquireDrq() {
   // Set DRQ to high using timer PWM
   TIMER1_BASE->CNT = 2;
 
@@ -467,53 +463,52 @@ void Acsi::acquireDrq() {
   GPIOA->regs->CRH = 0x4444BBB4;
 }
 
-void Acsi::acquireDataBus() {
+void DmaPort::acquireDataBus() {
   GPIOB->regs->CRH = 0x33333333; // Set PORTB[8:15] to 50MHz push-pull output
 }
 
-uint8_t Acsi::waitCs() {
+uint8_t DmaPort::waitCs() {
   CS_TIMER->SR &= ~TIMER_SR_UIF;
   while(!(CS_TIMER->SR & TIMER_SR_UIF));
   return (CS_TIMER->CCR4) >> 8;
 }
 
-uint8_t Acsi::waitA1() {
-  CS_TIMER->SR &= ~TIMER_SR_CC3IF;
+uint8_t DmaPort::waitA1() {
   while(!(CS_TIMER->SR & TIMER_SR_CC3IF));
   return (CS_TIMER->CCR4) >> 8;
 }
 
-bool Acsi::readAck() {
+bool DmaPort::readAck() {
   return GPIOA->regs->IDR & ACK_MASK;
 }
 
-void Acsi::pullIrq() {
+void DmaPort::pullIrq() {
   GPIOA->regs->CRH = 0x44444BB3;
 }
 
-void Acsi::writeData(uint8_t byte) {
+void DmaPort::writeData(uint8_t byte) {
   GPIOB->regs->ODR = ((int)byte) << 8;
 }
 
-void Acsi::setupDrqTimer() {
-  ACSI_TIMER->CR1 = TIMER_CR1_OPM;
-  ACSI_TIMER->CR2 = 0;
-  ACSI_TIMER->SMCR = TIMER_SMCR_ETP | TIMER_SMCR_TS_ETRF | TIMER_SMCR_SMS_EXTERNAL;
-  ACSI_TIMER->PSC = 0; // Prescaler
-  ACSI_TIMER->ARR = 65535; // Overflow (0 = counter stopped)
-  ACSI_TIMER->DIER = TIMER_DIER_CC3DE;
-  ACSI_TIMER->CCMR1 = 0;
-  ACSI_TIMER->CCMR2 = TIMER_CCMR2_OC4M;
-  ACSI_TIMER->CCER = TIMER_CCER_CC4E; // Enable output
-  ACSI_TIMER->EGR = TIMER_EGR_UG;
-  ACSI_TIMER->CCR2 = 65535; // Disable unused CC channel
-  ACSI_TIMER->CCR3 = 1; // Compare value
-  ACSI_TIMER->CCR4 = 1; // Compare value
-  ACSI_TIMER->CNT = 2;
-  ACSI_TIMER->CR1 |= TIMER_CR1_CEN;
+void DmaPort::setupDrqTimer() {
+  DMA_TIMER->CR1 = TIMER_CR1_OPM;
+  DMA_TIMER->CR2 = 0;
+  DMA_TIMER->SMCR = TIMER_SMCR_ETP | TIMER_SMCR_TS_ETRF | TIMER_SMCR_SMS_EXTERNAL;
+  DMA_TIMER->PSC = 0; // Prescaler
+  DMA_TIMER->ARR = 65535; // Overflow (0 = counter stopped)
+  DMA_TIMER->DIER = TIMER_DIER_CC3DE;
+  DMA_TIMER->CCMR1 = 0;
+  DMA_TIMER->CCMR2 = TIMER_CCMR2_OC4M;
+  DMA_TIMER->CCER = TIMER_CCER_CC4E; // Enable output
+  DMA_TIMER->EGR = TIMER_EGR_UG;
+  DMA_TIMER->CCR2 = 65535; // Disable unused CC channel
+  DMA_TIMER->CCR3 = 1; // Compare value
+  DMA_TIMER->CCR4 = 1; // Compare value
+  DMA_TIMER->CNT = 2;
+  DMA_TIMER->CR1 |= TIMER_CR1_CEN;
 }
 
-void Acsi::setupCsTimer() {
+void DmaPort::setupCsTimer() {
   CS_TIMER->CR1 = TIMER_CR1_URS;
   CS_TIMER->SMCR = TIMER_SMCR_SMS_ENCODER2;
   CS_TIMER->CCMR1 = TIMER_CCMR1_CC1S_INPUT_TI1
@@ -551,14 +546,17 @@ void Acsi::setupCsTimer() {
                      DMA_FROM_MEM | DMA_CIRC_MODE);
   dma_set_num_transfers(DMA1, DMA_CH7, 1);
   dma_enable(DMA1, DMA_CH7);
+
+  // Clear A1 flag
+  endTransaction();
 }
 
-void Acsi::setupAckDmaTransfer() {
+void DmaPort::setupAckDmaTransfer() {
   // Setup the DMA engine to copy GPIOB to timer 1 CH1 compare value
   dma_init(DMA1);
   dma_setup_transfer(DMA1,
                      DMA_CH6,
-                     &(ACSI_TIMER->CCR1),
+                     &(DMA_TIMER->CCR1),
                      DMA_SIZE_16BITS,
                      &(GPIOB->regs->IDR),
                      DMA_SIZE_16BITS,
@@ -567,7 +565,7 @@ void Acsi::setupAckDmaTransfer() {
   dma_enable(DMA1, DMA_CH6);
 }
 
-void Acsi::setupGpio() {
+void DmaPort::setupGpio() {
   GPIOA->regs->ODR |= DRQ_MASK;
   releaseBus();
 }
