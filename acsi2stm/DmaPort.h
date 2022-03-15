@@ -15,27 +15,31 @@
  * along with the program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef ACSI_H
-#define ACSI_H
+#ifndef DMA_PORT_H
+#define DMA_PORT_H
 
-#include "Watchdog.h"
+struct DmaPort {
+  static const int A1 = PB6; // Must be on port B
+  static const int CS = PB7; // Must be on port B
+  static const int IRQ = PA8;
+  static const int DRQ = PA11; // Must be on Timer1 channel output
+  static const int ACK = PA12; // Must be on Timer1 external clock
+  // Data pins are on PB8-PB15
 
-// SD card block size
-#define ACSI_BLOCKSIZE 512
+  // Pin masks for direct port access
+  static const int A1_MASK  = 0b0000000001000000;
+  static const int CS_MASK  = 0b0000000010000000;
+  static const int IRQ_MASK = 0b0000000100000000;
+  static const int DRQ_MASK = 0b0000100000000000;
+  static const int ACK_MASK = 0b0001000000000000;
 
-struct Acsi {
-  static void init();
-  void begin(uint8_t deviceMask = 0);
+  void begin();
 
-  // Add a device ID to the mask
-  void addDevice(int id) {
-    deviceMask |= 1<<id;
-  }
+  // Add a device to the list of allowed devices
+  void addDevice(int id);
 
-  // Remove a device ID from the mask
-  void removeDevice(int id) {
-    deviceMask &=~ (1<<id);
-  }
+  // Remove a device from the list of allowed devices
+  void removeDevice(int id);
 
   // Return true if the ACSI bus is idle:
   // IRQ, DRQ and ACK are high.
@@ -45,24 +49,23 @@ struct Acsi {
   // Uses input pull-down to detect that the ST is actually powered on.
   static void waitBusReady();
 
-  // Wait for a command on the bus.
-  //
-  // The mask is the device bit mask. Set bits 0 to 7 to receive commands for the corresponding device id.
-  // Bits set to 0 will ignore commands for the corresponding devices.
-  //
-  // This function never times out and never fails.
-  // Returns the command byte. You can use cmdDeviceId and cmdCommand to parse it.
-  static uint8_t waitCommand(uint8_t mask);
-  uint8_t waitCommand() {
-    return waitCommand(deviceMask);
-  }
+  // Return true if a new command is available
+  bool checkCommand();
 
-  // Returns the device ID for a given command byte.
+  // Important: call endTransaction when the command was handled to retrigger A1 listening
+  static uint8_t readCommand();
+
+  // Wait for a new command and return its first byte
+  // Equivalent to calling checkCommand followed by readCommand
+  uint8_t waitCommand();
+
+  // Returns the device id for a given command byte
   static uint8_t cmdDeviceId(uint8_t cmd) {
     return cmd >> 5;
   }
 
   // Returns the actual command for a given command byte.
+  // Filter out device id.
   static uint8_t cmdCommand(uint8_t cmd) {
     return cmd & 0b00011111;
   }
@@ -78,12 +81,13 @@ struct Acsi {
   static void sendIrq(uint8_t byte);
 
   // Read bytes using the DRQ/ACK method.
-  // count must be a multiple of 16.
   static void readDma(uint8_t *bytes, int count);
 
   // Send bytes using the DRQ/ACK method.
-  // count must be a multiple of 16.
   static void sendDma(const uint8_t *bytes, int count);
+
+  // Start listening for the next A1 pulse.
+  static void endTransaction();
 
 protected:
   // Low level pin manipulation methods
@@ -105,7 +109,7 @@ protected:
   static void setupAckDmaTransfer();
   static void setupGpio();
 
-  uint8_t deviceMask;
+  int deviceMask;
 };
 
 // vim: ts=2 sw=2 sts=2 et

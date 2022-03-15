@@ -27,7 +27,6 @@ void Watchdog::begin(int millis) {
   WATCHDOG_TIMER.attachInterrupt(TIMER_CH1, Watchdog::trigger);
   WATCHDOG_TIMER.setCount(0);
   WATCHDOG_TIMER.refresh();
-  WATCHDOG_TIMER.resume();
 }
 
 void Watchdog::trigger() {
