@@ -1,12 +1,12 @@
 /* ACSI2STM Atari hard drive emulator
  * Copyright (C) 2019-2022 by Jean-Matthieu Coulon
  *
- * This Library is free software: you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * This Library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
@@ -28,19 +28,18 @@
 
 class Acsi: public AcsiDebug {
 public:
-  // SCSI error code in KEY_ASC format (see SCSI KCQ)
+  // SCSI error code in KEY_ASCQ_ASC format (see SCSI KCQ)
   enum ScsiErr {
-    ERR_OK = 0x0000,
-    ERR_NOMEDIUM = 0x023A,
-    ERR_READERR = 0x0311,
-    ERR_WRITEERR = 0x0303,
-    ERR_WRITEPROT = 0x0727,
-    ERR_NOSECTOR = 0x0401,
-    ERR_OPCODE = 0x0520,
-    ERR_INVADDR = 0x0521,
-    ERR_INVARG = 0x0524,
-    ERR_INVLUN = 0x0525,
-    ERR_MEDIACHANGE = 0x0600,
+    ERR_OK = 0x000000,
+    ERR_READERR = 0x030011,
+    ERR_WRITEERR = 0x030203,
+    ERR_WRITEPROT = 0x070027,
+    ERR_OPCODE = 0x050020,
+    ERR_INVADDR = 0x050021,
+    ERR_INVARG = 0x050024,
+    ERR_INVLUN = 0x050025,
+    ERR_MEDIUMCHANGE = 0x060028,
+    ERR_NOMEDIUM = 0x06003a,
   };
 
   Acsi(int deviceId, int csPin, int wpPin, DmaPort&, Watchdog&);
@@ -49,16 +48,12 @@ public:
   // Initialize the ACSI bridge
   void begin();
 
-  // Mount all LUN images on the SD card.
-  void mountImages();
+  // Mount all LUNs on the SD card.
+  void mountLuns();
 
   // Command processing. Pass the first command byte (without the device id).
   // This function will read all subsequent bytes as needed.
-  // Returns true if any command was processed.
   void process(uint8_t cmd);
-
-  // Process the command in the command buffer.
-  void processCmdBuf();
 
   // Read command bytes and updates cmdBuf and cmdLen.
   bool readCmdBuf(uint8_t cmd);
@@ -72,17 +67,26 @@ public:
   // Return the LUN for the current command.
   int getLun();
 
-  // Send a success status and get ready for the next command.
-  // Also updates lastErr.
-  void commandSuccess();
-
-  // Send an error status and get ready for the next command.
+  // Send a status and get ready for the next command.
   // Also updates lastErr with the error passed in parameter.
-  void commandError(ScsiErr err);
+  void commandStatus(ScsiErr err);
+
+  // Reopen the SD card and remount LUNs
+  // Returns:
+  //   ERR_OK if the device is operational
+  //   ERR_MEDIUMCHANGE if the card was swapped
+  //   ERR_NOMEDIUM if the card was removed
+  ScsiErr refresh(int lun);
 
   // Process block I/O requests
-  bool processBlockRead(uint32_t block, int count, BlockDev *dev);
-  bool processBlockWrite(uint32_t block, int count, BlockDev *dev);
+  ScsiErr processBlockRead(uint32_t block, int count, BlockDev *dev);
+  ScsiErr processBlockWrite(uint32_t block, int count, BlockDev *dev);
+
+  // Check if the SD card was changed since last access
+  bool hasMediaChanged();
+
+  // Update media check time
+  void mediaChecked();
 
   // Output a human-readable string of a block count.
   // Updates the 4 first bytes of target.
@@ -108,6 +112,9 @@ public:
   int sdCs;
   int sdWp;
   SdDev card;
+  uint32_t mediaId;
+  uint32_t mediaCheckTime;
+  static const uint32_t mediaCheckPeriod = 2000;
 
   // SCSI status variables
   ScsiErr lastErr;

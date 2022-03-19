@@ -1,12 +1,12 @@
 /* ACSI2STM Atari hard drive emulator
  * Copyright (C) 2019-2021 by Jean-Matthieu Coulon
  *
- * This Library is free software: you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * This Library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
@@ -260,9 +260,11 @@ void DmaPort::waitBusReady() {
 }
 
 bool DmaPort::checkCommand() {
-  return (CS_TIMER->SR & TIMER_SR_CC3IF)
-    && (1 << ((CS_TIMER->CCR4) >> 13) & deviceMask)
-    && idle();
+  return (CS_TIMER->SR & TIMER_SR_CC3IF);
+}
+
+bool DmaPort::validCommand() {
+  return (1 << ((CS_TIMER->CCR4) >> 13) & deviceMask) && idle();
 }
 
 uint8_t DmaPort::readCommand() {
@@ -272,7 +274,12 @@ uint8_t DmaPort::readCommand() {
 }
 
 uint8_t DmaPort::waitCommand() {
-  while(!checkCommand());
+  for(;;) {
+    while(!checkCommand());
+    if(validCommand())
+      break;
+    endTransaction();
+  }
   return readCommand();
 }
 
@@ -324,11 +331,6 @@ void DmaPort::readDma(uint8_t *bytes, int count) {
 
   Acsi::verbose("DMA read ");
 
-#if ACSI_ACK_FILTER
-  // Enable ACK filter/delay
-  DMA_TIMER->SMCR = (DMA_TIMER->SMCR & ~(0xf << 8)) | ((ACSI_ACK_FILTER) << 8);
-#endif
-
   acquireDrq();
 
   // Unroll for speed
@@ -367,11 +369,6 @@ void DmaPort::readDma(uint8_t *bytes, int count) {
 #undef ACSI_READ_BYTE
 
   releaseBus();
-
-#if ACSI_ACK_FILTER
-  // Disable ACK filter/delay
-  DMA_TIMER->SMCR = (DMA_TIMER->SMCR & ~(0xf << 8));
-#endif
 
   // Restore systick
   systick_enable();
@@ -423,7 +420,7 @@ void DmaPort::sendDma(const uint8_t *bytes, int count) {
     ACSI_SEND_BYTE(0);
     ++i;
     ++bytes;
-    asm("nop");
+    asm volatile("nop");
   }
 
 #undef ACSI_SEND_BYTE
@@ -493,7 +490,11 @@ void DmaPort::writeData(uint8_t byte) {
 void DmaPort::setupDrqTimer() {
   DMA_TIMER->CR1 = TIMER_CR1_OPM;
   DMA_TIMER->CR2 = 0;
-  DMA_TIMER->SMCR = TIMER_SMCR_ETP | TIMER_SMCR_TS_ETRF | TIMER_SMCR_SMS_EXTERNAL;
+  DMA_TIMER->SMCR = 
+#if ACSI_ACK_FILTER
+    ((ACSI_ACK_FILTER) << 8) |
+#endif
+    TIMER_SMCR_ETP | TIMER_SMCR_TS_ETRF | TIMER_SMCR_SMS_EXTERNAL;
   DMA_TIMER->PSC = 0; // Prescaler
   DMA_TIMER->ARR = 65535; // Overflow (0 = counter stopped)
   DMA_TIMER->DIER = TIMER_DIER_CC3DE;
@@ -512,8 +513,10 @@ void DmaPort::setupCsTimer() {
   CS_TIMER->CR1 = TIMER_CR1_URS;
   CS_TIMER->SMCR = TIMER_SMCR_SMS_ENCODER2;
   CS_TIMER->CCMR1 = TIMER_CCMR1_CC1S_INPUT_TI1
-                    | TIMER_CCMR1_CC2S_INPUT_TI2
-                    | ((ACSI_CS_FILTER) << 4);
+#if ACSI_CS_FILTER
+                    | ((ACSI_CS_FILTER) << 4)
+#endif
+                    | TIMER_CCMR1_CC2S_INPUT_TI2;
   CS_TIMER->CCMR2 = TIMER_CCMR2_OC3M;
   CS_TIMER->CCER |= TIMER_CCER_CC1P | TIMER_CCER_CC2P;
   CS_TIMER->PSC = 0;

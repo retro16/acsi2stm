@@ -1,12 +1,12 @@
 /* ACSI2STM Atari hard drive emulator
  * Copyright (C) 2019-2022 by Jean-Matthieu Coulon
  *
- * This Library is free software: you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * This Library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
@@ -14,12 +14,6 @@
  * You should have received a copy of the GNU General Public License
  * along with the program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
-// Needs access to low-level data structures for mediaId
-// If the library changes too much, it's not guaranteed to work anymore.
-#define private public
-#include <SdFat.h>
-#undef private
 
 #include <Arduino.h>
 #include "BlockDev.h"
@@ -86,39 +80,48 @@ void BlockDev::updateBootable() {
   bootable = (checksum == 0x1234);
 }
 
-bool SdDev::begin(int devId, int cs, bool w) {
+bool SdDev::begin(int devId, int cs, int wp) {
   deviceId = devId;
   csPin = cs;
-  writable = w;
+  wpPin = wp;
   return reset();
 }
 
 bool SdDev::reset() {
   BlockDev::reset();
 
-  for(int rate = 0; rate < sizeof(sdRates)/sizeof(sdRates[0]); ++rate) {
+  // Set wp pin as input pullup
+  pinMode(wpPin, INPUT_PULLUP);
+
+  int rate;
+
+  for(rate = 0; rate < sizeof(sdRates)/sizeof(sdRates[0]); ++rate) {
+    Acsi::verbose('(', sdRates[rate] / 1000000, "MHz) ");
     if(!card.begin(SdSpiConfig(csPin, SHARED_SPI, sdRates[rate], &SPI)))
-      break;
+      continue;
 
     // Give some time to the internal SD electronics to initialize properly
-    delay(100);
+    delay(200);
 
     // Get SD card identification to test communication
     cid_t cid;
     if(!card.readCID(&cid)) {
-      Acsi::dbg("SD CID read error at ", sdRates[rate] / 1000000, "MHz \n");
+      Acsi::verbose("CID error (", sdRates[rate] / 1000000, "MHz) ");
       continue;
     }
 
     // Get SD card size
     blocks = card.sectorCount();
 
+    // Get writable pin status
+    writable = digitalRead(wpPin);
+
     // If blocks is non-null, assume that the SD card is working well
     if(blocks)
       break;
-
-    Acsi::dbg("SD sector count error\n");
   }
+
+  Acsi::verbose("(SD", deviceId, " init) ");
 
 #if ACSI_MAX_BLOCKS
   if(blocks > ACSI_MAX_BLOCKS)
@@ -127,7 +130,12 @@ bool SdDev::reset() {
 
   if(blocks) {
     fsOpen = fs.begin(&card);
+    if(fsOpen)
+      Acsi::verbose("(fs ok) ");
     updateBootable();
+    if(bootable)
+      Acsi::verbose("(boot) ");
+    Acsi::dbg('(', sdRates[rate] / 1000000, "MHz ", blocks, " blocks) ");
   }
 
   return blocks;
@@ -242,8 +250,13 @@ bool SdDev::isWritable() {
 }
 
 uint32_t SdDev::mediaId() {
+  if(!blocks)
+    return 0;
+
   cid_t cid;
-  card.readCID(&cid);
+  if(!card.readCID(&cid))
+    return 0;
+
   uint32_t id = 0;
   for(int i = 0; i < sizeof(cid) / 4; ++i)
     id ^= ((const uint32_t*)&cid)[i];
@@ -383,12 +396,8 @@ uint32_t ImageDev::mediaId() {
   if(!sd)
     return 0;
 
-  uint32_t id = sd->mediaId();
-  id ^= blocks;
-  image.rewind();
-  if(image.m_fFile)
-    id ^= (uint32_t)image.m_fFile->m_firstCluster;
-  else
-    id ^= (uint32_t)image.m_xFile->m_firstCluster;
+  // For now, images cannot be switched on the fly so they cannot change
+  // unless the SD card is physically swapped.
+  return sd->mediaId();
 }
 

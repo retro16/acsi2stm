@@ -1,12 +1,12 @@
 /* ACSI2STM Atari hard drive emulator
  * Copyright (C) 2019-2021 by Jean-Matthieu Coulon
  *
- * This Library is free software: you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * This Library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
@@ -22,7 +22,7 @@
 
 // acsi2stm global configuration
 
-#define ACSI2STM_VERSION "2.3b"
+#define ACSI2STM_VERSION "2.3c"
 
 // Set to 1 to enable debug output on the serial port
 #define ACSI_DEBUG 0
@@ -49,9 +49,9 @@
 //#define ACSI_MAX_BLOCKS 0x0FFFFF // 512MB limit
 
 // Maximum SD card speed in MHz.
-// This does not set the speed, it selects speeds from a list.
+// Standard SD cards can go up to 50MHz.
 // The driver automatically downgrades to a slower speed on each retry.
-#define ACSI_SD_MAX_SPEED 50
+#define ACSI_SD_MAX_SPEED 36
 
 // Data buffer size in 512 bytes blocks
 #define ACSI_BLOCKS 8
@@ -70,12 +70,12 @@
 // Set this to 2 to sample 41.6ns later
 // Set this to 3 to sample 97.1ns later
 // Only impacts command send (ST -> STM32)
-#define ACSI_CS_FILTER 1
+#define ACSI_CS_FILTER 2
 
 // Push data faster in DMA reads (STM32 -> ST)
 // Setting to 1 unrolls the DMA transfer code but may be less compatible
 // with some ST DMA controllers.
-#define ACSI_FAST_DMA 0
+#define ACSI_FAST_DMA 1
 
 // Activity LED pin. Leave undefined to remove activity LED.
 #define ACSI_ACTIVITY_LED LED_BUILTIN
