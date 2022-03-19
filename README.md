@@ -40,8 +40,8 @@ The code here is released under the GPLv3 license (see LICENSE file). This has s
 Hardware needed
 ---------------
 
- * A STM32F103C8T6 or compatible board. You can find them for a few dollars online. The "blue pill" works out of the box
-   and the "black pill" requires minor modifications.
+ * A STM32F103C8T6 or compatible board. You can find them for a few dollars online. The "blue pill" works out of the box and the
+   older "black pill" requires minor modifications.
  * A USB-serial dongle for programming the STM32 chip, with a 3.3V USART.
  * One or more SD card port(s) for your STM32. You can also solder wires on a SD to microSD adapter.
  * One or more SD card(s).
@@ -51,12 +51,13 @@ Hardware needed
 
 **Notes**
 
-Some people reported problems with STM32 clones. I have many variants of the blue pill STM32, all of them work exactly the
-same. Variants I had and that worked: round and rectangle reset buttons, some chips marked STM32F / 103 and other marked
-STM32 / F103. If anyone has concrete proof of misbehaving clones and information on how to spot them, feel free to contact me
-or create an issue on GitHub to let people know about that.
+Some people reported problems with STM32 clones. I have many variants of the blue pill STM32, all of them work exactly the same.
+Variants I had and that worked: round and rectangle reset buttons, some chips marked STM32F / 103 and other marked STM32 / F103.
+If anyone has concrete proof of misbehaving clones and information on how to spot them, feel free to contact me or create an issue
+on GitHub to let people know about that.
 
-Please provide feedback if you are trying to make this work with the new STM32F4x1 "black pill" boards.
+Please provide feedback if you are trying to make this work with the new STM32F4x1 "black pill" boards. The best configuration is
+to have a working blue pill so results can be compared by switching the boards (I believe they are pin compatible).
 
 
 Software needed
@@ -73,7 +74,7 @@ Installing software
 -------------------
 
 Install the [STM32 library](https://github.com/rogerclarkmelbourne/Arduino_STM32/wiki/Installation). The doc says that it only
-works on Arduino 1.8.5 but that does seems to work with more recent versions too.
+works on Arduino 1.8.5 but that works with more recent versions too. Arduino 2.x was not tested.
 
 In the Tools / Manage Libraries menu of the Arduino interface, search for "SdFat" and install "SdFat by Bill Greiman".
 
@@ -153,8 +154,8 @@ Use this table to match pins on the ACSI port and the STM32:
  * Reset is not needed as the STM32 resets itself if it stays in an inconsistent state for more than 2 seconds.
  * Keep the wires short. I had strange behavior with cables longer than 10cm (4 inches).
  * The read/write pin is not needed.
- * You can build a DB19 out of a DB25 by cutting 6 pins on one side and part of the external shielding. Male DB25
-   are easy to find because they were used for parallel port cables or serial port sockets.
+ * You can build a DB19 out of a DB25 by cutting 6 pins on one side and part of the external shielding. Male DB25 are easy to find
+   because they were used for parallel port cables or serial port sockets.
  * You will have to power the STM32 separately (e.g. with a USB cable).
 
 
@@ -192,26 +193,22 @@ If you want to use multiple SD cards, connect all SD card pins to the same STM32
 
 Here is the table that indicates the STM32 pin for each CS pin of the different SD cards:
 
-| ACSI ID | STM32 | Connect to        |
-|--------:|:------|-------------------|
-|       0 | PA4   | SD 0 pin 1 or GND |
-|       1 | PA3   | SD 1 pin 1 or GND |
-|       2 | PA2   | SD 2 pin 1 or GND |
-|       3 | PA1   | SD 3 pin 1 or GND |
-|       4 | PA0   | SD 4 pin 1 or GND |
+| ACSI ID | STM32 | Connect to |
+|--------:|:------|------------|
+|       0 | PA4   | SD 0 pin 1 |
+|       1 | PA3   | SD 1 pin 1 |
+|       2 | PA2   | SD 2 pin 1 |
+|       3 | PA1   | SD 3 pin 1 |
+|       4 | PA0   | SD 4 pin 1 |
 
 Leave unused CS pins unconnected.
 
 **WARNING**: Pinout changed in v2.0: PA0 was added, PBx were removed and unused SD card CS pins *must not* be grounded anymore.
 
-For example, if you want 3 SD cards detected on ACSI IDs 0, 1 and 4:
- * Connect PA4 to pin 1 of the first SD card.
- * Connect PA3 to pin 1 of the second SD card.
- * Connect PA0 to pin 1 of the third SD card.
- * Leave PA1 and PA2 unconnected.
-
 **Notes**:
 
+ * The ACSI2STM module **will** respond to all ACSI IDs, whether a SD card reader is connected or not. Change ACSI_SD_CARDS and
+   ACSI_FIRST_ID in acsi2stm/acsi2stm.h to change ACSI IDs.
  * The SD card had 2 GND pins. I don't know if they have to be both grounded, maybe one wire is enough.
  * You should put a decoupling capacitor of about 100nF between VDD and VSS, as close as possible from the SD card pins.
  * If you need other ACSI IDs, you can change the sdCs array in the source code. See "Compile-time options" below.
@@ -238,7 +235,8 @@ Using on an old "Black pill" STM32 board
 If you have these cheap "STM32 minimum development boards" from eBay, Amazon, Banggood or other chinese sellers, chances are that
 you have either a "blue pill" or a "black pill" board. "blue" or "black" refers to the color of the PCB.
 
-**WARNING**: There are newer STM32F4xx boards also called "black pill". These newer boards are currently not tested. This part refers to older STM32F103C8T6 black pill boards.
+**WARNING**: There are newer STM32F4xx boards also called "black pill". These newer boards are currently not tested. This part
+refers to older STM32F103C8T6 black pill boards.
 
 The problem with black pill designs is that the onboard LED is wired on PB12 instead of PC13, messing with data signals.
 
@@ -258,13 +256,16 @@ Settings that you might wish to change:
 
  * ACSI_DEBUG: Enables debug output on the serial port. Moderate performance penalty.
  * ACSI_VERBOSE: Requires ACSI_DEBUG. Logs all commands on the serial port. High performance penalty.
- * ACSI_DUMP_LEN: Requires ACSI_VERBOSE. Dumps N bytes for each DMA transfer. It helps finding data corruption. Even higher performance penalty.
+ * ACSI_DUMP_LEN: Requires ACSI_VERBOSE. Dumps N bytes for each DMA transfer. It helps finding data corruption. Even higher
+   performance penalty.
  * ACSI_SERIAL: The serial port used for debug output.
  * ACSI_READONLY: Make all cards read-only. Acsi2stm becomes strictly unable to modify SD cards.
- * ACSI_MAX_BLOCKS: Limits the number of SD card blocks exposed to the ST. This may be useful to test specific setups or emulate an old hard drive of a specific size.
+ * ACSI_MAX_BLOCKS: Limits the number of SD card blocks exposed to the ST. This may be useful to test specific setups or emulate
+   an old hard drive of a specific size.
  * ACSI_SD_MAX_SPEED: Maximum SD card speed in MHz. If SD communication fails, the driver automatically retries at a lower speed.
- * ACSI_ACK_FILTER: Enables filtering the ACK line, adding a tiny latency. May improve DMA write reliability at the expense of write speed.
- * ACSI_CS_FILTER: Enables filtering on the CS line, adding a tiny latency. This is necessary to sample the data bus at the right time. Adjust this if commands are corrupt.
+ * ACSI_ACK_FILTER: Enables filtering the ACK line, adding a tiny latency. May improve DMA reliability at the expense of speed.
+ * ACSI_CS_FILTER: Enables filtering on the CS line, adding a tiny latency. This is necessary to sample the data bus at the right
+   time. Adjust this if commands are corrupt.
  * ACSI_FAST_DMA: If set to 1, unroll DMA code for faster performance. Fast timings may not be compatible with some ST DMA chips.
 
 The file acsi2stm.ino begins with the CS and lock pin table. You can change pin mapping here.
@@ -278,8 +279,8 @@ read (or use a floppy simulator).
 
 Boot the floppy, open the A floppy drive and run INSTALL.PRG. The program will create partitions and a boot sector automatically.
 
-Now test the setup by ejecting the floppy and rebooting the Atari. The desktop should have extra icons for your newly
-created partitions (C, D, E, ...).
+Now test the setup by ejecting the floppy and rebooting the Atari. The desktop should have extra icons for your newly created
+partitions (C, D, E, ...).
 
 Alternatively, you can partition the drive manually with ICDFMT.PRG and make it bootable with HDUTILS.PRG. You should set
 verification passes to 0 in ICDFMT to avoid the lengthy (and useless) surface scan.
@@ -300,11 +301,11 @@ Working with image files
 
 Instead of using a raw SD card, you can use an image file instead.
 
-Place a file named hd0.img in the folder acsi2stm of a standard SD card. The file must not be empty and must be a multiple of 512 bytes
-to be detected as an image.
+Place a file named hd0.img in the folder acsi2stm of a standard SD card. The file must not be empty and must be a multiple of 512
+bytes to be detected as an image.
 
-If the image file is in use, the ACSI unit name will contain IM0. In that case, the reported siz e is the size of the image, not
-the size of the SD card.
+If the image file is in use, the ACSI unit name will contain IM0. In that case, the reported size is the size of the image, not the
+size of the SD card.
 
 The image is exposed as a raw device with no header. This is the same format as used in the Hatari emulator, making the image
 directly compatible. You can also transfer data between a raw SD card and an image using tools like Win32 Disk Imager (for Windows)

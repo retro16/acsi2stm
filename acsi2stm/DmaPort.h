@@ -1,12 +1,12 @@
 /* ACSI2STM Atari hard drive emulator
  * Copyright (C) 2019-2021 by Jean-Matthieu Coulon
  *
- * This Library is free software: you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * This Library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
@@ -51,6 +51,10 @@ struct DmaPort {
 
   // Return true if a new command is available
   bool checkCommand();
+
+  // Return true if the last received command is valid
+  // and matches any allowed device
+  bool validCommand();
 
   // Important: call endTransaction when the command was handled to retrigger A1 listening
   static uint8_t readCommand();

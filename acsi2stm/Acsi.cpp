@@ -1,12 +1,12 @@
 /* ACSI2STM Atari hard drive emulator
  * Copyright (C) 2019-2022 by Jean-Matthieu Coulon
  *
- * This Library is free software: you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * This Library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
@@ -37,32 +37,26 @@ void Acsi::begin() {
   dma.addDevice(deviceId);
 
   // Initialize the SD card
-  pinMode(sdWp, INPUT_PULLUP);
-  delay(5);
-  if(card.begin(deviceId, sdCs, digitalRead(sdWp))) {
+  if(card.begin(deviceId, sdCs, sdWp)) {
     dbg("success\n");
   } else {
     dbg("failed\n\n");
     return;
   }
 
-  // Detach all LUNs
-  for(int l = 0; l < maxLun; ++l)
-    luns[l] = nullptr;
+  // Read media ID to check for media change
+  mediaId = card.mediaId();
+  mediaChecked();
 
-  // Mount images from SD cards
-  mountImages();
-
-  // Mount raw SD card on LUN0
-  if(!luns[0] && card)
-    luns[0] = &card;
+  // Mount all LUNs
+  mountLuns();
 
 #if ACSI_DEBUG
   for(int l = 0; l < maxLun; ++l) {
     if(luns[l]) {
       luns[l]->getDeviceString((char *)buf);
       buf[24] = 0;
-      dbg("  LUN", l, ": ", (const char *)buf, '\n');
+      dbg("  ", deviceId, ',', l, ": ", (const char *)buf, '\n');
     }
   }
 #endif
@@ -70,8 +64,12 @@ void Acsi::begin() {
   dbg('\n');
 }
 
-void Acsi::mountImages() {
+void Acsi::mountLuns() {
   int prefixLen = strlen(ACSI_IMAGE_FOLDER ACSI_LUN_IMAGE_PREFIX);
+
+  // Detach all LUNs
+  for(int l = 0; l < maxLun; ++l)
+    luns[l] = nullptr;
   
   for(int l = 0; l < maxLun; ++l) {
     // Skip populated LUNs
@@ -88,6 +86,10 @@ void Acsi::mountImages() {
       // Success: associate the image to its LUN
       luns[l] = &images[l];
   }
+
+  // Mount raw SD card on LUN0 if no image was found for that slot
+  if(!luns[0] && card)
+    luns[0] = &card;
 }
 
 void Acsi::process(uint8_t cmd) {
@@ -97,16 +99,12 @@ void Acsi::process(uint8_t cmd) {
   }
 
   if(!readCmdBuf(cmd)) {
-    dbg("Unknown command\n");
+    dbgHex("Unknown command\n");
     lastSeek = false;
-    commandError(ERR_OPCODE);
+    commandStatus(ERR_OPCODE);
     return;
   }
 
-  processCmdBuf();
-}
-
-void Acsi::processCmdBuf() {
 #if ACSI_VERBOSE
   dumpln(cmdBuf, cmdLen, 0);
 #else
@@ -119,18 +117,25 @@ void Acsi::processCmdBuf() {
 
   // Command preprocessing
   switch(cmdBuf[0]) {
-  case 0x00:
-    commandSuccess();
-    return;
   default:
     if(!dev) {
-      commandError(ERR_INVLUN);
+      commandStatus(validLun() ? ERR_NOMEDIUM : ERR_INVLUN);
       return;
     }
     break;
+  case 0x00: // Test unit ready
   case 0x12: // Inquiry
   case 0x03: // Request sense
-    // TODO: sense media
+    {
+      if(validLun()) {
+        auto err = refresh(getLun());
+        dev = luns[getLun()];
+        if(err == ERR_MEDIUMCHANGE) {
+          commandStatus(err);
+          return;
+        }
+      }
+    }
     break;
   }
 
@@ -139,20 +144,14 @@ void Acsi::processCmdBuf() {
   default: // Unknown command
     dbg("Unknown command\n");
     lastSeek = false;
-    commandError(ERR_OPCODE);
+    commandStatus(ERR_OPCODE);
     return;
-  case 0x0d: // Correction
-  case 0x15: // Mode select
-  case 0x1b: // Ship
-    // Always succeed
-    lastSeek = false;
-    commandSuccess();
+  case 0x00: // Test unit ready
+    commandStatus(!validLun() ? ERR_INVLUN : dev ? ERR_OK : ERR_NOMEDIUM);
     return;
   case 0x03: // Request Sense
-    if(!dev) {
-      dbg("Invalid LUN sense ...\n");
+    if(!validLun())
       lastErr = ERR_INVLUN;
-    }
 
     for(int b = 0; b < cmdBuf[4]; ++b)
       buf[b] = 0;
@@ -174,7 +173,8 @@ void Acsi::processCmdBuf() {
         buf[5] = (lastBlock >> 8) & 0xFF;
         buf[6] = (lastBlock) & 0xFF;
       }
-      buf[2] = (lastErr >> 8) & 0xFF;
+      buf[2] = (lastErr >> 16) & 0xFF;
+      buf[3] = (lastErr >> 8) & 0xFF;
       buf[7] = 14;
       buf[12] = (lastErr) & 0xFF;
       buf[19] = (lastBlock >> 16) & 0xFF;
@@ -184,7 +184,7 @@ void Acsi::processCmdBuf() {
     // Send the response
     dma.sendDma(buf, cmdBuf[4]);
     
-    commandSuccess();
+    commandStatus(ERR_OK);
     return;
   case 0x08: // Read block
     // Compute the block number
@@ -192,14 +192,15 @@ void Acsi::processCmdBuf() {
     lastSeek = true;
 
     if(lastBlock == 0) {
-      // TODO: refresh medium
+      lastErr = refresh(getLun());
+      if(lastErr != ERR_OK) {
+        commandStatus(lastErr);
+        return;
+      }
     }
 
     // Do the actual read operation
-    if(processBlockRead(lastBlock, cmdBuf[4], dev))
-      commandSuccess();
-    else
-      commandError(ERR_READERR);
+    commandStatus(processBlockRead(lastBlock, cmdBuf[4], dev));
     return;
   case 0x0a: // Write block
     // Compute the block number
@@ -210,19 +211,16 @@ void Acsi::processCmdBuf() {
       dbg("WARNING: Write to boot sector\n");
 
     // Do the actual write operation
-    if(processBlockWrite(lastBlock, cmdBuf[4], dev))
-      commandSuccess();
-    else
-      commandError(ERR_WRITEERR);
+    commandStatus(processBlockWrite(lastBlock, cmdBuf[4], dev));
     return;
   case 0x0b: // Seek
     lastBlock = (((int)cmdBuf[1]) << 16) | (((int)cmdBuf[2]) << 8) | (cmdBuf[3]);
     lastSeek = true;
     if(lastBlock >= dev->blocks)
-      commandError(ERR_INVADDR);
+      commandStatus(ERR_INVADDR);
     else
-      commandSuccess();
-    return;
+      commandStatus(ERR_OK);
+    break;
   case 0x12: // Inquiry
     // Adjust size to 4 if 0
     if(!cmdBuf[4])
@@ -232,21 +230,24 @@ void Acsi::processCmdBuf() {
     for(uint8_t b = 0; b <= cmdBuf[4]; ++b)
       buf[b] = 0;
 
-    if(!dev) {
+    if(!validLun()) {
       buf[0] = 0x7F; // Unsupported LUN
     } else {
-      // Build the product string with the SD card size
-      dev->getDeviceString((char *)buf + 8);
+      // Build the product string
+      if(dev)
+        dev->getDeviceString((char *)buf + 8);
+      else
+        card.getDeviceString((char *)buf + 8);
     }
 
-    // buf[1] = 0x80; // Removable flag (TODO)
+    buf[1] = 0x80; // Removable flag
     buf[2] = 1; // ACSI version
     buf[4] = 31; // Data length
 
     dma.sendDma(buf, cmdBuf[4]);
 
     lastSeek = false;
-    commandSuccess();
+    commandStatus(ERR_OK);
     return;
   case 0x1a: // Mode sense
     {
@@ -271,28 +272,37 @@ void Acsi::processCmdBuf() {
         break;
       default:
         dbgHex("Error: unsupported mode sense ", (int)cmdBuf[3], '\n');
-        commandError(ERR_INVARG);
+        commandStatus(ERR_INVARG);
         return;
       }
-      commandSuccess();
-      return;
+      commandStatus(ERR_OK);
+      break;
     }
   case 0x25: // Read capacity
+    lastErr = refresh(getLun());
+    if(lastErr != ERR_OK) {
+      commandStatus(lastErr);
+      return;
+    }
+
     // Send the number of blocks of the SD card
-    buf[0] = (dev->blocks >> 24) & 0xFF;
-    buf[1] = (dev->blocks >> 16) & 0xFF;
-    buf[2] = (dev->blocks >> 8) & 0xFF;
-    buf[3] = (dev->blocks) & 0xFF;
-    // Send the block size (which is always 512)
-    buf[4] = 0x00;
-    buf[5] = 0x00;
-    buf[6] = 0x02;
-    buf[7] = 0x00;
+    {
+      uint32_t last = dev->blocks - 1;
+      buf[0] = (last >> 24) & 0xFF;
+      buf[1] = (last >> 16) & 0xFF;
+      buf[2] = (last >> 8) & 0xFF;
+      buf[3] = (last) & 0xFF;
+      // Send the block size (which is always 512)
+      buf[4] = 0x00;
+      buf[5] = 0x00;
+      buf[6] = 0x02;
+      buf[7] = 0x00;
+    }
 
     dma.sendDma(buf, 8);
 
-    commandSuccess();
-    return;
+    commandStatus(ERR_OK);
+    break;
   case 0x28: // Read blocks
     {
       // Compute the block number
@@ -300,12 +310,9 @@ void Acsi::processCmdBuf() {
       int count = (((int)cmdBuf[7]) << 8) | (cmdBuf[8]);
 
       // Do the actual read operation
-      if(processBlockRead(block, count, dev))
-        commandSuccess();
-      else
-        commandError(ERR_READERR);
+      commandStatus(processBlockRead(block, count, dev));
     }
-    return;
+    break;
   case 0x2a: // Write blocks
     {
       // Compute the block number
@@ -313,13 +320,13 @@ void Acsi::processCmdBuf() {
       int count = (((int)cmdBuf[7]) << 8) | (cmdBuf[8]);
 
       // Do the actual write operation
-      if(processBlockWrite(block, count, dev))
-        commandSuccess();
-      else
-        commandError(ERR_WRITEERR);
+      commandStatus(processBlockWrite(block, count, dev));
     }
-    return;
+    break;
   }
+
+  if(lastErr == ERR_OK)
+    mediaChecked();
 }
 
 bool Acsi::readCmdBuf(uint8_t cmd) {
@@ -357,56 +364,86 @@ bool Acsi::validLun() {
 }
 
 bool Acsi::validLun(int lun) {
-  if(lun < 0 || lun >= maxLun)
-    return false;
-  return luns[lun];
+  return lun >= 0 && lun < maxLun;
 }
 
 int Acsi::getLun() {
   return cmdBuf[1] >> 5;
 }
 
-void Acsi::commandSuccess() {
-  lastErr = ERR_OK;
-  dbg("Success\n");
-  dma.sendIrq(0);
-  dma.endTransaction();
-}
-
-void Acsi::commandError(ScsiErr err) {
+void Acsi::commandStatus(ScsiErr err) {
   lastErr = err;
-  dbgHex("Error ", lastErr, '\n');
-  dma.sendIrq(2);
+  if(lastErr == ERR_OK) {
+    dbg("Success\n");
+    dma.sendIrq(0);
+  } else {
+    dbgHex("Error ", lastErr, '\n');
+    dma.sendIrq(2);
+  }
   dma.endTransaction();
 }
 
-bool Acsi::processBlockRead(uint32_t block, int count, BlockDev *dev) {
-  dbg("Read ", count, " blocks from ", block, " on LUN ", getLun(), '\n');
+Acsi::ScsiErr Acsi::refresh(int lun) {
+  dbg("Refreshing ", deviceId, ',', lun, ": ");
+  mediaChecked();
 
-  if(!dev->readStart(block)) {
-    begin();
+  if(card.reset()) {
+    uint32_t realId = card.mediaId();
+    mountLuns();
+    if(realId != mediaId) {
+      mediaId = realId;
+      if(luns[lun]) {
+        dbg("new SD card\n");
+        return ERR_MEDIUMCHANGE;
+      } else {
+        dbg("new SD with no image\n");
+        return ERR_NOMEDIUM;
+      }
+    }
+
+    dbg("success\n");
+    return ERR_OK;
+  }
+
+  dbg("no SD card\n");
+  mediaId = 0;
+
+  // Unmount all LUNs
+  for(int l = 0; l < maxLun; ++l)
+    luns[l] = nullptr;
+
+  return ERR_NOMEDIUM;
+}
+
+Acsi::ScsiErr Acsi::processBlockRead(uint32_t block, int count, BlockDev *dev) {
+  dbg("Read ", count, " blocks from ", block, " on ", deviceId, ',', getLun(), '\n');
+
+  if(hasMediaChanged() || !dev->readStart(block)) {
+    watchdog.feed();
+    auto err = refresh(getLun());
+    if(err != ERR_OK)
+      return err;
     dev = luns[getLun()];
     if(!dev || !dev->readStart(block))
-      return false;
+      return ERR_READERR;
   }
 
   if(block + count - 1 >= dev->blocks) {
     dbg("Out of range\n");
     dev->readStop();
-    lastErr = ERR_INVADDR;
-    return false; // Block out of range
+    return ERR_INVADDR;
   }
 
   for(int s = 0; s < count;) {
+    watchdog.feed();
     int burst = ACSI_BLOCKS;
     if(burst > count - s)
       burst = count - s;
 
     if(!dev->readData(buf, burst)) {
       dbg("Read error\n");
-      lastErr = ERR_READERR;
       dev->readStop();
-      return false;
+      return ERR_READERR;
     }
     dma.sendDma(buf, ACSI_BLOCKSIZE * burst);
 
@@ -415,38 +452,40 @@ bool Acsi::processBlockRead(uint32_t block, int count, BlockDev *dev) {
 
   dev->readStop();
 
-  return true;
+  return ERR_OK;
 }
 
-bool Acsi::processBlockWrite(uint32_t block, int count, BlockDev *dev) {
-  dbg("Write ", count, " blocks from ", block, " on LUN ", getLun(), '\n');
+Acsi::ScsiErr Acsi::processBlockWrite(uint32_t block, int count, BlockDev *dev) {
+  dbg("Write ", count, " blocks from ", block, " on ", deviceId, ',', getLun(), '\n');
 
 #if AHDI_READONLY
 #if AHDI_READONLY == 2
   for(int s = 0; s < count; ++s)
     dma.readDma(dataBuf, ACSI_BLOCKSIZE);
-  return true;
+  return ERR_OK;
 #else
-  lastErr = ERR_WRITEPROT;
-  return false;
+  return ERR_WRITEPROT;
 #endif
 #else
 
-  if(!dev->writeStart(block)) {
-    begin();
+  if(hasMediaChanged() || !dev->writeStart(block)) {
+    watchdog.feed();
+    auto err = refresh(getLun());
+    if(err != ERR_OK)
+      return err;
     dev = luns[getLun()];
     if(!dev || !dev->writeStart(block))
-      return false;
+      return ERR_READERR;
   }
 
   if(block + count - 1 >= dev->blocks) {
     dbg("Out of range\n");
     dev->writeStop();
-    lastErr = ERR_INVADDR;
-    return false; // Block out of range
+    return ERR_INVADDR;
   }
 
   for(int s = 0; s < count;) {
+    watchdog.feed();
     int burst = ACSI_BLOCKS;
     if(burst > count - s)
       burst = count - s;
@@ -454,9 +493,8 @@ bool Acsi::processBlockWrite(uint32_t block, int count, BlockDev *dev) {
     dma.readDma(buf, ACSI_BLOCKSIZE * burst);
     if(!dev->writeData(buf, burst)) {
       dbg("Write error\n");
-      lastErr = ERR_WRITEERR;
       dev->writeStop();
-      return false;
+      return ERR_WRITEERR;
     }
 
     s += burst;
@@ -464,8 +502,23 @@ bool Acsi::processBlockWrite(uint32_t block, int count, BlockDev *dev) {
 
   dev->writeStop();
 
-  return true;
+  return ERR_OK;
 #endif
+}
+
+bool Acsi::hasMediaChanged() {
+  if(millis() - mediaCheckTime < mediaCheckPeriod)
+    return false;
+
+  uint32_t cachedId = mediaId;
+  uint32_t realId = card.mediaId();
+  verboseHex("Check media: cached id=", cachedId, " real id=", realId, '\n');
+
+  return cachedId != realId;
+}
+
+void Acsi::mediaChecked() {
+  mediaCheckTime = millis();
 }
 
 void Acsi::blocksToString(uint32_t blocks, char *target) {
