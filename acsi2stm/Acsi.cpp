@@ -17,6 +17,20 @@
 
 #include "Acsi.h"
 
+#if ACSI_BOOT_OVERLAY && !ACSI_DUMMY_BOOT_SECTOR
+#error ACSI_BOOT_OVERLAY requires ACSI_DUMMY_BOOT_SECTOR
+#endif
+
+#if ACSI_DUMMY_BOOT_SECTOR
+const
+#include "nosdcard.boot.h"
+#endif
+
+#if ACSI_BOOT_OVERLAY
+const
+#include "bootoverlay.boot.h"
+#endif
+
 Acsi::Acsi(int deviceId_, int sdCs_, int sdWp_, DmaPort &dma_, Watchdog &watchdog_):
   deviceId(deviceId_),
   sdCs(sdCs_),
@@ -118,8 +132,39 @@ void Acsi::process(uint8_t cmd) {
   // Command preprocessing
   switch(cmdBuf[0]) {
   default:
+    if(!validLun()) {
+      dbg("Invalid LUN\n");
+      commandStatus(ERR_INVLUN);
+      return;
+    }
     if(!dev) {
-      commandStatus(validLun() ? ERR_NOMEDIUM : ERR_INVLUN);
+      lastErr = refresh(getLun());
+      if(lastErr != ERR_OK) {
+        commandStatus(lastErr);
+        return;
+      }
+      dev = luns[getLun()];
+      if(dev) {
+        // Recovered
+        dbg("SD card inserted\n");
+        commandStatus(ERR_MEDIUMCHANGE);
+        return;
+      } else if(
+          cmdBuf[0] == 0x08
+       && cmdBuf[1] == 0x00
+       && cmdBuf[2] == 0x00
+       && cmdBuf[3] == 0x00
+       && cmdBuf[4] == 0x01
+       && cmdBuf[5] == 0x00
+      ) {
+#if ACSI_DUMMY_BOOT_SECTOR
+        // Boot sector query: inject the dummy payload
+        commandStatus(processDummyBootSector());
+        return;
+#endif
+      }
+      dbg("No SD\n");
+      commandStatus(ERR_NOMEDIUM);
       return;
     }
     break;
@@ -131,12 +176,18 @@ void Acsi::process(uint8_t cmd) {
         auto err = refresh(getLun());
         dev = luns[getLun()];
         if(err == ERR_MEDIUMCHANGE) {
+          dbg("Medium changed\n");
           commandStatus(err);
           return;
         }
       }
     }
     break;
+#if ACSI_RTC
+  case 0x20:
+    // UltraSatan RTC has no LUN nor device access.
+    break;
+#endif
   }
 
   // Execute the command
@@ -191,13 +242,12 @@ void Acsi::process(uint8_t cmd) {
     lastBlock = (((int)cmdBuf[1]) << 16) | (((int)cmdBuf[2]) << 8) | (cmdBuf[3]);
     lastSeek = true;
 
-    if(lastBlock == 0) {
-      lastErr = refresh(getLun());
-      if(lastErr != ERR_OK) {
-        commandStatus(lastErr);
-        return;
-      }
+#if ACSI_BOOT_OVERLAY
+    if(lastBlock == 0 && cmdBuf[4] == 1 && !dev->bootable) {
+      commandStatus(processBootOverlay(dev));
+      return;
     }
+#endif
 
     // Do the actual read operation
     commandStatus(processBlockRead(lastBlock, cmdBuf[4], dev));
@@ -278,6 +328,57 @@ void Acsi::process(uint8_t cmd) {
       commandStatus(ERR_OK);
       break;
     }
+#if ACSI_RTC
+  case 0x20: // UltraSatan protocol (used for RTC)
+    dbg("UltraSatan");
+    if(memcmp(&cmdBuf[1], "USCurntFW", 9) == 0) {
+      dbg(" firmware version query\n");
+      // Fake the firmware
+      dma.sendDma((const uint8_t *)("ACSI2STM " ACSI2STM_VERSION "\r\n"), 16);
+    } else if(memcmp(&cmdBuf[1], "USRdClRTC", 9) == 0) {
+      dbg(" clock read\n");
+      tm_t now;
+      rtc.getTime(now);
+
+      buf[0] = 'R';
+      buf[1] = 'T';
+      buf[2] = 'C';
+      buf[3] = now.year - 30;
+      buf[4] = now.month;
+      buf[5] = now.day;
+      buf[6] = now.hour;
+      buf[7] = now.minute;
+      buf[8] = now.second;
+
+      dma.sendDma(buf, 16);
+    } else if(memcmp(&cmdBuf[1], "USWrClRTC", 9) == 0) {
+      dbg(" clock set\n");
+
+      dma.readDma(buf, 9);
+
+      if(buf[0] != 'R' || buf[1] != 'T' || buf[2] != 'C') {
+        dbg("Invalid date format.\n");
+        commandStatus(ERR_INVARG);
+        return;
+      }
+
+      tm_t now;
+      now.year = buf[3] + 30;
+      now.month = buf[4];
+      now.day = buf[5];
+      now.hour = buf[6];
+      now.minute = buf[7];
+      now.second = buf[8];
+
+      rtc.setTime(now);
+    } else {
+      dbg(" unknown command\n");
+      commandStatus(ERR_INVARG);
+      return;
+    }
+    commandStatus(ERR_OK);
+    return;
+#endif
   case 0x25: // Read capacity
     lastErr = refresh(getLun());
     if(lastErr != ERR_OK) {
@@ -552,7 +653,67 @@ void Acsi::blocksToString(uint32_t blocks, char *target) {
   }
 }
 
+int Acsi::computeChecksum(uint8_t *block) {
+  int checksum = 0;
+  for(int i = 0; i < ACSI_BLOCKSIZE; i += 2) {
+    checksum += ((int)Acsi::buf[i] << 8) + (Acsi::buf[i+1]);
+  }
+
+  return checksum & 0xffff;
+}
+
+#if ACSI_DUMMY_BOOT_SECTOR
+Acsi::ScsiErr Acsi::processDummyBootSector() {
+  dbg("Sending dummy boot sector\n");
+  memcpy(buf, ___build_asm_nosdcard_boot_bin, ___build_asm_nosdcard_boot_bin_len);
+  patchBootSector(buf);
+  dma.sendDma(buf, ACSI_BLOCKSIZE);
+  return ERR_OK;
+}
+
+void Acsi::patchBootSector(uint8_t *data, int offset) {
+  data[offset] = data[offset + 1] = 0;
+  int checksum = 0x1234 - computeChecksum(data);
+  data[offset] = (checksum >> 8) & 0xff;
+  data[offset + 1] = checksum & 0xff;
+}
+#endif
+
+#if ACSI_BOOT_OVERLAY
+Acsi::ScsiErr Acsi::processBootOverlay(BlockDev *dev) {
+  dbg("Overlay boot sector on ", deviceId, ',', getLun(), '\n');
+
+  if(hasMediaChanged() || !dev->readStart(0)) {
+    watchdog.feed();
+    auto err = refresh(getLun());
+    if(err != ERR_OK)
+      return err;
+    dev = luns[getLun()];
+    if(!dev || !dev->readStart(0))
+      return ERR_READERR;
+  }
+
+  watchdog.feed();
+
+  if(!dev->readData(buf, 1)) {
+    dbg("Read error\n");
+    dev->readStop();
+    return ERR_READERR;
+  }
+
+  memcpy(buf, ___build_asm_bootoverlay_boot_bin, ___build_asm_bootoverlay_boot_bin_len);
+  patchBootSector(buf);
+
+  dma.sendDma(buf, ACSI_BLOCKSIZE);
+
+  dev->readStop();
+
+  return ERR_OK;
+}
+#endif
+
 // Static variables
+RTClock Acsi::rtc;
 int Acsi::cmdLen;
 uint8_t Acsi::cmdBuf[16];
 uint8_t Acsi::buf[Acsi::bufSize];

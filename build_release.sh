@@ -15,6 +15,8 @@ fi
 
 VERSION=`cat VERSION`
 
+./build_asm.sh || exit $?
+
 echo "Patch the source to set VERSION to $VERSION"
 
 sed -i 's/^\(#define ACSI2STM_VERSION\).*/\1 "'$VERSION'"/' acsi2stm/acsi2stm.h

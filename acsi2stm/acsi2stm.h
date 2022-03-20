@@ -22,7 +22,7 @@
 
 // acsi2stm global configuration
 
-#define ACSI2STM_VERSION "2.3c"
+#define ACSI2STM_VERSION "2.3d"
 
 // Set to 1 to enable debug output on the serial port
 #define ACSI_DEBUG 0
@@ -44,6 +44,17 @@
 
 // Number of SD cards (1 to 5)
 #define ACSI_SD_CARDS 5
+
+// Include a dummy boot sector if no SD card is inserted.
+// This will display an alert message during the ST boot process.
+// This makes the device less SCSI-conformant.
+#define ACSI_DUMMY_BOOT_SECTOR 1
+
+// Overlay a dummy boot sector if the SD card is not bootable.
+// This will display an alert message during the ST boot process.
+// This makes the device absolutely weird and may break some system tools.
+// Requires ACSI_DUMMY_BOOT_SECTOR.
+#define ACSI_BOOT_OVERLAY 1
 
 // Set this to limit SD capacity artificially.
 //#define ACSI_MAX_BLOCKS 0x0FFFFF // 512MB limit
@@ -81,8 +92,8 @@
 #define ACSI_ACTIVITY_LED LED_BUILTIN
 
 // Maximum number of LUNs. For driver supporting multiple LUNs, this allows
-// multiple images on the same SD card.
-#define ACSI_MAX_LUNS 2
+// multiple images on the same SD card. Still work in progress.
+#define ACSI_MAX_LUNS 1
 
 // Folder containing disk images
 // It must end with a "/"
@@ -98,6 +109,9 @@
 //   The image file for LUN 1 will be "/acsi2stm/hd1.img"
 #define ACSI_LUN_IMAGE_PREFIX "hd"
 #define ACSI_LUN_IMAGE_EXT ".img"
+
+// Set to 1 to enable UltraSatan-compatible RTC
+#define ACSI_RTC 1
 
 // ACSI protocol block size
 #define ACSI_BLOCKSIZE 512
