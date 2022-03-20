@@ -79,7 +79,7 @@ public:
   //   ERR_OK if the device is operational
   //   ERR_MEDIUMCHANGE if the card was swapped
   //   ERR_NOMEDIUM if the card was removed
-  ScsiErr refresh(int lun);
+  ScsiErr refresh();
 
   // Process block I/O requests
   ScsiErr processBlockRead(uint32_t block, int count, BlockDev *dev);
