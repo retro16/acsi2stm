@@ -18,7 +18,7 @@
 
 acsi2stm_version	macro
 	; The following line is patched automatically by build_asm.sh
-	dc.b	'2.3d'			; ACSI2STM VERSION NUMBER
+	dc.b	'2.30'			; ACSI2STM VERSION NUMBER
 endm
 
 acsi2stm_header	macro

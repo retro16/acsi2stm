@@ -45,10 +45,19 @@ Acsi::Acsi(Acsi &&other):
   dma(other.dma),
   watchdog(other.watchdog) {}
 
+#if ACSI_RTC
+void rtcInit() {}
+#endif
+
 void Acsi::begin() {
   dbg("Initializing SD", deviceId, " ... ");
-
   dma.addDevice(deviceId);
+
+#if ACSI_RTC
+  // For whatever reason, this fixed my clock drift.
+  rtc.attachSecondsInterrupt(rtcInit);
+  rtc.detachSecondsInterrupt();
+#endif
 
   // Initialize the SD card
   if(card.begin(deviceId, sdCs, sdWp)) {
@@ -137,19 +146,19 @@ void Acsi::process(uint8_t cmd) {
       commandStatus(ERR_INVLUN);
       return;
     }
-    if(!dev) {
-      lastErr = refresh(getLun());
-      if(lastErr != ERR_OK) {
-        commandStatus(lastErr);
-        return;
-      }
+
+    // Handle media change
+    if(!dev || hasMediaChanged()) {
+      refresh();
       dev = luns[getLun()];
       if(dev) {
         // Recovered
         dbg("SD card inserted\n");
         commandStatus(ERR_MEDIUMCHANGE);
         return;
-      } else if(
+      }
+#if ACSI_DUMMY_BOOT_SECTOR
+      else if(
           cmdBuf[0] == 0x08
        && cmdBuf[1] == 0x00
        && cmdBuf[2] == 0x00
@@ -157,7 +166,6 @@ void Acsi::process(uint8_t cmd) {
        && cmdBuf[4] == 0x01
        && cmdBuf[5] == 0x00
       ) {
-#if ACSI_DUMMY_BOOT_SECTOR
         // Boot sector query: inject the dummy payload
         commandStatus(processDummyBootSector());
         return;
@@ -168,18 +176,19 @@ void Acsi::process(uint8_t cmd) {
       return;
     }
     break;
+
+  // Commands that need to be executed even if the card is not available
   case 0x00: // Test unit ready
   case 0x12: // Inquiry
   case 0x03: // Request sense
     {
       if(validLun()) {
-        auto err = refresh(getLun());
-        dev = luns[getLun()];
-        if(err == ERR_MEDIUMCHANGE) {
+        if(refresh() == ERR_MEDIUMCHANGE) {
           dbg("Medium changed\n");
-          commandStatus(err);
+          commandStatus(ERR_MEDIUMCHANGE);
           return;
         }
+        dev = luns[getLun()];
       }
     }
     break;
@@ -330,9 +339,9 @@ void Acsi::process(uint8_t cmd) {
     }
 #if ACSI_RTC
   case 0x20: // UltraSatan protocol (used for RTC)
-    dbg("UltraSatan");
+    dbg("UltraSatan:");
     if(memcmp(&cmdBuf[1], "USCurntFW", 9) == 0) {
-      dbg(" firmware version query\n");
+      dbg("firmware version query\n");
       // Fake the firmware
       dma.sendDma((const uint8_t *)("ACSI2STM " ACSI2STM_VERSION "\r\n"), 16);
     } else if(memcmp(&cmdBuf[1], "USRdClRTC", 9) == 0) {
@@ -352,7 +361,7 @@ void Acsi::process(uint8_t cmd) {
 
       dma.sendDma(buf, 16);
     } else if(memcmp(&cmdBuf[1], "USWrClRTC", 9) == 0) {
-      dbg(" clock set\n");
+      dbg("clock set\n");
 
       dma.readDma(buf, 9);
 
@@ -372,7 +381,7 @@ void Acsi::process(uint8_t cmd) {
 
       rtc.setTime(now);
     } else {
-      dbg(" unknown command\n");
+      dbg("unknown command\n");
       commandStatus(ERR_INVARG);
       return;
     }
@@ -380,7 +389,7 @@ void Acsi::process(uint8_t cmd) {
     return;
 #endif
   case 0x25: // Read capacity
-    lastErr = refresh(getLun());
+    lastErr = refresh();
     if(lastErr != ERR_OK) {
       commandStatus(lastErr);
       return;
@@ -484,13 +493,15 @@ void Acsi::commandStatus(ScsiErr err) {
   dma.endTransaction();
 }
 
-Acsi::ScsiErr Acsi::refresh(int lun) {
+Acsi::ScsiErr Acsi::refresh() {
+  int lun = getLun();
   dbg("Refreshing ", deviceId, ',', lun, ": ");
   mediaChecked();
 
   if(card.reset()) {
     uint32_t realId = card.mediaId();
     mountLuns();
+    watchdog.feed();
     if(realId != mediaId) {
       mediaId = realId;
       if(luns[lun]) {
@@ -505,6 +516,7 @@ Acsi::ScsiErr Acsi::refresh(int lun) {
     dbg("success\n");
     return ERR_OK;
   }
+  watchdog.feed();
 
   dbg("no SD card\n");
   mediaId = 0;
@@ -519,20 +531,14 @@ Acsi::ScsiErr Acsi::refresh(int lun) {
 Acsi::ScsiErr Acsi::processBlockRead(uint32_t block, int count, BlockDev *dev) {
   dbg("Read ", count, " blocks from ", block, " on ", deviceId, ',', getLun(), '\n');
 
-  if(hasMediaChanged() || !dev->readStart(block)) {
-    watchdog.feed();
-    auto err = refresh(getLun());
-    if(err != ERR_OK)
-      return err;
-    dev = luns[getLun()];
-    if(!dev || !dev->readStart(block))
-      return ERR_READERR;
-  }
-
   if(block + count - 1 >= dev->blocks) {
     dbg("Out of range\n");
-    dev->readStop();
     return ERR_INVADDR;
+  }
+
+  if(!dev->readStart(block)) {
+    dbg("Read start error\n");
+    return ERR_READERR;
   }
 
   for(int s = 0; s < count;) {
@@ -569,20 +575,14 @@ Acsi::ScsiErr Acsi::processBlockWrite(uint32_t block, int count, BlockDev *dev) 
 #endif
 #else
 
-  if(hasMediaChanged() || !dev->writeStart(block)) {
-    watchdog.feed();
-    auto err = refresh(getLun());
-    if(err != ERR_OK)
-      return err;
-    dev = luns[getLun()];
-    if(!dev || !dev->writeStart(block))
-      return ERR_READERR;
-  }
-
   if(block + count - 1 >= dev->blocks) {
     dbg("Out of range\n");
-    dev->writeStop();
     return ERR_INVADDR;
+  }
+
+  if(!dev->writeStart(block)) {
+    dbg("Write start error\n");
+    return ERR_WRITEERR;
   }
 
   for(int s = 0; s < count;) {
@@ -685,7 +685,7 @@ Acsi::ScsiErr Acsi::processBootOverlay(BlockDev *dev) {
 
   if(hasMediaChanged() || !dev->readStart(0)) {
     watchdog.feed();
-    auto err = refresh(getLun());
+    auto err = refresh();
     if(err != ERR_OK)
       return err;
     dev = luns[getLun()];
@@ -713,7 +713,7 @@ Acsi::ScsiErr Acsi::processBootOverlay(BlockDev *dev) {
 #endif
 
 // Static variables
-RTClock Acsi::rtc;
+RTClock Acsi::rtc(RTCSEL_LSE);
 int Acsi::cmdLen;
 uint8_t Acsi::cmdBuf[16];
 uint8_t Acsi::buf[Acsi::bufSize];
