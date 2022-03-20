@@ -73,11 +73,7 @@ void BlockDev::updateBootable() {
   if(!readStart(0) || !readData(Acsi::buf, 1) || !readStop())
     return;
 
-  uint16_t checksum = 0;
-  for(int i = 0; i < ACSI_BLOCKSIZE; i += 2) {
-    checksum += ((int)Acsi::buf[i] << 8) + (Acsi::buf[i+1]);
-  }
-  bootable = (checksum == 0x1234);
+  bootable = (Acsi::computeChecksum(Acsi::buf) == 0x1234);
 }
 
 bool SdDev::begin(int devId, int cs, int wp) {

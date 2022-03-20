@@ -19,12 +19,15 @@
 #define ACSI_H
 
 #include <Arduino.h>
+#include <SdFat.h>
 #include "acsi2stm.h"
 #include "AcsiDebug.h"
 #include "Watchdog.h"
 #include "DmaPort.h"
-#include "SdFat.h"
 #include "BlockDev.h"
+#if ACSI_RTC
+#include <RTClock.h>
+#endif
 
 class Acsi: public AcsiDebug {
 public:
@@ -92,6 +95,23 @@ public:
   // Updates the 4 first bytes of target.
   static void blocksToString(uint32_t blocks, char *target);
 
+  // Compute the 16 bits checksum of a block.
+  static int computeChecksum(uint8_t *block);
+
+#if ACSI_DUMMY_BOOT_SECTOR
+  // Send the dummy boot sector to the Atari.
+  ScsiErr processDummyBootSector();
+
+  // Patch the sector in the buffer so it is bootable.
+  // You can specify the offset to patch.
+  static void patchBootSector(uint8_t *data, int offset = 438);
+#endif
+
+#if ACSI_BOOT_OVERLAY
+  // Overlay the device's boot sector with a small boot program.
+  ScsiErr processBootOverlay(BlockDev *dev);
+#endif
+
   // Maximum number of LUNs
   static const int maxLun = ACSI_MAX_LUNS;
 
@@ -115,6 +135,10 @@ public:
   uint32_t mediaId;
   uint32_t mediaCheckTime;
   static const uint32_t mediaCheckPeriod = 2000;
+
+#if ACSI_RTC
+  static RTClock rtc;
+#endif
 
   // SCSI status variables
   ScsiErr lastErr;

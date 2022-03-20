@@ -1,4 +1,4 @@
-*Version 2.3: The big, much needed, refactor*
+*Version 2.3: Introducing removable media, boot overlays and real-time clock.*
 
 *Beware, the pinout has changed since version 1.0*
 
@@ -14,7 +14,23 @@ ID of each SD card by soldering CS wires on the matching STM32 pin.
 
 It can work in 2 ways:
  * Expose a raw SD card as a hard disk to the Atari.
- * Expose a hard disk image file to the Atari.
+ * Expose a hard disk image file on a standard SD card to the Atari.
+
+It also supports an UltraSatan compatible real-time clock.
+
+
+Documentation
+-------------
+
+The doc directory provides documentation for the end-user as well as hardware implementors or curious people.
+
+This is what you can find:
+
+ * [manual.md](doc/manual.md): A brief user manual for people owning a unit. Also explains how to install the ICD PRO driver.
+ * [compiling.md](doc/compiling.md): A step-by-step tutorial to compile and upload a new firmware. Also includes how to customize
+   the firmware for non-developers by changing compile-time options.
+ * [hardware.md](doc/hardware.md): How to build an acsi2stm unit.
+ * [debug_output.txt](doc/debug_output.txt): A sample output of the logs you should get when booting a SD card.
 
 
 To people buying/selling hardware
@@ -22,6 +38,9 @@ To people buying/selling hardware
 
 There are people building and selling products based on this code. This project is not directly related to any of these people.
 There is no official hardware beyond the "blue pill" STM32 board and its variants.
+
+Building and selling units is encouraged, as long as the spirit of free software is preserved and the terms of the license are
+respected.
 
 The code here is released under the GPLv3 license (see LICENSE file). This has some implications:
 
@@ -35,289 +54,6 @@ The code here is released under the GPLv3 license (see LICENSE file). This has s
    will be greatly appreciated (most sellers are).
  * If you bought a product that contains code based on this project (modified or not), you can request the source code to the
    firmware contained in your product. The seller/maker of the product is legally required to provide it.
-
-
-Hardware needed
----------------
-
- * A STM32F103C8T6 or compatible board. You can find them for a few dollars online. The "blue pill" works out of the box and the
-   older "black pill" requires minor modifications.
- * A USB-serial dongle for programming the STM32 chip, with a 3.3V USART.
- * One or more SD card port(s) for your STM32. You can also solder wires on a SD to microSD adapter.
- * One or more SD card(s).
- * A male DB19 port (you can modify a DB25 port to fit) with a ribbon cable.
- * (recommended) A protoboard PCB to solder all the components and wires together.
- * Do *NOT* connect USB data lines on the STM32. Use the +5V or +3.3V pin to power it if you are unsure.
-
-**Notes**
-
-Some people reported problems with STM32 clones. I have many variants of the blue pill STM32, all of them work exactly the same.
-Variants I had and that worked: round and rectangle reset buttons, some chips marked STM32F / 103 and other marked STM32 / F103.
-If anyone has concrete proof of misbehaving clones and information on how to spot them, feel free to contact me or create an issue
-on GitHub to let people know about that.
-
-Please provide feedback if you are trying to make this work with the new STM32F4x1 "black pill" boards. The best configuration is
-to have a working blue pill so results can be compared by switching the boards (I believe they are pin compatible).
-
-
-Software needed
----------------
-
- * The Arduino software with the Roger Clark Melbourne STM32 library.
-  * This is *NOT* compatible with the official STM32duino library: you need Clark's variant.
- * The SdFat Arduino library by Bill Greiman.
- * A hard disk driver for your Atari ST (AHDI and ICD pro are tested).
-  * ICD Pro is still the driver used to validate all versions.
-
-
-Installing software
--------------------
-
-Install the [STM32 library](https://github.com/rogerclarkmelbourne/Arduino_STM32/wiki/Installation). The doc says that it only
-works on Arduino 1.8.5 but that works with more recent versions too. Arduino 2.x was not tested.
-
-In the Tools / Manage Libraries menu of the Arduino interface, search for "SdFat" and install "SdFat by Bill Greiman".
-
-In the Tools menu of the Arduino interface, select the following:
-
- * Board: Generic STM32F103C series
- * Variant: STM32F103C8
- * Upload method: Serial
- * CPU speed: 72MHz (normal)
- * Optimize: Faster (-O2)
- * Port: your USB serial dongle
-
-**Note**: you can use any setting in the "Optimize" menu. O2 is recommended for fastest performance, O3 does not bring any speed
-improvement but generates much bigger code.
-
-If you have different options in the Tools menu, it may be because you don't have the correct board installed.
-
-Then, you will be able to upload the program to the STM32.
-
-
-Programming the STM32
----------------------
-
-Set the USB dongle to 3.3V if you have a jumper for that. Connect TX to PA10, RX to PA9 and the GND pins together.
-
-On the board itself, set the BOOT0 jumper to 1 to enable the serial flash bootloader. Reset the STM32 then click Upload.
-
-Once the chip is programmed, switch the BOOT0 jumper back to 0.
-
-**Notes**
-
-The debug output sends data at 115200bps. Set the serial monitor accordingly.
-
-Programming via anything else than the serial bootloader may require to change debug output to Serial0 and may consume more RAM.
-Serial programming is still recommended for best results.
-
-
-Building the ACSI cable
------------------------
-
-ACSI pin numbers, looking at the male connector pins:
-
-    ---------------------------------
-    \ 01 02 03 04 05 06 07 08 09 10 /
-     \ 11 12 13 14 15 16 17 18 19  /
-       ---------------------------
-
-Use this table to match pins on the ACSI port and the STM32:
-
-| ACSI | STM32 | PIN | Description      |
-|:----:|:-----:|:---:|------------------|
-|  01  | PB8   | D0  | Data 0 (LSB)     |
-|  02  | PB9   | D1  | Data 1           |
-|  03  | PB10  | D2  | Data 2           |
-|  04  | PB11  | D3  | Data 3           |
-|  05  | PB12  | D4  | Data 4           |
-|  06  | PB13  | D5  | Data 5           |
-|  07  | PB14  | D6  | Data 6           |
-|  08  | PB15  | D7  | Data 7 (MSB)     |
-|  09  | PB7   | CS  | Chip Select      |
-|  10  | PA8   | IRQ | Interrupt        |
-|  11  | GND   | GND | Ground           |
-|  12  | (nc)  | RST | Reset            |
-|  13  | GND   | GND | Ground           |
-|  14  | PA12  | ACK | Acknowledge      |
-|  15  | GND   | GND | Ground           |
-|  16  | PB6   | A1  | Address bit      |
-|  17  | GND   | GND | Ground           |
-|  18  | (nc)  | R/W | Read/Write       |
-|  19  | PA11  | DRQ | Data request     |
-
-**WARNING**: Pinout changed in v2.0: PA8 and PA12 are swapped.
-
-**Notes**:
-
- * GND is soldered together on the ST side. You can use a single wire for ground.
- * Reset is not needed as the STM32 resets itself if it stays in an inconsistent state for more than 2 seconds.
- * Keep the wires short. I had strange behavior with cables longer than 10cm (4 inches).
- * The read/write pin is not needed.
- * You can build a DB19 out of a DB25 by cutting 6 pins on one side and part of the external shielding. Male DB25 are easy to find
-   because they were used for parallel port cables or serial port sockets.
- * You will have to power the STM32 separately (e.g. with a USB cable).
-
-
-Connecting the SD cards
------------------------
-
-SD card pins
-
-
-        ______________________
-      /|  |  |  |  |  |  |  | |
-     /_|01|02|03|04|05|06|07|8|
-    |  |__|__|__|__|__|__|__|_|
-    |09|                      |
-    |__|                      |
-    |                        ||
-    |                   Lock ||
-
-
-Use this table to match pins on the SD card port and the STM32:
-
-| SD  | STM32 | PIN |
-|:---:|:-----:|:---:|
-| 01  | PA4 * | CS  |
-| 02  | PA7   | MOSI|
-| 03  | GND   | VSS |
-| 04  | +3.3V | VDD |
-| 05  | PA5   | CLK |
-| 06  | GND   | VSS |
-| 07  | PA6   | MISO|
-| 08  | (nc)  | RSV |
-| 09  | (nc)  | RSV |
-
-If you want to use multiple SD cards, connect all SD card pins to the same STM32 pins except CS (SD pin 1).
-
-Here is the table that indicates the STM32 pin for each CS pin of the different SD cards:
-
-| ACSI ID | STM32 | Connect to |
-|--------:|:------|------------|
-|       0 | PA4   | SD 0 pin 1 |
-|       1 | PA3   | SD 1 pin 1 |
-|       2 | PA2   | SD 2 pin 1 |
-|       3 | PA1   | SD 3 pin 1 |
-|       4 | PA0   | SD 4 pin 1 |
-
-Leave unused CS pins unconnected.
-
-**WARNING**: Pinout changed in v2.0: PA0 was added, PBx were removed and unused SD card CS pins *must not* be grounded anymore.
-
-**Notes**:
-
- * The ACSI2STM module **will** respond to all ACSI IDs, whether a SD card reader is connected or not. Change ACSI_SD_CARDS and
-   ACSI_FIRST_ID in acsi2stm/acsi2stm.h to change ACSI IDs.
- * The SD card had 2 GND pins. I don't know if they have to be both grounded, maybe one wire is enough.
- * You should put a decoupling capacitor of about 100nF between VDD and VSS, as close as possible from the SD card pins.
- * If you need other ACSI IDs, you can change the sdCs array in the source code. See "Compile-time options" below.
- * CS pins must be on GPIO port A (PA pins).
- * Some microSD slot boards for Arduino have logic level adapters to allow using SD cards on 5V Arduino boards. This will reduce
-   speed and compatibility. Connect SD card pins directly to the STM32 pins.
-
-If your reader has a read-only lock switch detector, use this table to connect it:
-
-| ACSI ID | STM32 | Connect to |
-|--------:|:------|------------|
-|       0 | PB0   | SD 0 lock  |
-|       1 | PB1   | SD 1 lock  |
-|       2 | PB3   | SD 2 lock  |
-|       3 | PB4   | SD 3 lock  |
-|       4 | PA15  | SD 4 lock  |
-
-When the pin is connected to GND, the SD card will be read-only. When the pin is left floating or connected to VCC, the SD card
-will be writable.
-
-Using on an old "Black pill" STM32 board
-----------------------------------------
-
-If you have these cheap "STM32 minimum development boards" from eBay, Amazon, Banggood or other chinese sellers, chances are that
-you have either a "blue pill" or a "black pill" board. "blue" or "black" refers to the color of the PCB.
-
-**WARNING**: There are newer STM32F4xx boards also called "black pill". These newer boards are currently not tested. This part
-refers to older STM32F103C8T6 black pill boards.
-
-The problem with black pill designs is that the onboard LED is wired on PB12 instead of PC13, messing with data signals.
-
-You will have to desolder the onboard LED (or its current-limiting resistor right under).
-
-If you want an activity LED, put an external one with a 1k resistor in series on PC13.
-
-Other boards were not tested and may require further adjustments.
-
-
-Compile-time options
---------------------
-
-The file acsi2stm.h contains a few #define that you can change. They are described in the source itself.
-
-Settings that you might wish to change:
-
- * ACSI_DEBUG: Enables debug output on the serial port. Moderate performance penalty.
- * ACSI_VERBOSE: Requires ACSI_DEBUG. Logs all commands on the serial port. High performance penalty.
- * ACSI_DUMP_LEN: Requires ACSI_VERBOSE. Dumps N bytes for each DMA transfer. It helps finding data corruption. Even higher
-   performance penalty.
- * ACSI_SERIAL: The serial port used for debug output.
- * ACSI_READONLY: Make all cards read-only. Acsi2stm becomes strictly unable to modify SD cards.
- * ACSI_MAX_BLOCKS: Limits the number of SD card blocks exposed to the ST. This may be useful to test specific setups or emulate
-   an old hard drive of a specific size.
- * ACSI_SD_MAX_SPEED: Maximum SD card speed in MHz. If SD communication fails, the driver automatically retries at a lower speed.
- * ACSI_ACK_FILTER: Enables filtering the ACK line, adding a tiny latency. May improve DMA reliability at the expense of speed.
- * ACSI_CS_FILTER: Enables filtering on the CS line, adding a tiny latency. This is necessary to sample the data bus at the right
-   time. Adjust this if commands are corrupt.
- * ACSI_FAST_DMA: If set to 1, unroll DMA code for faster performance. Fast timings may not be compatible with some ST DMA chips.
-
-The file acsi2stm.ino begins with the CS and lock pin table. You can change pin mapping here.
-
-
-Creating an SD card with ICD drivers
-------------------------------------
-
-Download a floppy disk of ICD PRO drivers. They are available online as ST floppy images. Transfer it to a real floppy your ST can
-read (or use a floppy simulator).
-
-Boot the floppy, open the A floppy drive and run INSTALL.PRG. The program will create partitions and a boot sector automatically.
-
-Now test the setup by ejecting the floppy and rebooting the Atari. The desktop should have extra icons for your newly created
-partitions (C, D, E, ...).
-
-Alternatively, you can partition the drive manually with ICDFMT.PRG and make it bootable with HDUTILS.PRG. You should set
-verification passes to 0 in ICDFMT to avoid the lengthy (and useless) surface scan.
-
-Maximum partition sizes are the following:
-
- * 32MB (65532 sectors) for TOS 1.04 (ST and STF series)
- * 64MB for modern Linux kernels
- * 512MB (1048527 sectors) for TOS 1.62 and 2.06 (STE series)
-
-Other TOS versions were not tested.
-
-With different drivers, you may have different limits. This bridge supports 32 bits access for disks bigger than 8GB.
-
-
-Working with image files
-------------------------
-
-Instead of using a raw SD card, you can use an image file instead.
-
-Place a file named hd0.img in the folder acsi2stm of a standard SD card. The file must not be empty and must be a multiple of 512
-bytes to be detected as an image.
-
-If the image file is in use, the ACSI unit name will contain IM0. In that case, the reported size is the size of the image, not the
-size of the SD card.
-
-The image is exposed as a raw device with no header. This is the same format as used in the Hatari emulator, making the image
-directly compatible. You can also transfer data between a raw SD card and an image using tools like Win32 Disk Imager (for Windows)
-or the dd command under Linux.
-
-File system size limitations only apply on the Atari file system inside the image. The SD card itself can be of any size and it can
-contain any amount of data other than the image itself.
-
-The only downside to use images is performance. There will be a big performance impact (about 20%) when using images because of the
-extra file system layer.
-
-Acsi2stm honors the read-only flag of image files. This can be useful for testing purposes.
 
 
 Credits
