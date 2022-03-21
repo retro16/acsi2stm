@@ -345,7 +345,7 @@ void Acsi::process(uint8_t cmd) {
       // Fake the firmware
       dma.sendDma((const uint8_t *)("ACSI2STM " ACSI2STM_VERSION "\r\n"), 16);
     } else if(memcmp(&cmdBuf[1], "USRdClRTC", 9) == 0) {
-      dbg(" clock read\n");
+      dbg("clock read\n");
       tm_t now;
       rtc.getTime(now);
 
@@ -366,7 +366,7 @@ void Acsi::process(uint8_t cmd) {
       dma.readDma(buf, 9);
 
       if(buf[0] != 'R' || buf[1] != 'T' || buf[2] != 'C') {
-        dbg("Invalid date format.\n");
+        dbg("Invalid date format\n");
         commandStatus(ERR_INVARG);
         return;
       }
@@ -665,7 +665,7 @@ int Acsi::computeChecksum(uint8_t *block) {
 #if ACSI_DUMMY_BOOT_SECTOR
 Acsi::ScsiErr Acsi::processDummyBootSector() {
   dbg("Sending dummy boot sector\n");
-  memcpy(buf, ___build_asm_nosdcard_boot_bin, ___build_asm_nosdcard_boot_bin_len);
+  memcpy(buf, nosdcard_boot_bin, nosdcard_boot_bin_len);
   patchBootSector(buf);
   dma.sendDma(buf, ACSI_BLOCKSIZE);
   return ERR_OK;
@@ -683,14 +683,9 @@ void Acsi::patchBootSector(uint8_t *data, int offset) {
 Acsi::ScsiErr Acsi::processBootOverlay(BlockDev *dev) {
   dbg("Overlay boot sector on ", deviceId, ',', getLun(), '\n');
 
-  if(hasMediaChanged() || !dev->readStart(0)) {
-    watchdog.feed();
-    auto err = refresh();
-    if(err != ERR_OK)
-      return err;
-    dev = luns[getLun()];
-    if(!dev || !dev->readStart(0))
-      return ERR_READERR;
+  if(!dev->readStart(0)) {
+    dbg("Read start error\n");
+    return ERR_READERR;
   }
 
   watchdog.feed();
@@ -701,8 +696,8 @@ Acsi::ScsiErr Acsi::processBootOverlay(BlockDev *dev) {
     return ERR_READERR;
   }
 
-  memcpy(buf, ___build_asm_bootoverlay_boot_bin, ___build_asm_bootoverlay_boot_bin_len);
-  patchBootSector(buf);
+  memcpy(buf, bootoverlay_boot_bin, bootoverlay_boot_bin_len);
+  patchBootSector(buf, bootoverlay_boot_bin_len);
 
   dma.sendDma(buf, ACSI_BLOCKSIZE);
 

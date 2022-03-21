@@ -69,10 +69,8 @@ void setup() {
 
   Acsi::dbg("Waiting for the ACSI bus ...\n");
   dma.waitBusReady();
-  delay(50); // Wait for the bus to stabilize
 
   Acsi::dbg("--- Ready to go ---\n");
-  Acsi::ledOff();
 }
 
 // Main loop

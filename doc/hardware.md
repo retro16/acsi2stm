@@ -41,7 +41,7 @@ Use this table to match pins on the ACSI port and the STM32:
 **Notes**:
 
  * GND is soldered together on the ST side. You can use a single wire for ground.
- * Reset is not needed as the STM32 resets itself if it stays in an inconsistent state for more than 5 seconds.
+ * Reset is not needed as the STM32 resets itself if it stays in an inconsistent state for more than 2.5 seconds.
  * Keep the wires short. I had strange behavior with cables longer than 10cm (4 inches).
  * The read/write pin is not needed.
  * You can build a DB19 out of a DB25 by cutting 6 pins on one side and part of the external shielding. Male DB25 are easy to find

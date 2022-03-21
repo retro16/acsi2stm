@@ -1,9 +1,9 @@
-ACSI2STM 2.4 user manual
+ACSI2STM 2.3 user manual
 ========================
 
 ACSI2STM allows you to use SD cards as Atari ST ACSI hard drives. This manual will explain how to setup and use a SD card.
 
-**Note**: this manual applies for ACSI2STM version 2.4 and above. The instructions may or may not work for older versions or
+**Note**: this manual applies for ACSI2STM version 2.3 and above. The instructions may or may not work for older versions or
 modified versions.
 
 
@@ -20,13 +20,13 @@ How to apply power depends on the unit you built or bought. There are a few thin
 
  * When power cycling the ST (turn off, then turn on), turn off the ACSI2STM unit. If you keep the unit powered, voltage on data
    lines may keep some chips inside the ST powered by the data lines, which will prevent a full cold boot from happening.
-   Don't go too fast, wait at least 5 seconds before turning things back on.
+   Don't go too fast, wait at least 3 seconds before turning things back on.
 
 
 Checking whether you own an up to date ACSI2STM unit
 ----------------------------------------------------
 
-To check the version of a 2.4 unit, simply plug the ACSI2STM unit to the ACSI port and boot with no SD card or floppy disk. A
+To check the version of a 2.3 unit, simply plug the ACSI2STM unit to the ACSI port and boot with no SD card or floppy disk. A
 message will be displayed, indicating the firmware version along with other information.
 
 **WARNING**: Units based on the old 1.x firmware cannot be upgraded to 2.x because of an incompatibility. The hardware needs to be
