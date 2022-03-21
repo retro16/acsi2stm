@@ -251,7 +251,11 @@ void DmaPort::waitBusReady() {
   pinMode(CS, INPUT_PULLDOWN);
   pinMode(A1, INPUT_PULLDOWN);
 
-  while((((GPIOB->regs->IDR) | ~(A1_MASK | CS_MASK)) != ~0) || !idle());
+  for(int debounce = 0; debounce < 5; ++debounce) {
+    delay(20);
+    while((((GPIOB->regs->IDR) | ~(A1_MASK | CS_MASK)) != ~0) || !idle())
+      debounce = 0;
+  }
 
   pinMode(CS, INPUT);
   pinMode(A1, INPUT);

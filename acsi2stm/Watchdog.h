@@ -24,7 +24,7 @@
 
 // Timer-based watchdog
 struct Watchdog {
-  void begin(int millis = 5000);
+  void begin(int millis = 2500);
   void feed() {
     WATCHDOG_TIMER.setCount(0);
   }
