@@ -29,6 +29,9 @@
 #include <RTClock.h>
 #endif
 
+// ACSI protocol block size
+#define ACSI_BLOCKSIZE 512
+
 class Acsi: public AcsiDebug {
 public:
   // SCSI error code in KEY_ASCQ_ASC format (see SCSI KCQ)
@@ -45,7 +48,7 @@ public:
     ERR_NOMEDIUM = 0x06003a,
   };
 
-  Acsi(int deviceId, int csPin, int wpPin, DmaPort&, Watchdog&);
+  Acsi(int deviceId, int csPin, int wpPin, DmaPort&);
   Acsi(Acsi&&);
 
   // Initialize the ACSI bridge
@@ -115,12 +118,12 @@ public:
   // Maximum number of LUNs
   static const int maxLun = ACSI_MAX_LUNS;
 
+  // Strict mode flag
+  // In strict mode, boot overlays and custom commands are disabled
+  static bool strict;
+
   // Dependent devices
   DmaPort &dma;
-  Watchdog &watchdog;
-
-  // Device ID on the ACSI bus
-  int deviceId;
 
   // LUN array.
   BlockDev *luns[maxLun];
@@ -129,8 +132,6 @@ public:
   ImageDev images[maxLun];
 
   // SD card device
-  int sdCs;
-  int sdWp;
   SdDev card;
   uint32_t mediaId;
   uint32_t mediaCheckTime;

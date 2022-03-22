@@ -23,7 +23,7 @@
 
 #if ACSI_DUMMY_BOOT_SECTOR
 const
-#include "nosdcard.boot.h"
+#include "acsitest.boot.h"
 #endif
 
 #if ACSI_BOOT_OVERLAY
@@ -31,27 +31,48 @@ const
 #include "bootoverlay.boot.h"
 #endif
 
-Acsi::Acsi(int deviceId_, int sdCs_, int sdWp_, DmaPort &dma_, Watchdog &watchdog_):
-  deviceId(deviceId_),
-  sdCs(sdCs_),
-  sdWp(sdWp_),
+// CRC function taken from SdFat's SdSpiCard.cpp
+static uint16_t crc16(const uint8_t* data, size_t n) {
+  uint16_t crc = 0;
+  for (size_t i = 0; i < n; i++) {
+    crc = (uint8_t)(crc >> 8) | (crc << 8);
+    crc ^= data[i];
+    crc ^= (uint8_t)(crc & 0xff) >> 4;
+    crc ^= crc << 12;
+    crc ^= (crc & 0xff) << 5;
+  }
+  return crc;
+}
+
+Acsi::Acsi(int deviceId_, int sdCs_, int sdWp_, DmaPort &dma_):
   dma(dma_),
-  watchdog(watchdog_) {}
+  card(deviceId_, sdCs_, sdWp_) {}
 
 Acsi::Acsi(Acsi &&other):
-  deviceId(other.deviceId),
-  sdCs(other.sdCs),
-  sdWp(other.sdWp),
   dma(other.dma),
-  watchdog(other.watchdog) {}
+  card(other.card.deviceId, other.card.csPin, other.card.wpPin) {}
 
 #if ACSI_RTC
 void rtcInit() {}
 #endif
 
 void Acsi::begin() {
-  dbg("Initializing SD", deviceId, " ... ");
-  dma.addDevice(deviceId);
+  // Read strict mode from the on-board BOOT1 jumper
+  strict = digitalRead(PB2);
+
+  // Check if the device is disabled (wpPin pin to VCC)
+  pinMode(card.wpPin, INPUT_PULLDOWN);
+  delay(1);
+  if(digitalRead(card.wpPin)) {
+    // wpPin pin to VCC: unit disabled
+    pinMode(card.wpPin, INPUT);
+    verbose("SD", card.deviceId, " disabled\n");
+    card.deviceId = -1;
+    return;
+  }
+
+  dbg("Initializing SD", card.deviceId, " ... ");
+  dma.addDevice(card.deviceId);
 
 #if ACSI_RTC
   // For whatever reason, this fixed my clock drift.
@@ -60,7 +81,7 @@ void Acsi::begin() {
 #endif
 
   // Initialize the SD card
-  if(card.begin(deviceId, sdCs, sdWp)) {
+  if(card.begin()) {
     dbg("success\n");
   } else {
     dbg("failed\n\n");
@@ -79,7 +100,7 @@ void Acsi::begin() {
     if(luns[l]) {
       luns[l]->getDeviceString((char *)buf);
       buf[24] = 0;
-      dbg("  ", deviceId, ',', l, ": ", (const char *)buf, '\n');
+      dbg("  ", card.deviceId, ',', l, ": ", (const char *)buf, '\n');
     }
   }
 #endif
@@ -108,6 +129,7 @@ void Acsi::mountLuns() {
     if(images[l].begin(&card, (const char *)buf, l))
       // Success: associate the image to its LUN
       luns[l] = &images[l];
+
   }
 
   // Mount raw SD card on LUN0 if no image was found for that slot
@@ -116,6 +138,12 @@ void Acsi::mountLuns() {
 }
 
 void Acsi::process(uint8_t cmd) {
+  if(card.deviceId < 0) {
+    // Something really, really bad happened !
+    verbose("Accessing disabled device\n");
+    return;
+  }
+
   if(cmd == 0x1f) {
     // Read extended command
     cmd = dma.readIrq();
@@ -158,8 +186,8 @@ void Acsi::process(uint8_t cmd) {
         return;
       }
 #if ACSI_DUMMY_BOOT_SECTOR
-      else if(
-          cmdBuf[0] == 0x08
+      else if(!strict
+       && cmdBuf[0] == 0x08
        && cmdBuf[1] == 0x00
        && cmdBuf[2] == 0x00
        && cmdBuf[3] == 0x00
@@ -197,6 +225,9 @@ void Acsi::process(uint8_t cmd) {
     // UltraSatan RTC has no LUN nor device access.
     break;
 #endif
+  case 0x3b:
+  case 0x3c:
+    break;
   }
 
   // Execute the command
@@ -252,7 +283,7 @@ void Acsi::process(uint8_t cmd) {
     lastSeek = true;
 
 #if ACSI_BOOT_OVERLAY
-    if(lastBlock == 0 && cmdBuf[4] == 1 && !dev->bootable) {
+    if(!strict && lastBlock == 0 && cmdBuf[4] == 1 && !dev->bootable) {
       commandStatus(processBootOverlay(dev));
       return;
     }
@@ -433,6 +464,76 @@ void Acsi::process(uint8_t cmd) {
       commandStatus(processBlockWrite(block, count, dev));
     }
     break;
+  case 0x3b: // Write buffer
+    {
+      uint32_t length = (((uint32_t)cmdBuf[6]) << 16) | (((uint32_t)cmdBuf[7]) << 8) | (uint32_t)(cmdBuf[8]);
+      switch(cmdBuf[1]) {
+      case 0x0a: // Echo buffer write
+        dbg("Write echo buffer: length=", length, '\n');
+        while(length > bufSize) {
+          dma.readDma(buf, bufSize);
+          length -= bufSize;
+        }
+        dma.readDma(buf, length);
+        commandStatus(ERR_OK);
+        return;
+      case 0x04: // Code execution
+        dbg("Execute buffer\n");
+        if(strict) {
+          dbg("Disabled in strict mode\n");
+          commandStatus(ERR_INVARG);
+          return;
+        }
+        if(length > bufSize) {
+          dbg("Out of range\n");
+          commandStatus(ERR_INVADDR);
+          return;
+        }
+
+        dma.readDma(buf, length);
+
+        // Check CRC
+        uint16_t crc = (((uint16_t)cmdBuf[4]) << 8) | (uint16_t)(cmdBuf[5]);
+        if(crc == crc16(buf, length)) {
+          // Acknowledge the exec before starting execution:
+          // if the code crashes, at least the ACSI bus will be released.
+          commandStatus(ERR_OK);
+
+          dbg("Executing remote buffer:\n");
+
+          // Execute the buffer
+          ((void (*)())buf)();
+
+          // Too dangerous to go on: simply reboot
+          Watchdog::reboot();
+        }
+
+        dbgHex("Exec buffer CRC error\n");
+        commandStatus(ERR_WRITEERR);
+        return;
+      }
+      dbgHex("Invalid write buffer mode ", cmdBuf[1], '\n');
+      commandStatus(ERR_INVARG);
+      return;
+    }
+  case 0x3c: // Read buffer
+    {
+      uint32_t length = (((uint32_t)cmdBuf[6]) << 16) | (((uint32_t)cmdBuf[7]) << 8) | (uint32_t)(cmdBuf[8]);
+      switch(cmdBuf[1]) {
+      case 0x0a: // Echo buffer read
+        dbg("Read echo buffer: length=", length, '\n');
+        while(length > bufSize) {
+          dma.sendDma(buf, bufSize);
+          length -= bufSize;
+        }
+        dma.sendDma(buf, length);
+        commandStatus(ERR_OK);
+        return;
+      }
+      dbgHex("Invalid read buffer mode ", cmdBuf[1], '\n');
+      commandStatus(ERR_INVARG);
+      return;
+    }
   }
 
   if(lastErr == ERR_OK)
@@ -495,13 +596,13 @@ void Acsi::commandStatus(ScsiErr err) {
 
 Acsi::ScsiErr Acsi::refresh() {
   int lun = getLun();
-  dbg("Refreshing ", deviceId, ',', lun, ": ");
+  dbg("Refreshing ", card.deviceId, ',', lun, ":\n");
   mediaChecked();
 
   if(card.reset()) {
     uint32_t realId = card.mediaId();
     mountLuns();
-    watchdog.feed();
+    Watchdog::feed();
     if(realId != mediaId) {
       mediaId = realId;
       if(luns[lun]) {
@@ -516,7 +617,7 @@ Acsi::ScsiErr Acsi::refresh() {
     dbg("success\n");
     return ERR_OK;
   }
-  watchdog.feed();
+  Watchdog::feed();
 
   dbg("no SD card\n");
   mediaId = 0;
@@ -529,9 +630,9 @@ Acsi::ScsiErr Acsi::refresh() {
 }
 
 Acsi::ScsiErr Acsi::processBlockRead(uint32_t block, int count, BlockDev *dev) {
-  dbg("Read ", count, " blocks from ", block, " on ", deviceId, ',', getLun(), '\n');
+  dbg("Read ", count, " blocks from ", block, " on ", card.deviceId, ',', getLun(), '\n');
 
-  if(block + count - 1 >= dev->blocks) {
+  if(block >= dev->blocks || block + count - 1 >= dev->blocks) {
     dbg("Out of range\n");
     return ERR_INVADDR;
   }
@@ -542,7 +643,7 @@ Acsi::ScsiErr Acsi::processBlockRead(uint32_t block, int count, BlockDev *dev) {
   }
 
   for(int s = 0; s < count;) {
-    watchdog.feed();
+    Watchdog::feed();
     int burst = ACSI_BLOCKS;
     if(burst > count - s)
       burst = count - s;
@@ -563,7 +664,7 @@ Acsi::ScsiErr Acsi::processBlockRead(uint32_t block, int count, BlockDev *dev) {
 }
 
 Acsi::ScsiErr Acsi::processBlockWrite(uint32_t block, int count, BlockDev *dev) {
-  dbg("Write ", count, " blocks from ", block, " on ", deviceId, ',', getLun(), '\n');
+  dbg("Write ", count, " blocks from ", block, " on ", card.deviceId, ',', getLun(), '\n');
 
 #if AHDI_READONLY
 #if AHDI_READONLY == 2
@@ -575,7 +676,7 @@ Acsi::ScsiErr Acsi::processBlockWrite(uint32_t block, int count, BlockDev *dev) 
 #endif
 #else
 
-  if(block + count - 1 >= dev->blocks) {
+  if(block >= dev->blocks || block + count - 1 >= dev->blocks) {
     dbg("Out of range\n");
     return ERR_INVADDR;
   }
@@ -586,7 +687,7 @@ Acsi::ScsiErr Acsi::processBlockWrite(uint32_t block, int count, BlockDev *dev) 
   }
 
   for(int s = 0; s < count;) {
-    watchdog.feed();
+    Watchdog::feed();
     int burst = ACSI_BLOCKS;
     if(burst > count - s)
       burst = count - s;
@@ -664,9 +765,9 @@ int Acsi::computeChecksum(uint8_t *block) {
 
 #if ACSI_DUMMY_BOOT_SECTOR
 Acsi::ScsiErr Acsi::processDummyBootSector() {
-  dbg("Sending dummy boot sector\n");
-  memcpy(buf, nosdcard_boot_bin, nosdcard_boot_bin_len);
-  patchBootSector(buf);
+  dbg("Sending test boot sector\n");
+  memcpy(buf, acsitest_boot_bin, acsitest_boot_bin_len);
+  patchBootSector(buf, acsitest_boot_bin_len);
   dma.sendDma(buf, ACSI_BLOCKSIZE);
   return ERR_OK;
 }
@@ -681,14 +782,14 @@ void Acsi::patchBootSector(uint8_t *data, int offset) {
 
 #if ACSI_BOOT_OVERLAY
 Acsi::ScsiErr Acsi::processBootOverlay(BlockDev *dev) {
-  dbg("Overlay boot sector on ", deviceId, ',', getLun(), '\n');
+  dbg("Overlay boot sector on ", card.deviceId, ',', getLun(), '\n');
 
   if(!dev->readStart(0)) {
     dbg("Read start error\n");
     return ERR_READERR;
   }
 
-  watchdog.feed();
+  Watchdog::feed();
 
   if(!dev->readData(buf, 1)) {
     dbg("Read error\n");
@@ -708,6 +809,7 @@ Acsi::ScsiErr Acsi::processBootOverlay(BlockDev *dev) {
 #endif
 
 // Static variables
+bool Acsi::strict;
 RTClock Acsi::rtc(RTCSEL_LSE);
 int Acsi::cmdLen;
 uint8_t Acsi::cmdBuf[16];

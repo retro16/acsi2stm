@@ -235,7 +235,7 @@ void DmaPort::begin() {
 
 void DmaPort::addDevice(int id) {
   if(id >= 0 && id < 8)
-    deviceMask |= 1 << id;
+    deviceMask |= (1 << id);
 }
 
 void DmaPort::removeDevice(int id) {
@@ -267,24 +267,24 @@ bool DmaPort::checkCommand() {
   return (CS_TIMER->SR & TIMER_SR_CC3IF);
 }
 
-bool DmaPort::validCommand() {
-  return (1 << ((CS_TIMER->CCR4) >> 13) & deviceMask) && idle();
-}
-
-uint8_t DmaPort::readCommand() {
+int DmaPort::readCommand() {
   uint8_t cmd = (CS_TIMER->CCR4) >> 8;
   Acsi::verboseHex('[', cmdDeviceId(cmd), ':', cmdCommand(cmd), ']');
+  if(!((1 << (cmd >> 5) & deviceMask) && idle()))
+    return -1;
   return cmd;
 }
 
 uint8_t DmaPort::waitCommand() {
+  int cmd;
   for(;;) {
     while(!checkCommand());
-    if(validCommand())
+    if((cmd = readCommand()) != -1)
       break;
+    Acsi::verboseHex(": not for us\n");
     endTransaction();
   }
-  return readCommand();
+  return (uint8_t)cmd;
 }
 
 void DmaPort::readIrq(uint8_t *bytes, int count) {

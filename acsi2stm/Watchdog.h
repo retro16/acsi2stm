@@ -24,19 +24,19 @@
 
 // Timer-based watchdog
 struct Watchdog {
-  void begin(int millis = 2500);
-  void feed() {
+  static void begin(int millis = 2500);
+  static void feed() {
     WATCHDOG_TIMER.setCount(0);
   }
-  void pause() {
+  static void pause() {
     WATCHDOG_TIMER.pause();
   }
-  void resume() {
+  static void resume() {
     feed();
     WATCHDOG_TIMER.resume();
   }
-protected:
-  static void trigger();
+
+  static void reboot();
 };
 
 // vim: ts=2 sw=2 sts=2 et

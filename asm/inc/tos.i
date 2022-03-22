@@ -128,4 +128,4 @@ EFILNF=-33      ; file not found
 ENSAME=-48      ; not the same drive
 EPLFMT=-66      ; invalid program load format
 
-; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81
+; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm

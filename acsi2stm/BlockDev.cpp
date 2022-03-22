@@ -76,28 +76,25 @@ void BlockDev::updateBootable() {
   bootable = (Acsi::computeChecksum(Acsi::buf) == 0x1234);
 }
 
-bool SdDev::begin(int devId, int cs, int wp) {
-  deviceId = devId;
-  csPin = cs;
-  wpPin = wp;
-  return reset();
-}
-
 bool SdDev::reset() {
   BlockDev::reset();
 
-  // Set wp pin as input pullup
+  // Set wp pin as input pullup to read write lock later
   pinMode(wpPin, INPUT_PULLUP);
 
   int rate;
 
   for(rate = 0; rate < sizeof(sdRates)/sizeof(sdRates[0]); ++rate) {
-    Acsi::verbose('(', sdRates[rate] / 1000000, "MHz) ");
+    Watchdog::feed();
+
     if(!card.begin(SdSpiConfig(csPin, SHARED_SPI, sdRates[rate], &SPI)))
-      continue;
+      // Don't retry at slower speed because begin()
+      // already works at low speed.
+      break;
 
     // Give some time to the internal SD electronics to initialize properly
-    delay(200);
+    // Not sure if this is required. Pretty sure it's not.
+    delay(100);
 
     // Get SD card identification to test communication
     cid_t cid;
@@ -109,15 +106,10 @@ bool SdDev::reset() {
     // Get SD card size
     blocks = card.sectorCount();
 
-    // Get writable pin status
-    writable = digitalRead(wpPin);
-
     // If blocks is non-null, assume that the SD card is working well
     if(blocks)
       break;
   }
-
-  Acsi::verbose("(SD", deviceId, " init) ");
 
 #if ACSI_MAX_BLOCKS
   if(blocks > ACSI_MAX_BLOCKS)
@@ -125,13 +117,23 @@ bool SdDev::reset() {
 #endif
 
   if(blocks) {
+    // Open the file system
     fsOpen = fs.begin(&card);
     if(fsOpen)
       Acsi::verbose("(fs ok) ");
+
+    // Get writable pin status
+    writable = digitalRead(wpPin);
+    Acsi::verbose(writable ? "(rw) ": "(ro) ");
+
+    // Check if bootable
     updateBootable();
     if(bootable)
       Acsi::verbose("(boot) ");
+
     Acsi::dbg('(', sdRates[rate] / 1000000, "MHz ", blocks, " blocks) ");
+  } else {
+    Acsi::verbose("(0 block) ");
   }
 
   return blocks;
@@ -212,7 +214,7 @@ void SdDev::getDeviceString(char *target) {
   target[11] = '0' + deviceId;
 
   if(!blocks) {
-    memcpy(&target[13], "NO SD CARD", 13);
+    memcpy(&target[13], "NO SD CARD", 10);
     return;
   }
 

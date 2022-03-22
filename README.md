@@ -1,6 +1,7 @@
-*Version 2.3: Introducing removable media, boot overlays and real-time clock.*
+*Version 2.4: Hardware configuration and asm programming.*
 
-*Beware, the pinout has changed since version 1.0*
+**WARNING**, PA15 was remapped to PB5 since 2.31. It should not impact anyone as this version is recent and PA15 is for SD card 5.
+
 
 ACSI2STM: Atari ST ACSI hard drive emulator
 ===========================================
@@ -18,6 +19,7 @@ It can work in 2 ways:
 
 It also supports an UltraSatan compatible real-time clock.
 
+**WARNING**, the pinout has changed since version 1.0. If you built or bought a unit for the 1.0 firmware, you need to make changes.
 
 Documentation
 -------------
@@ -64,7 +66,7 @@ time. Without them, this project would have not existed.
 
  * The http://atari.8bitchip.info website and his author, who also contributes on various forums.
  * The Hatari developpers. I used its source code as a reference for ACSI commands.
- * The UltraSatan project for their documentation.
- * Sr Antonio, Edu Arana, Frederick321, Ulises74, Maciej G., Olivier Gossuin and Marcel Prisi for their very detailed feedback
-   that helped me a lot for fine tuning the DRQ/ACK signals and other various aspects of the projects.
- * All people contributing on GitHub.
+ * The UltraSatan project for their documentation and their RTC clock tool.
+ * Sr Antonio, Edu Arana, Frederick321, Ulises74, Maciej G., Olivier Gossuin, Marcel Prisi and Tomasz Orczyk for their very
+   detailed feedback that helped me a lot for fine tuning the DRQ/ACK signals and other various aspects of the projects.
+ * All people contributing on GitHub, for their code, their ideas, the issues they submit, and their patience when things fail !
