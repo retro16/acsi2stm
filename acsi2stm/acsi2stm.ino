@@ -19,6 +19,7 @@
 #include "DmaPort.h"
 #include "Watchdog.h"
 #include "Acsi.h"
+#include <libmaple/gpio.h>
 
 DmaPort dma;
 Watchdog watchdog;
@@ -27,18 +28,18 @@ Watchdog watchdog;
 // Change this table to remap ACSI device IDs, SD CS pin and SD lock pin.
 // Important: device IDs must be consecutive.
 Acsi acsi[] = {
-  Acsi(ACSI_FIRST_ID + 0, PA4, PB0, dma, watchdog),
+  Acsi(ACSI_FIRST_ID + 0, PA4, PB0, dma),
 #if ACSI_SD_CARDS >= 2
-  Acsi(ACSI_FIRST_ID + 1, PA3, PB1, dma, watchdog),
+  Acsi(ACSI_FIRST_ID + 1, PA3, PB1, dma),
 #endif
 #if ACSI_SD_CARDS >= 3
-  Acsi(ACSI_FIRST_ID + 2, PA2, PB3, dma, watchdog),
+  Acsi(ACSI_FIRST_ID + 2, PA2, PB3, dma),
 #endif
 #if ACSI_SD_CARDS >= 4
-  Acsi(ACSI_FIRST_ID + 3, PA1, PB4, dma, watchdog),
+  Acsi(ACSI_FIRST_ID + 3, PA1, PB4, dma),
 #endif
 #if ACSI_SD_CARDS >= 5
-  Acsi(ACSI_FIRST_ID + 4, PA0, PA15, dma, watchdog),
+  Acsi(ACSI_FIRST_ID + 4, PA0, PB5, dma),
 #endif
 };
 static const int sdCount = sizeof(acsi) / sizeof(acsi[0]);
@@ -61,9 +62,13 @@ void setup() {
   delay(200);
 #endif
 
+  // Disable JTAG to allow using PB3, PB4 and PA15
+  afio_cfg_debug_ports(AFIO_DEBUG_SW_ONLY);
+
   dma.begin();
   watchdog.begin();
 
+  // Initialize the ACSI bridges
   for(int c = 0; c < sdCount; ++c)
     acsi[c].begin();
 
@@ -82,7 +87,13 @@ void loop() {
 #if ! ACSI_VERBOSE
   Acsi::dbg("ACSI", deviceId, ':');
 #endif
-  int deviceIndex = deviceId - acsi[0].deviceId;
+
+  int deviceIndex = deviceId - ACSI_FIRST_ID;
+
+  if(deviceIndex < 0 || deviceIndex >= sdCount) {
+    Acsi::verbose("Device index out of range\n");
+    return;
+  }
 
   watchdog.resume();
   acsi[deviceIndex].process(dma.cmdCommand(cmd));

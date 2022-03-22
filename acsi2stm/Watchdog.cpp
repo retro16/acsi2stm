@@ -24,12 +24,12 @@ void Watchdog::begin(int millis) {
   WATCHDOG_TIMER.setPrescaleFactor(36000);
   WATCHDOG_TIMER.setOverflow(65535);
   WATCHDOG_TIMER.setCompare(TIMER_CH1, millis * 2);
-  WATCHDOG_TIMER.attachInterrupt(TIMER_CH1, Watchdog::trigger);
+  WATCHDOG_TIMER.attachInterrupt(TIMER_CH1, Watchdog::reboot);
   WATCHDOG_TIMER.setCount(0);
   WATCHDOG_TIMER.refresh();
 }
 
-void Watchdog::trigger() {
+void Watchdog::reboot() {
   WATCHDOG_TIMER.pause();
 
   // Reset the whole STM32

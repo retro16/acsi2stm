@@ -39,9 +39,16 @@ echo "Copy the binary in the release directory"
 
 cp acsi2stm.ino.bin "../acsi2stm-$VERSION"
 
-echo "... and the legal stuff"
+echo "Copy TOS programs in the release directory"
 
-cp ../LICENSE "../acsi2stm-$VERSION"
+cp -r ../tos "../acsi2stm-$VERSION"
+
+echo "Copy documentation"
+
+cat ../README.md >> "../acsi2stm-$VERSION/README.md"
+cp -r ../doc "../acsi2stm-$VERSION"
+
+echo "... and the legal stuff"
 
 cat > "../acsi2stm-$VERSION/README.txt" << EOF
 ACSI2STM Atari hard drive emulator
@@ -65,7 +72,10 @@ software, see its GitHub page:
 
     https://github.com/retro16/acsi2stm
 
+You can open README.md as well as other files in "doc" as text files.
 EOF
+
+cp ../LICENSE "../acsi2stm-$VERSION"
 
 echo "Create release zip package"
 

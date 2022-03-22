@@ -22,7 +22,7 @@
 
 // acsi2stm global configuration
 
-#define ACSI2STM_VERSION "2.31"
+#define ACSI2STM_VERSION "2.4a"
 
 // Set to 1 to enable debug output on the serial port
 #define ACSI_DEBUG 0
@@ -74,7 +74,7 @@
 // Set this to 1 to sample 13.8ns later
 // Set this to 2 to sample 41.6ns later
 // Only impacts DMA writes (ST -> STM32)
-#define ACSI_ACK_FILTER 1
+#define ACSI_ACK_FILTER 2
 
 // Filter/delay data acquisition on CS pulse.
 // Set this to 1 to sample 13.8ns later
@@ -112,9 +112,6 @@
 
 // Set to 1 to enable UltraSatan-compatible RTC
 #define ACSI_RTC 1
-
-// ACSI protocol block size
-#define ACSI_BLOCKSIZE 512
 
 // vim: ts=2 sw=2 sts=2 et
 #endif

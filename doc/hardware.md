@@ -107,19 +107,19 @@ Leave unused CS pins unconnected.
    speed and compatibility. Connect SD card pins directly to the STM32 pins.
  * microSD to SD adapters are a quick, cheap way to obtain a microSD reader. Simply solder on the SD adapter pads.
 
-If your reader has a read-only lock switch detector, use this table to connect it:
+Some pins can be used to configure each SD card slot:
 
-| ACSI ID | STM32 | Connect to |
-|--------:|:------|------------|
-|       0 | PB0   | SD 0 lock  |
-|       1 | PB1   | SD 1 lock  |
-|       2 | PB3   | SD 2 lock  |
-|       3 | PB4   | SD 3 lock  |
-|       4 | PA15  | SD 4 lock  |
+| ACSI ID | STM32 | Connect to       | Connect to disable |
+|--------:|:------|------------------|--------------------|
+|       0 | PB0   | SD 0 write lock  | +3.3V              |
+|       1 | PB1   | SD 1 write lock  | +3.3V              |
+|       2 | PB3   | SD 2 write lock  | +3.3V              |
+|       3 | PB4   | SD 3 write lock  | +3.3V              |
+|       4 | PB5   | SD 4 write lock  | +3.3V              |
 
-When the pin is connected to GND, the SD card will be read-only. When the pin is left floating or connected to VCC, the SD card
-will be writable.
-
+When the pin is connected to GND, the SD card will be read-only. When the pin is left floating, the SD card will be writable. You
+can connect this pin to the physical write lock switch if you have a full size SD card reader with this ability.
+When the pin is connected to +3.3V, the SD card is completely disabled (the ACSI ID is freed for other devices).
 
 Battery-powered real-time clock
 -------------------------------

@@ -52,15 +52,12 @@ struct DmaPort {
   // Return true if a new command is available
   bool checkCommand();
 
-  // Return true if the last received command is valid
-  // and matches any allowed device
-  bool validCommand();
-
+  // Read the buffered command.
+  // Returns -1 if the command was not for us
   // Important: call endTransaction when the command was handled to retrigger A1 listening
-  static uint8_t readCommand();
+  int readCommand();
 
   // Wait for a new command and return its first byte
-  // Equivalent to calling checkCommand followed by readCommand
   uint8_t waitCommand();
 
   // Returns the device id for a given command byte

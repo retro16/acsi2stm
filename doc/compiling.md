@@ -91,8 +91,10 @@ Settings that you might wish to change:
  * ACSI_DUMMY_BOOT_SECTOR: If no SD card is detected, the ACSI2STM will respond to a boot sector read with a dummy boot sector
    displaying a message that no SD card was detected. Very useful but not 100% SCSI-compliant (some drivers may not like it).
    Set it to 0 to disable that feature and restore 100% normal behavior.
+   Strict mode jumper must be set to 0 to enable this feature at runtime.
  * ACSI_BOOT_OVERLAY: If set to 1, the boot sector of non-bootable SD cards will be patched with boot code to display a message.
    This way, people that don't know what to do will have a better user experience. Requires ACSI_DUMMY_BOOT_SECTOR.
+   Strict mode jumper must be set to 0 to enable this feature at runtime.
  * ACSI_SD_MAX_SPEED: Maximum SD card speed in MHz. If SD communication fails, the driver automatically retries at a lower speed.
  * ACSI_ACK_FILTER: Enables filtering the ACK line, adding a tiny latency. May improve DMA reliability at the expense of speed.
  * ACSI_CS_FILTER: Enables filtering on the CS line, adding a tiny latency. This is necessary to sample the data bus at the right
@@ -106,7 +108,16 @@ The file acsi2stm.ino begins with the CS and lock pin table. You can change pin 
 Rebuilding ASM code
 -------------------
 
-The build_asm.sh shell script rebuilds all files in asm subfolders. You need vasm and xxd installed. This generates header files
-in the acsi2stm folder.
+The build_asm.sh shell script patches VERSION into asm code, then rebuilds all files in asm subfolders. You need vasm and xxd
+installed. This regenerates header files in the acsi2stm folder for boot overlays.
 
-The script is meant to run in bash under Linux. It may or may not run under cygwin, git bash or macos.
+The script is meant to run in bash under Linux. It may or may not run under cygwin, git bash or macos (untested).
+
+
+Building a release package
+--------------------------
+
+The build_release.sh shell script patches VERSION into STM32 code, calls build_asm.sh, builds the arduino firmware then packages
+everything into a zip file.
+
+Arduino must be properly configured through the graphical interface before calling this script. See *Installing software* above.

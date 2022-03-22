@@ -27,4 +27,4 @@ dmamid=dma+7
 dmalow=dma+9
 
 
-; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81
+; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm

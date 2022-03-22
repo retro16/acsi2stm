@@ -111,3 +111,25 @@ If your ACSI2STM unit comes with a battery, it can keep the time with the help o
 
 Download [Jookie's UltraSatan clock tools](http://joo.kie.sk/wp-content/uploads/2013/05/clock.zip). Put the US_GETCL.PRG file in
 your C:\AUTO folder so the clock is correctly set on boot. Use US_SETCL.PRG to set the clock.
+
+
+Strict mode
+-----------
+
+ACSI2STM offers extra features that can be dynamically turned on or off with the BOOT1 jumper near the reset button. Since these
+features aren't 100% SCSI compliant, you can turn them off to have a strict implementation of the SCSI standard.
+
+If BOOT1 is in the 0 position, extra features will be enabled. If BOOT1 is in position 1, extra features will be disabled.
+
+The following features are affected:
+
+ * Dummy boot sector if no SD card is present: displays a "No SD card" message on boot if no SD card is inserted.
+ * Boot sector overlay if a non-bootable SD card is inserted: displays a message and waits for a key if trying to boot a
+   non-bootable SD card.
+ * Remote payload execution: Ability to upload and run STM32 code from the Atari ST. This feature is not used.
+
+
+Testing your unit
+-----------------
+
+Boot the Atari ST with no media inserted (no floppy, no SD card in the ACSI2STM).

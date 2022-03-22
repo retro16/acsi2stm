@@ -16,25 +16,24 @@
 
 ; ACSI2STM specific defines
 
-acsi2stm_version	macro
+a2st_version	macro
 	; The following line is patched automatically by build_asm.sh
-	dc.b	'2.31'			; ACSI2STM VERSION NUMBER
-endm
+	dc.b	'2.4a'			; ACSI2STM VERSION NUMBER
+	endm
 
-acsi2stm_header	macro
+a2st_header	macro
 	dc.b	'ACSI2STM '
-	acsi2stm_version
+	a2st_version
 	dc.b	' by Jean-Matthieu Coulon',13,10
-	dc.b	'Free software under the GPLv3 license.',13,10
-	dc.b	'Source and documentation available at:',13,10
+	dc.b	'GPLv3 license. Source & doc at',13,10
 	dc.b	' https://github.com/retro16/acsi2stm',13,10
-endm
+	endm
 
-acsi2stm_header_short	macro
+a2st_head_short	macro
 	dc.b	'ACSI2STM '
-	acsi2stm_version
+	a2st_version
 	dc.b	' by Jean-Matthieu Coulon',13,10
 	dc.b	' https://github.com/retro16/acsi2stm',13,10
-endm
+	endm
 
-; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81
+; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm

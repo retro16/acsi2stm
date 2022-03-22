@@ -66,7 +66,13 @@ protected:
 
 class SdDev: public BlockDev {
 public:
-  bool begin(int deviceId, int csPin, int wpPin);
+  SdDev(int deviceId_, int csPin_, int wpPin_):
+    deviceId(deviceId_),
+    csPin(csPin_),
+    wpPin(wpPin_) {}
+  bool begin() {
+    return reset();
+  }
   bool reset();
 
   // BlockDev interface
@@ -84,7 +90,6 @@ public:
   FsVolume fs;
   bool fsOpen;
 
-protected:
   int deviceId;
   int csPin;
   int wpPin;
