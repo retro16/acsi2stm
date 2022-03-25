@@ -66,19 +66,19 @@ pulse. A CS pulse is equivalent to rotating the encoder one step in one
 direction, then quickly going back to the starting position.
 
 Overview of the setup:
-             __________
-         DIR|  Timer4  |Underflow
-   A1 ----->|TI1       |------------
-            |          |            |
-        STEP|          |CH3 CC      |
-   CS ----->|TI2       |------------+
-            |__________|            |
-                                    |Trigger (DMA1 CH5+CH7)
-                      _______     __V___     __________
-                     |       |   |      |   |          |
-                     | GPIOB |-->| DMA1 |-->|  Timer4  |
-                     |       |   |      |   |  CH4 CC  |
-                     |_______|   |______|   |__________|
+              __________
+          DIR|  Timer4  |Underflow
+    A1 ----->|TI1       |------------
+             |          |            |
+         STEP|          |CH3 CC      |
+    CS ----->|TI2       |------------+
+             |__________|            |
+                                     |Trigger (DMA1 CH5+CH7)
+                       _______     __V___     __________
+                      |       |   |      |   |          |
+                      | GPIOB |-->| DMA1 |-->|  Timer4  |
+                      |       |   |      |   |  CH4 CC  |
+                      |_______|   |______|   |__________|
 
 A CS pulse with A1 low will pulse the timer counter to 1, then back to 0. This
 will trigger CH3 compare event.
@@ -140,19 +140,19 @@ access.
 
 The current implementation uses STM32 timers and its DMA engine to process
 these signals. Data flow:
-             __________
-         CLK|          |CH4
-  ACK ----->|  Timer1  |-----> PA11 (DRQ)
-            |          |
-            |          |CH3
-            |          |------------
-            |__________|            |
-                                    |Trigger (DMA1 CH6)
-                      _______     __V___     __________
-                     |       |   |      |   |          |
-                     | GPIOB |-->| DMA1 |-->|  Timer1  |
-                     |       |   |      |   |  CH1 CC  |
-                     |_______|   |______|   |__________|
+               __________
+           CLK|          |CH4
+    ACK ----->|  Timer1  |-----> PA11 (DRQ)
+              |          |
+              |          |CH3
+              |          |------------
+              |__________|            |
+                                      |Trigger (DMA1 CH6)
+                        _______     __V___     __________
+                       |       |   |      |   |          |
+                       | GPIOB |-->| DMA1 |-->|  Timer1  |
+                       |       |   |      |   |  CH1 CC  |
+                       |_______|   |______|   |__________|
 
  * ACK is used as Timer1 clock.
  * PA11 (DRQ) is used as a PWM output that goes up whenever Timer1 receives a clock tick.
@@ -264,7 +264,7 @@ void DmaPort::waitBusReady() {
 }
 
 bool DmaPort::checkCommand() {
-  return (CS_TIMER->SR & TIMER_SR_CC3IF);
+  return DMA1_BASE->ISR & DMA_ISR_TCIF5;
 }
 
 int DmaPort::readCommand() {
@@ -288,17 +288,11 @@ uint8_t DmaPort::waitCommand() {
 }
 
 void DmaPort::readIrq(uint8_t *bytes, int count) {
-  // Disable systick that introduces jitter.
-  systick_disable();
-
   while(count > 0) {
     *bytes = readIrq();
     ++bytes;
     --count;
   }
-
-  // Restore systick
-  systick_enable();
 }
 
 uint8_t DmaPort::readIrq() {
@@ -316,17 +310,22 @@ uint8_t DmaPort::readIrq() {
 void DmaPort::sendIrq(uint8_t byte) {
   Acsi::verboseHex("[>", byte, "]\n");
 
-  // Disable systick that introduces jitter.
-  systick_disable();
-
   acquireDataBus();
   writeData(byte);
   pullIrq();
   waitCs();
   releaseBus();
+}
 
-  // Restore systick
-  systick_enable();
+void DmaPort::endTransaction(uint8_t statusByte) {
+  Acsi::verboseHex("[#", statusByte, "]\n");
+
+  acquireDataBus();
+  writeData(statusByte);
+  pullIrq();
+  waitCs();
+  releaseBus();
+  endTransaction();
 }
 
 void DmaPort::readDma(uint8_t *bytes, int count) {
@@ -338,13 +337,17 @@ void DmaPort::readDma(uint8_t *bytes, int count) {
   acquireDrq();
 
   // Unroll for speed
-  int i;
-  for(i = 0; i <= count - 16; i += 16) {
+  int i = 0;
+#if ACSI_FAST_DMA
 #define ACSI_READ_BYTE(b) do { \
+      while(!(DMA1_BASE->ISR & DMA_ISR_TCIF6)); \
       DMA_TIMER->CNT = 0; \
-      while(DMA_TIMER->CNT == 0); \
+      DMA1_BASE->IFCR = DMA_IFCR_CTCIF6; \
       bytes[b] = (uint8_t)(DMA_TIMER->CCR1 >> 8); \
     } while(0)
+  for(i = 0; i <= count - 16; i += 16) {
+    DMA_TIMER->CNT = 0;
+    DMA1_BASE->IFCR = DMA_IFCR_CTCIF6;
     ACSI_READ_BYTE(0);
     ACSI_READ_BYTE(1);
     ACSI_READ_BYTE(2);
@@ -360,17 +363,21 @@ void DmaPort::readDma(uint8_t *bytes, int count) {
     ACSI_READ_BYTE(12);
     ACSI_READ_BYTE(13);
     ACSI_READ_BYTE(14);
-    ACSI_READ_BYTE(15);
+    while(!(DMA1_BASE->ISR & DMA_ISR_TCIF6));
+    bytes[15] = (uint8_t)(DMA_TIMER->CCR1 >> 8);
     bytes += 16;
   }
+#undef ACSI_READ_BYTE
+#endif
 
   while(i < count) {
-    ACSI_READ_BYTE(0);
+    DMA_TIMER->CNT = 0; // Trigger DRQ
+    DMA1_BASE->IFCR = DMA_IFCR_CTCIF6; // Reset DMA transfer flag
+    while(!(DMA1_BASE->ISR & DMA_ISR_TCIF6)); // Wait for DMA complete
+    *bytes = (uint8_t)(DMA_TIMER->CCR1 >> 8); // Copy data into the buffer
     ++i;
     ++bytes;
   }
-
-#undef ACSI_READ_BYTE
 
   releaseBus();
 
@@ -393,12 +400,12 @@ void DmaPort::sendDma(const uint8_t *bytes, int count) {
 
   // Unroll for speed
   int i = 0;
+#if ACSI_FAST_DMA
 #define ACSI_SEND_BYTE(b) do { \
-      writeData(bytes[b]); \
       DMA_TIMER->CNT = 0; \
+      writeData(bytes[b]); \
       while(DMA_TIMER->CNT == 0); \
     } while(0)
-#if ACSI_FAST_DMA
   for(i = 0; i <= count - 16; i += 16) {
     ACSI_SEND_BYTE(0);
     ACSI_SEND_BYTE(1);
@@ -418,16 +425,17 @@ void DmaPort::sendDma(const uint8_t *bytes, int count) {
     ACSI_SEND_BYTE(15);
     bytes += 16;
   }
+#undef ACSI_SEND_BYTE
 #endif
 
   while(i < count) {
-    ACSI_SEND_BYTE(0);
+    writeData(*bytes); // Put data on the bus
+    DMA_TIMER->CNT = 0; // Trigger DRQ
+    while(DMA_TIMER->CNT == 0); // Wait for ACK
     ++i;
     ++bytes;
-    asm volatile("nop");
   }
 
-#undef ACSI_SEND_BYTE
   releaseBus();
 
   // Restore systick
@@ -438,6 +446,7 @@ void DmaPort::sendDma(const uint8_t *bytes, int count) {
 
 void DmaPort::endTransaction() {
   CS_TIMER->SR &= ~TIMER_SR_CC3IF; // Clear A1 received flag
+  DMA1_BASE->IFCR = DMA_IFCR_CTCIF5; // Clear DMA flag
 }
 
 void DmaPort::releaseRq() {
@@ -470,12 +479,8 @@ void DmaPort::acquireDataBus() {
 
 uint8_t DmaPort::waitCs() {
   CS_TIMER->SR &= ~TIMER_SR_UIF;
-  while(!(CS_TIMER->SR & TIMER_SR_UIF));
-  return (CS_TIMER->CCR4) >> 8;
-}
-
-uint8_t DmaPort::waitA1() {
-  while(!(CS_TIMER->SR & TIMER_SR_CC3IF));
+  DMA1_BASE->IFCR = DMA_IFCR_CTCIF7;
+  while(!(DMA1_BASE->ISR & DMA_ISR_TCIF7));
   return (CS_TIMER->CCR4) >> 8;
 }
 
@@ -506,6 +511,7 @@ void DmaPort::setupDrqTimer() {
   DMA_TIMER->CCMR2 = TIMER_CCMR2_OC4M;
   DMA_TIMER->CCER = TIMER_CCER_CC4E; // Enable output
   DMA_TIMER->EGR = TIMER_EGR_UG;
+  DMA_TIMER->CCR1 = 0; // Receives PORTB on ACK pulse
   DMA_TIMER->CCR2 = 65535; // Disable unused CC channel
   DMA_TIMER->CCR3 = 1; // Compare value
   DMA_TIMER->CCR4 = 1; // Compare value
@@ -534,42 +540,49 @@ void DmaPort::setupCsTimer() {
   CS_TIMER->CR1 |= TIMER_CR1_CEN; // Enable the timer
   CS_TIMER->CNT = 0;
 
+  // Setup DMA to copy PORTB to CCR4 on CS+A1 pulse
+  DMA1_BASE->CCR5 &= ~DMA_CCR_EN;
+  DMA1_BASE->CPAR5 = (uint32_t)&(CS_TIMER->CCR4);
+  DMA1_BASE->CMAR5 = (uint32_t)&(GPIOB->regs->IDR);
+  DMA1_BASE->CNDTR5 = 1;
+  DMA1_BASE->CCR5 = DMA_CCR_PL_VERY_HIGH
+                    | DMA_CCR_MSIZE_16BITS
+                    | DMA_CCR_PSIZE_16BITS
+                    | DMA_CCR_CIRC
+                    | DMA_CCR_DIR
+                    | DMA_CCR_EN;
+
   // Setup DMA to copy PORTB to CCR4 on CS pulse
-  dma_setup_transfer(DMA1,
-                     DMA_CH5,
-                     &(CS_TIMER->CCR4),
-                     DMA_SIZE_16BITS,
-                     &(GPIOB->regs->IDR),
-                     DMA_SIZE_16BITS,
-                     DMA_FROM_MEM | DMA_CIRC_MODE);
-  dma_set_num_transfers(DMA1, DMA_CH5, 1);
-  dma_enable(DMA1, DMA_CH5);
-  dma_setup_transfer(DMA1,
-                     DMA_CH7,
-                     &(CS_TIMER->CCR4),
-                     DMA_SIZE_16BITS,
-                     &(GPIOB->regs->IDR),
-                     DMA_SIZE_16BITS,
-                     DMA_FROM_MEM | DMA_CIRC_MODE);
-  dma_set_num_transfers(DMA1, DMA_CH7, 1);
-  dma_enable(DMA1, DMA_CH7);
+  DMA1_BASE->CCR7 &= ~DMA_CCR_EN;
+  DMA1_BASE->CPAR7 = (uint32_t)&(CS_TIMER->CCR4);
+  DMA1_BASE->CMAR7 = (uint32_t)&(GPIOB->regs->IDR);
+  DMA1_BASE->CNDTR7 = 1;
+  DMA1_BASE->CCR7 = DMA_CCR_PL_VERY_HIGH
+                    | DMA_CCR_MSIZE_16BITS
+                    | DMA_CCR_PSIZE_16BITS
+                    | DMA_CCR_CIRC
+                    | DMA_CCR_DIR
+                    | DMA_CCR_EN;
 
   // Clear A1 flag
   endTransaction();
 }
 
 void DmaPort::setupAckDmaTransfer() {
+  // Initialize DMA engine
+  RCC_BASE->AHBENR |= RCC_AHBENR_DMA1EN;
+
   // Setup the DMA engine to copy GPIOB to timer 1 CH1 compare value
-  dma_init(DMA1);
-  dma_setup_transfer(DMA1,
-                     DMA_CH6,
-                     &(DMA_TIMER->CCR1),
-                     DMA_SIZE_16BITS,
-                     &(GPIOB->regs->IDR),
-                     DMA_SIZE_16BITS,
-                     DMA_FROM_MEM | DMA_CIRC_MODE);
-  dma_set_num_transfers(DMA1, DMA_CH6, 1);
-  dma_enable(DMA1, DMA_CH6);
+  DMA1_BASE->CCR6 &= ~DMA_CCR_EN;
+  DMA1_BASE->CPAR6 = (uint32_t)&(DMA_TIMER->CCR1);
+  DMA1_BASE->CMAR6 = (uint32_t)&(GPIOB->regs->IDR);
+  DMA1_BASE->CNDTR6 = 1;
+  DMA1_BASE->CCR6 = DMA_CCR_PL_VERY_HIGH
+                    | DMA_CCR_MSIZE_16BITS
+                    | DMA_CCR_PSIZE_16BITS
+                    | DMA_CCR_CIRC
+                    | DMA_CCR_DIR
+                    | DMA_CCR_EN;
 }
 
 void DmaPort::setupGpio() {

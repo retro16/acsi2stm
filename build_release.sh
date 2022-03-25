@@ -43,6 +43,13 @@ echo "Copy TOS programs in the release directory"
 
 cp -r ../tos "../acsi2stm-$VERSION"
 
+echo "Generate empty images"
+
+dd if=/dev/zero of=hd0_30m.img bs=1M count=30
+dd if=/dev/zero of=hd0_500m.img bs=1M count=500
+
+zip "../acsi2stm-$VERSION/empty_images.zip" hd0_30m.img hd0_500m.img
+
 echo "Copy documentation"
 
 cat ../README.md >> "../acsi2stm-$VERSION/README.md"

@@ -20,8 +20,12 @@ Variants I had and that worked: round and rectangle reset buttons, some chips ma
 If anyone has concrete proof of misbehaving clones and information on how to spot them, feel free to contact me or create an issue
 on GitHub to let people know about that.
 
+Since 2.40, the internal DMA was fixed to avoid relying on timing, but check the actual DMA flags. This has fixed many issues on
+some newer clones I bought more recently.
+
 Please provide feedback if you are trying to make this work with the new STM32F4x1 "black pill" boards. The best configuration is
-to have a working blue pill so results can be compared by switching the boards (I believe they are pin compatible).
+to have a working blue pill so results can be compared by switching the boards. Porting efforts will be high, the F4xx has a
+totally different way of handling DMA.
 
 
 Software needed
