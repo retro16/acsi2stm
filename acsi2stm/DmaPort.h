@@ -54,7 +54,6 @@ struct DmaPort {
 
   // Read the buffered command.
   // Returns -1 if the command was not for us
-  // Important: call endTransaction when the command was handled to retrigger A1 listening
   int readCommand();
 
   // Wait for a new command and return its first byte
@@ -87,6 +86,9 @@ struct DmaPort {
   // Send bytes using the DRQ/ACK method.
   static void sendDma(const uint8_t *bytes, int count);
 
+  // Send the status byte and start listening for A1.
+  static void endTransaction(uint8_t statusByte);
+
   // Start listening for the next A1 pulse.
   static void endTransaction();
 
@@ -98,7 +100,6 @@ protected:
   static void acquireDrq();
   static void acquireDataBus();
   static uint8_t waitCs();
-  static uint8_t waitA1();
   static bool readAck();
   static void pullIrq();
   static bool pullDrqUntilAck();

@@ -51,6 +51,7 @@ Super	macro
 ; GEMDOS calls
 Cconin=1
 Cconout=2
+Crawcin=7
 Cconws=9
 Cconis=11
 Dsetdrv=14

@@ -17,19 +17,14 @@
 ; ACSI2STM DMA quick test
 ; Initialized data
 
-sdid  	dc.b	'SD'
-acsiid	dc.b	'0: ',0
-
-	even
-acsi.echo
-	dc.b	9                       ; 9 intermediate bytes
+acsi.rwbuffer	; ACSI data buffer command
+	dc.w	9                       ; 9 intermediate bytes
 	dc.b	$1f                     ; Extended ICD command
-acsi.echorw
-	dc.b	$3b,$0a                 ; Write echo buffer
-	dc.b	$00,$00,$00,$00         ; Buffer id and offset
-	dc.b    $00,$02,$00             ; 512 bytes
+	dc.b	$3c                     ; $3b = write, $3c = read
+	dc.b	$03                     ; $02 = data buffer, $03 = descriptor
+	dc.b	$01                     ; Buffer id ($01: non-standard pattern)
+	dc.b	$00,$00,$00             ; Offset
+	dc.b    $00,$00,$00             ; Transfer size
 	dc.b	$00                     ; Control byte
-
-	even
 
 ; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm

@@ -97,6 +97,7 @@ Leave unused CS pins unconnected.
 
 **Notes**:
 
+ * If you need to hot swap your SD card, you need to put a 47k-100k pull-up resistor between +3.3V and PA6.
  * The ACSI2STM module **will** respond to all ACSI IDs, whether a SD card reader is connected or not. Change ACSI_SD_CARDS and
    ACSI_FIRST_ID in acsi2stm/acsi2stm.h to change ACSI IDs.
  * The SD card had 2 GND pins. I don't know if they have to be both grounded, maybe one wire is enough.

@@ -90,11 +90,6 @@ void loop() {
 
   int deviceIndex = deviceId - ACSI_FIRST_ID;
 
-  if(deviceIndex < 0 || deviceIndex >= sdCount) {
-    Acsi::verbose("Device index out of range\n");
-    return;
-  }
-
   watchdog.resume();
   acsi[deviceIndex].process(dma.cmdCommand(cmd));
   watchdog.pause();

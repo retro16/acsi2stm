@@ -23,7 +23,7 @@
 
 #if ACSI_DUMMY_BOOT_SECTOR
 const
-#include "acsitest.boot.h"
+#include "nosdcard.boot.h"
 #endif
 
 #if ACSI_BOOT_OVERLAY
@@ -138,12 +138,6 @@ void Acsi::mountLuns() {
 }
 
 void Acsi::process(uint8_t cmd) {
-  if(card.deviceId < 0) {
-    // Something really, really bad happened !
-    verbose("Accessing disabled device\n");
-    return;
-  }
-
   if(cmd == 0x1f) {
     // Read extended command
     cmd = dma.readIrq();
@@ -466,15 +460,46 @@ void Acsi::process(uint8_t cmd) {
     break;
   case 0x3b: // Write buffer
     {
+      uint32_t offset = (((uint32_t)cmdBuf[3]) << 16) | (((uint32_t)cmdBuf[4]) << 8) | (uint32_t)(cmdBuf[5]);
       uint32_t length = (((uint32_t)cmdBuf[6]) << 16) | (((uint32_t)cmdBuf[7]) << 8) | (uint32_t)(cmdBuf[8]);
       switch(cmdBuf[1]) {
-      case 0x0a: // Echo buffer write
-        dbg("Write echo buffer: length=", length, '\n');
-        while(length > bufSize) {
-          dma.readDma(buf, bufSize);
-          length -= bufSize;
+      case 0x02: // Data buffer write
+        if(!strict && cmdBuf[2] == 1) {
+          if((offset & 0b11) || (length & 0b11)) {
+            dbg("Invalid buffer length\n");
+            commandStatus(ERR_INVARG);
+            return;
+          }
+        } else if(cmdBuf[2] == 0) {
+          if(offset >= bufSize || offset + length > bufSize) {
+            commandStatus(ERR_INVARG);
+            return;
+          }
+        } else {
+          dbg("Invalid buffer id\n");
+          commandStatus(ERR_INVARG);
+          return;
         }
-        dma.readDma(buf, length);
+
+        dbg("Write buffer: length=", length, '\n');
+        dma.readDma(buf + offset, length);
+
+        if(cmdBuf[2]) {
+          // Check that the write pattern matches
+          bool error = false;
+          for(int i = 0; i < 512; i += 4) {
+            if(buf[offset + i] != 0xf0 || buf[offset + i + 1] != 0x0f || buf[offset + i + 2] != 0x55 || buf[offset + i + 3] != 0xaa) {
+              verbose("Error at ", i, '\n');
+              verboseDumpln(&buf[i],4);
+              error = true;
+            }
+          }
+          if(error) {
+            commandStatus(ERR_WRITEERR);
+            return;
+          }
+          verbose("Pattern matches\n");
+        }
         commandStatus(ERR_OK);
         return;
       case 0x04: // Code execution
@@ -518,15 +543,43 @@ void Acsi::process(uint8_t cmd) {
     }
   case 0x3c: // Read buffer
     {
+      uint32_t offset = (((uint32_t)cmdBuf[3]) << 16) | (((uint32_t)cmdBuf[4]) << 8) | (uint32_t)(cmdBuf[5]);
       uint32_t length = (((uint32_t)cmdBuf[6]) << 16) | (((uint32_t)cmdBuf[7]) << 8) | (uint32_t)(cmdBuf[8]);
       switch(cmdBuf[1]) {
-      case 0x0a: // Echo buffer read
-        dbg("Read echo buffer: length=", length, '\n');
-        while(length > bufSize) {
-          dma.sendDma(buf, bufSize);
-          length -= bufSize;
+      case 0x02: // Data buffer read
+        if(!strict && cmdBuf[2] == 1) {
+          if((offset & 0b11) || (length & 0b11)) {
+            dbg("Invalid buffer length\n");
+            commandStatus(ERR_INVARG);
+            return;
+          }
+        } else if(cmdBuf[2] == 0) {
+          if(offset >= bufSize || offset + length > bufSize) {
+            commandStatus(ERR_INVARG);
+            return;
+          }
+        } else {
+          dbg("Invalid buffer id\n");
+          commandStatus(ERR_INVARG);
+          return;
         }
-        dma.sendDma(buf, length);
+
+        dbg("Read buffer: length=", length, '\n');
+        dma.sendDma(buf + offset, length);
+        commandStatus(ERR_OK);
+        return;
+      case 0x03: // Data buffer descriptor read
+        if(cmdBuf[2])
+          // Pattern match buffer has 4 bytes boundary
+          buf[0] = 2;
+        else
+          buf[0] = 0;
+
+        buf[1] = (uint8_t)(bufSize >> 16);
+        buf[2] = (uint8_t)(bufSize >> 8);
+        buf[3] = (uint8_t)(bufSize);
+
+        dma.sendDma(buf, 4);
         commandStatus(ERR_OK);
         return;
       }
@@ -586,12 +639,11 @@ void Acsi::commandStatus(ScsiErr err) {
   lastErr = err;
   if(lastErr == ERR_OK) {
     dbg("Success\n");
-    dma.sendIrq(0);
+    dma.endTransaction(0);
   } else {
     dbgHex("Error ", lastErr, '\n');
-    dma.sendIrq(2);
+    dma.endTransaction(2);
   }
-  dma.endTransaction();
 }
 
 Acsi::ScsiErr Acsi::refresh() {
@@ -766,8 +818,8 @@ int Acsi::computeChecksum(uint8_t *block) {
 #if ACSI_DUMMY_BOOT_SECTOR
 Acsi::ScsiErr Acsi::processDummyBootSector() {
   dbg("Sending test boot sector\n");
-  memcpy(buf, acsitest_boot_bin, acsitest_boot_bin_len);
-  patchBootSector(buf, acsitest_boot_bin_len);
+  memcpy(buf, nosdcard_boot_bin, nosdcard_boot_bin_len);
+  patchBootSector(buf, nosdcard_boot_bin_len);
   dma.sendDma(buf, ACSI_BLOCKSIZE);
   return ERR_OK;
 }

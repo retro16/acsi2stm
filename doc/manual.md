@@ -97,8 +97,7 @@ Create your own image
 
 **Note**: if you don't have a floppy drive (or a floppy disk), you can use the Hatari emulator to prepare it.
 
-The doc folder contains a zip file [empty_images.zip](empty_images.zip) that contains 3 empty files that you can use as a starting
-point.
+The release package contains a zip file named *empty_images.zip* that contains empty files that you can use as a starting point.
 
 There is a very good tutorial on [Jookie's home page](http://joo.kie.sk/?page_id=306). To access files from within Hatari, use the
 GEMDOS drive feature.
@@ -132,4 +131,32 @@ The following features are affected:
 Testing your unit
 -----------------
 
-Boot the Atari ST with no media inserted (no floppy, no SD card in the ACSI2STM).
+### Quick self-test
+
+If your unit is working, boot the Atari ST with no media inserted (no floppy, no SD card in the ACSI2STM). If you briefly see the
+"No SD card" message, a quick DMA read/write test has been performed. If there is any error, it will be displayed and you will have
+to press a key to continue.
+
+
+### Using ACSITEST.TOS
+
+This method does not require a fully working unit and will do more in-depth tests.
+
+In the release package zip, you will find a tool named ACSITEST.TOS. Transfer it onto a floppy drive (or any other working drive)
+and run it on your ST with the ACSI2STM connected.
+
+The tool can also be run from a SD card inside the ACSI2STM, but in that case you need to be sure to put back the same SD card
+before leaving the program, or simply reset the ST in case of doubt.
+
+Once the tool is loaded in memory, the DMA port will be hot-pluggable and no SD card is needed for testing. This way you can test
+many units at once or do changes on your unit without power cycling the ST all the time.
+
+**Note**: The ACSI2STM unit must not be in strict mode to do a DMA check. Put the BOOT1 jumper in position 0.
+
+Just press the key 0 to 7 to select which device to test (usually 0).
+
+The following tests will be done:
+
+ * Test unit ready. It will report media change events as well as no media (no SD card).
+ * Inquiry. It will query the device string. It will check that the unit is a supported ACSI2STM unit.
+ * DMA pattern test. It will do 4k transfers, checking data integrity in both sides.
