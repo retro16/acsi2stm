@@ -175,7 +175,6 @@ void Acsi::process(uint8_t cmd) {
       dev = luns[getLun()];
       if(dev) {
         // Recovered
-        dbg("SD card inserted\n");
         commandStatus(ERR_MEDIUMCHANGE);
         return;
       }
@@ -193,7 +192,6 @@ void Acsi::process(uint8_t cmd) {
         return;
 #endif
       }
-      dbg("No SD\n");
       commandStatus(ERR_NOMEDIUM);
       return;
     }
@@ -201,14 +199,13 @@ void Acsi::process(uint8_t cmd) {
 
   // Commands that need to be executed even if the card is not available
   case 0x00: // Test unit ready
-  case 0x12: // Inquiry
   case 0x03: // Request sense
+  case 0x12: // Inquiry
     {
       if(validLun()) {
         // Request sense does not always refresh, other commands do
         if(cmdBuf[0] != 0x03 || !dev || hasMediaChanged()) {
           if(refresh() == ERR_MEDIUMCHANGE) {
-            dbg("Medium changed\n");
             commandStatus(ERR_MEDIUMCHANGE);
             return;
           }
@@ -288,7 +285,7 @@ void Acsi::process(uint8_t cmd) {
 
     // Do the actual read operation
     commandStatus(processBlockRead(lastBlock, cmdBuf[4], dev));
-    return;
+    break;
   case 0x0a: // Write block
     // Compute the block number
     lastBlock = (((int)cmdBuf[1]) << 16) | (((int)cmdBuf[2]) << 8) | (cmdBuf[3]);
@@ -299,7 +296,7 @@ void Acsi::process(uint8_t cmd) {
 
     // Do the actual write operation
     commandStatus(processBlockWrite(lastBlock, cmdBuf[4], dev));
-    return;
+    break;
   case 0x0b: // Seek
     lastBlock = (((int)cmdBuf[1]) << 16) | (((int)cmdBuf[2]) << 8) | (cmdBuf[3]);
     lastSeek = true;
@@ -680,7 +677,7 @@ void Acsi::commandStatus(ScsiErr err) {
 
 Acsi::ScsiErr Acsi::refresh() {
   int lun = getLun();
-  dbg("Refreshing ", card.deviceId, ',', lun, ":\n");
+  dbg("Refreshing ", card.deviceId, ',', lun, ":");
   mediaChecked();
 
   if(card.reset()) {
@@ -690,20 +687,20 @@ Acsi::ScsiErr Acsi::refresh() {
     if(realId != mediaId) {
       mediaId = realId;
       if(luns[lun]) {
-        dbg("new SD card\n");
+        dbg("New SD card\n");
         return ERR_MEDIUMCHANGE;
       } else {
-        dbg("new SD with no image\n");
+        dbg("New SD with no image\n");
         return ERR_NOMEDIUM;
       }
     }
 
-    dbg("success\n");
+    dbg("Device ready\n");
     return ERR_OK;
   }
   Watchdog::feed();
 
-  dbg("no SD card\n");
+  dbg("No SD card\n");
   mediaId = 0;
 
   // Unmount all LUNs

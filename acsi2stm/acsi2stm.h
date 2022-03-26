@@ -22,7 +22,7 @@
 
 // acsi2stm global configuration
 
-#define ACSI2STM_VERSION "2.4c"
+#define ACSI2STM_VERSION "2.40"
 
 // Set to 1 to enable debug output on the serial port
 #define ACSI_DEBUG 0
@@ -81,7 +81,7 @@
 // Set this to 2 to sample 41.6ns later
 // Set this to 3 to sample 97.1ns later
 // Only impacts command transfers
-#define ACSI_CS_FILTER 2
+#define ACSI_CS_FILTER 0
 
 // Push data faster in DMA reads (STM32 -> ST)
 // Setting to 1 unrolls the DMA transfer code but may be less compatible
