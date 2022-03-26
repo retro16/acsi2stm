@@ -97,10 +97,13 @@ Create your own image
 
 **Note**: if you don't have a floppy drive (or a floppy disk), you can use the Hatari emulator to prepare it.
 
-The release package contains a zip file named *empty_images.zip* that contains empty files that you can use as a starting point.
+The doc directory contains a zip file named [hd0.zip](hd0.zip) that contains an image that you can use as a starting point. It is
+partitioned in the Atari format, suitable for ICD PRO. The image is pretty small to ensure maximum compatibility. The only thing
+you have to do is to run ICD's HDUTIL.PRG, click the *Boot* button and select C drive to install the driver onto the image.
 
-There is a very good tutorial on [Jookie's home page](http://joo.kie.sk/?page_id=306). To access files from within Hatari, use the
-GEMDOS drive feature.
+There is a very good tutorial on [Jookie's home page](http://joo.kie.sk/?page_id=306).
+
+**Hint**: To access files from within Hatari, use the GEMDOS drive feature.
 
 
 Using the real-time clock

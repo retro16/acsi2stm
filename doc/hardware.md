@@ -101,7 +101,8 @@ Leave unused CS pins unconnected.
  * The ACSI2STM module **will** respond to all ACSI IDs, whether a SD card reader is connected or not. Change ACSI_SD_CARDS and
    ACSI_FIRST_ID in acsi2stm/acsi2stm.h to change ACSI IDs.
  * The SD card had 2 GND pins. I don't know if they have to be both grounded, maybe one wire is enough.
- * You should put a decoupling capacitor of about 100nF between VDD and VSS, as close as possible from the SD card pins.
+ * You should put decoupling capacitors of about 100nF and 10uF (in parallel) between VDD and VSS, as close as possible from the
+   SD card pins. If you use a pre-built SD slot module it should be properly decoupled already.
  * If you need other ACSI IDs, you can change the sdCs array in the source code. See "Compile-time options" below.
  * CS pins must be on GPIO port A (PA pins).
  * Some microSD slot boards for Arduino have logic level adapters to allow using SD cards on 5V Arduino boards. This will reduce
