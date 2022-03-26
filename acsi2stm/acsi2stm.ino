@@ -38,7 +38,7 @@ Acsi acsi[] = {
   Acsi(ACSI_FIRST_ID + 3, PA1, PB4, dma, watchdog),
 #endif
 #if ACSI_SD_CARDS >= 5
-  Acsi(ACSI_FIRST_ID + 4, PA0, PA15, dma, watchdog),
+  Acsi(ACSI_FIRST_ID + 4, PA0, PB5, dma, watchdog),
 #endif
 };
 static const int sdCount = sizeof(acsi) / sizeof(acsi[0]);
@@ -60,6 +60,9 @@ void setup() {
   Acsi::flushDbg();
   delay(200);
 #endif
+
+  // Disable JTAG to allow using PB3, PB4 and PA15
+  afio_cfg_debug_ports(AFIO_DEBUG_SW_ONLY);
 
   dma.begin();
   watchdog.begin();

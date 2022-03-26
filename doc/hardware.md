@@ -115,7 +115,7 @@ If your reader has a read-only lock switch detector, use this table to connect i
 |       1 | PB1   | SD 1 lock  |
 |       2 | PB3   | SD 2 lock  |
 |       3 | PB4   | SD 3 lock  |
-|       4 | PA15  | SD 4 lock  |
+|       4 | PB5   | SD 4 lock  |
 
 When the pin is connected to GND, the SD card will be read-only. When the pin is left floating or connected to VCC, the SD card
 will be writable.
