@@ -445,8 +445,7 @@ void DmaPort::sendDma(const uint8_t *bytes, int count) {
 }
 
 void DmaPort::endTransaction() {
-  CS_TIMER->SR &= ~TIMER_SR_CC3IF; // Clear A1 received flag
-  DMA1_BASE->IFCR = DMA_IFCR_CTCIF5; // Clear DMA flag
+  DMA1_BASE->IFCR = DMA_IFCR_CTCIF5; // Clear A1 received flag
 }
 
 void DmaPort::releaseRq() {
@@ -478,7 +477,6 @@ void DmaPort::acquireDataBus() {
 }
 
 uint8_t DmaPort::waitCs() {
-  CS_TIMER->SR &= ~TIMER_SR_UIF;
   DMA1_BASE->IFCR = DMA_IFCR_CTCIF7;
   while(!(DMA1_BASE->ISR & DMA_ISR_TCIF7));
   return (CS_TIMER->CCR4) >> 8;

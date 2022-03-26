@@ -205,12 +205,15 @@ void Acsi::process(uint8_t cmd) {
   case 0x03: // Request sense
     {
       if(validLun()) {
-        if(refresh() == ERR_MEDIUMCHANGE) {
-          dbg("Medium changed\n");
-          commandStatus(ERR_MEDIUMCHANGE);
-          return;
+        // Request sense does not always refresh, other commands do
+        if(cmdBuf[0] != 0x03 || !dev || hasMediaChanged()) {
+          if(refresh() == ERR_MEDIUMCHANGE) {
+            dbg("Medium changed\n");
+            commandStatus(ERR_MEDIUMCHANGE);
+            return;
+          }
+          dev = luns[getLun()];
         }
-        dev = luns[getLun()];
       }
     }
     break;
@@ -219,8 +222,8 @@ void Acsi::process(uint8_t cmd) {
     // UltraSatan RTC has no LUN nor device access.
     break;
 #endif
-  case 0x3b:
-  case 0x3c:
+  case 0x3b: // Write buffer
+  case 0x3c: // Read buffer
     break;
   }
 
@@ -362,14 +365,21 @@ void Acsi::process(uint8_t cmd) {
       commandStatus(ERR_OK);
       break;
     }
+  case 0x20: // Vendor-specific commands
+    // Used by:
+    //  * UltraSatan protocol (used for RTC)
+    //  * ACSI2STM command loopback test
 #if ACSI_RTC
-  case 0x20: // UltraSatan protocol (used for RTC)
-    dbg("UltraSatan:");
     if(memcmp(&cmdBuf[1], "USCurntFW", 9) == 0) {
+      dbg("UltraSatan:");
       dbg("firmware version query\n");
       // Fake the firmware
       dma.sendDma((const uint8_t *)("ACSI2STM " ACSI2STM_VERSION "\r\n"), 16);
-    } else if(memcmp(&cmdBuf[1], "USRdClRTC", 9) == 0) {
+      commandStatus(ERR_OK);
+      return;
+    }
+    if(memcmp(&cmdBuf[1], "USRdClRTC", 9) == 0) {
+      dbg("UltraSatan:");
       dbg("clock read\n");
       tm_t now;
       rtc.getTime(now);
@@ -385,7 +395,11 @@ void Acsi::process(uint8_t cmd) {
       buf[8] = now.second;
 
       dma.sendDma(buf, 16);
-    } else if(memcmp(&cmdBuf[1], "USWrClRTC", 9) == 0) {
+      commandStatus(ERR_OK);
+      return;
+    }
+    if(memcmp(&cmdBuf[1], "USWrClRTC", 9) == 0) {
+      dbg("UltraSatan:");
       dbg("clock set\n");
 
       dma.readDma(buf, 9);
@@ -405,14 +419,28 @@ void Acsi::process(uint8_t cmd) {
       now.second = buf[8];
 
       rtc.setTime(now);
-    } else {
-      dbg("unknown command\n");
-      commandStatus(ERR_INVARG);
+      commandStatus(ERR_OK);
       return;
     }
-    commandStatus(ERR_OK);
-    return;
 #endif
+    if(memcmp(&cmdBuf[1], "A2STCmdTs", 9) == 0) {
+      dbg("ACSI2STM command test\n");
+      commandStatus(ERR_OK);
+      return;
+    }
+    if(memcmp(&cmdBuf[1], "\0\0\0\0\0\0\0\0\0", 9) == 0) {
+      dbg("ACSI2STM zero command test\n");
+      commandStatus(ERR_OK);
+      return;
+    }
+    if(memcmp(&cmdBuf[1], "\xff\xff\xff\xff\xff\xff\xff\xff\xff", 9) == 0) {
+      dbg("ACSI2STM 0xff command test\n");
+      commandStatus(ERR_OK);
+      return;
+    }
+    dbg("Unknown extended command\n");
+    commandStatus(ERR_OPCODE);
+    return;
   case 0x25: // Read capacity
     lastErr = refresh();
     if(lastErr != ERR_OK) {
@@ -470,18 +498,20 @@ void Acsi::process(uint8_t cmd) {
             commandStatus(ERR_INVARG);
             return;
           }
-        } else if(cmdBuf[2] == 0) {
-          if(offset >= bufSize || offset + length > bufSize) {
-            commandStatus(ERR_INVARG);
-            return;
-          }
-        } else {
+        } else if(cmdBuf[2] != 0) {
           dbg("Invalid buffer id\n");
           commandStatus(ERR_INVARG);
           return;
         }
 
-        dbg("Write buffer: length=", length, '\n');
+        dbg("Write buffer: offset=", offset, " length=", length, '\n');
+
+        if(offset >= bufSize || offset + length > bufSize) {
+          dbg("Out of range\n");
+          commandStatus(ERR_INVARG);
+          return;
+        }
+
         dma.readDma(buf + offset, length);
 
         if(cmdBuf[2]) {
@@ -553,18 +583,20 @@ void Acsi::process(uint8_t cmd) {
             commandStatus(ERR_INVARG);
             return;
           }
-        } else if(cmdBuf[2] == 0) {
-          if(offset >= bufSize || offset + length > bufSize) {
-            commandStatus(ERR_INVARG);
-            return;
-          }
-        } else {
+        } else if(cmdBuf[2] != 0) {
           dbg("Invalid buffer id\n");
           commandStatus(ERR_INVARG);
           return;
         }
 
-        dbg("Read buffer: length=", length, '\n');
+        dbg("Read buffer: offset=", offset, " length=", length, '\n');
+
+        if(offset >= bufSize || offset + length > bufSize) {
+          dbg("Out of range\n");
+          commandStatus(ERR_INVARG);
+          return;
+        }
+
         dma.sendDma(buf + offset, length);
         commandStatus(ERR_OK);
         return;
@@ -718,10 +750,10 @@ Acsi::ScsiErr Acsi::processBlockRead(uint32_t block, int count, BlockDev *dev) {
 Acsi::ScsiErr Acsi::processBlockWrite(uint32_t block, int count, BlockDev *dev) {
   dbg("Write ", count, " blocks from ", block, " on ", card.deviceId, ',', getLun(), '\n');
 
-#if AHDI_READONLY
-#if AHDI_READONLY == 2
+#if ACSI_READONLY
+#if ACSI_READONLY == 2
   for(int s = 0; s < count; ++s)
-    dma.readDma(dataBuf, ACSI_BLOCKSIZE);
+    dma.readDma(buf, ACSI_BLOCKSIZE);
   return ERR_OK;
 #else
   return ERR_WRITEPROT;
@@ -732,6 +764,16 @@ Acsi::ScsiErr Acsi::processBlockWrite(uint32_t block, int count, BlockDev *dev) 
     dbg("Out of range\n");
     return ERR_INVADDR;
   }
+
+#if ACSI_BOOT_OVERLAY
+  if(!strict && block == 0 && !dev->bootable) {
+    // Check that we don't make the drive bootable by accident !
+    if(memcmp(&buf[8], "ACSI2STM OVERLAY", 16) == 0) {
+      // Erase the marker, making the checksum invalid
+      bzero(&buf[8],16);
+    }
+  }
+#endif
 
   if(!dev->writeStart(block)) {
     dbg("Write start error\n");

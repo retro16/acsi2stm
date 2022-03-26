@@ -33,9 +33,11 @@ msg.newcard
 	dc.b	'Proceeding with the new card'
 	dc.b	13,10,0
 msg.senserr
+	dc.b	7
 	dc.b	'Sense request error'
 	dc.b	13,10,0
 msg.dataerr
+	dc.b	7
 	dc.b	'Data integrity error'
 	dc.b	13,10,0
 msg.devsel
@@ -48,6 +50,7 @@ msg.testing
 	dc.b	'Testing ...'
 	dc.b	13,10,0
 msg.sensing
+	dc.b	7
 	dc.b	'Sensing error code'
 	dc.b	13,10,0
 msg.success
@@ -55,17 +58,21 @@ msg.success
 	dc.b	13,10,0
 msg.nodev
 	dc.b	'Device not responding'
+	dc.b	7,13,10,0
 	dc.b	13,10,0
 msg.nota2st
+	dc.b	7
 	dc.b	'Not an ACSI2STM device'
 	dc.b	13,10,0
 msg.inqerr
 	dc.b	'Device inquiry error'
 	dc.b	13,10,0
 msg.cmderr
+	dc.b	7
 	dc.b	'Command error'
 	dc.b	13,10,0
 msg.writerr
+	dc.b	7
 	dc.b	'DMA write error'
 	dc.b	13,10,0
 msg.strict
@@ -77,15 +84,38 @@ crlf	dc.b	13,10,0
 acsi.tstunit	; Test unit ready
 	dc.w	4
 	dc.b	$00,$00,$00,$00,$00,$00 ;
+	even
 
 acsi.inquiry	; Inquiry ACSI command
 	dc.w	4
 	dc.b	$12,$00,$00,$00,$30,$00
+	even
 
 acsi.rqsense	; Request sense ACSI command
 	dc.w	4
 	dc.b	$03,$00,$00,$00,$20,$00
+	even
 
+acsi.cmdts	; ACSI2STM command loopback test
+	dc.w	9
+	dc.b	$1f                     ; Extended ICD command
+	dc.b	$20                     ; Vendor-specific command
+	dc.b	'A2STCmdTs'             ; Command test
+	even
+
+acsi.zcmdts	; ACSI2STM zero command loopback test
+	dc.w	9
+	dc.b	$1f                     ; Extended ICD command
+	dc.b	$20                     ; Vendor-specific command
+	ds.b	9                       ; Zero bytes
+	even
+
+acsi.fcmdts	; ACSI2STM 0xff command loopback test
+	dc.w	9
+	dc.b	$1f                     ; Extended ICD command
+	dc.b	$20                     ; Vendor-specific command
+	dc.b	$ff,$ff,$ff,$ff,$ff     ; All ones
+	dc.b	$ff,$ff,$ff,$ff         ;
 	even
 
 ; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm
