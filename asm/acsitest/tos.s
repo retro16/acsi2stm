@@ -108,6 +108,60 @@ chkvers	; Do an Inquiry and check the hardware version
 	blt.w	err                     ;
 .not2xx
 
+tstcmd	lea	bss+loops(pc),a0        ; Initialize loop counter
+	move.w	#64,(a0)                ; Do 64 test loops
+
+.next	; Command loopback test
+	moveq	#0,d0                   ; No DMA
+	lea	acsi.cmdts,a0           ; ACSI command loopback test
+	bsr.w	acsicmd                 ;
+
+	tst.b	d0                      ; Test result
+	beq.b	.ok                     ;
+
+	print	msg.cmderr(pc)          ; Print error
+	bra.w	again                   ;
+
+.ok	lea	bss+loops(pc),a0        ; Decrement test loop counter
+	sub.w	#1,(a0)                 ;
+	bne.b	.next                   ; Loop tests until successful
+
+tstzcmd	lea	bss+loops(pc),a0        ; Initialize loop counter
+	move.w	#64,(a0)                ; Do 64 test loops
+
+.next	; Zero command loopback test
+	moveq	#0,d0                   ; No DMA
+	lea	acsi.zcmdts,a0          ; ACSI zero command loopback test
+	bsr.w	acsicmd                 ;
+
+	tst.b	d0                      ; Test result
+	beq.b	.ok                     ;
+
+	print	msg.cmderr(pc)          ; Print error
+	bra.w	again                   ;
+
+.ok	lea	bss+loops(pc),a0        ; Decrement test loop counter
+	sub.w	#1,(a0)                 ;
+	bne.b	.next                   ; Loop tests until successful
+
+tstfcmd	lea	bss+loops(pc),a0        ; Initialize loop counter
+	move.w	#64,(a0)                ; Do 64 test loops
+
+.next	; 0xff command loopback test
+	moveq	#0,d0                   ; No DMA
+	lea	acsi.fcmdts,a0          ; ACSI 0xff command loopback test
+	bsr.w	acsicmd                 ;
+
+	tst.b	d0                      ; Test result
+	beq.b	.ok                     ;
+
+	print	msg.cmderr(pc)          ; Print error
+	bra.w	again                   ;
+
+.ok	lea	bss+loops(pc),a0        ; Decrement test loop counter
+	sub.w	#1,(a0)                 ;
+	bne.b	.next                   ; Loop tests until successful
+
 qrybsz	; Read data buffer descriptor and adjust the ACSI transfer length
 	moveq	#1,d0
 	lea	bss+buf(pc),a0
@@ -134,13 +188,13 @@ qrybsz	; Read data buffer descriptor and adjust the ACSI transfer length
 .bufok	lea	acsi.rwbuffer(pc),a0    ; Update transfer size in the command
 	move.w	d0,10(a0)               ;
 
+diag	move.l	#$f00f55aa,d0           ; Fill the buffer with the test pattern
+	bsr.b	fillbuf                 ;
+
 	lea	bss+loops(pc),a0        ; Initialize loop counter
 	move.w	#16,(a0)                ; Do 16 test loops
 
-prediag	move.l	#$f00f55aa,d0           ; Fill the buffer with the test pattern
-	bsr.b	fillbuf                 ;
-
-diag	lea	acsi.rwbuffer(pc),a0    ; Switch acsi buffer command to write
+.next	lea	acsi.rwbuffer(pc),a0    ; Switch acsi buffer command to write
 	move.b	#$3b,3(a0)              ; Read buffer
 	move.b	#$02,4(a0)              ; Read data buffer
 
@@ -164,7 +218,7 @@ diag	lea	acsi.rwbuffer(pc),a0    ; Switch acsi buffer command to write
 
 	lea	bss+loops(pc),a0        ; Decrement test loop counter
 	sub.w	#1,(a0)                 ;
-	bne.b	diag                    ; Loop tests until successful
+	bne.b	.next                   ; Loop tests until successful
 
 	print	msg.success(pc)         ; Display "Test successful"
 

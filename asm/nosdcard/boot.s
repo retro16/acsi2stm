@@ -77,7 +77,7 @@ echoop	lea	bss+buf(pc),a0          ; DMA from/to echo buffer
 	rts
 
 dcmderr	
-	lea	4(sp),sp                ; Don't return from echoop
+	addq	#4,sp                   ; Don't return from echoop
 	pea	cmderr(pc)              ; Print "Error"
 diagerr	pea	sdid(pc)                ; Display the SD card id
 	gemdos	Cconws,6                ;
@@ -95,7 +95,7 @@ nocard	dc.b	'No SD card'            ; "No SD card" message
 	dc.b	13,10,0
 dataerr	dc.b	'DMA '                  ; "DMA Error" message
 cmderr	dc.b	'Error'                 ; "Error" message
-	dc.b	13,10
+	dc.b	7,13,10
 crlf	dc.b	13,10,0                 ; A single CRLF
 sdid  	dc.b	'SD'                    ; "SD0", patched to match the SD id
 acsiid	dc.b	'0: ',0

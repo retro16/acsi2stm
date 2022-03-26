@@ -21,6 +21,12 @@
 	include	acsi2stm.i
 	include	tos.i
 
+	bra.b	boot
+
+	org	8                       ; Boot overlay marker
+	dc.b	'ACSI2STM OVERLAY'      ; Used to avoid making drives bootable
+	even                            ; by accident (e.g. when partitioning)
+
 boot	move.b	d7,d0                   ; Get acsi id in d0
 	lsr.b	#5,d0                   ; Compute acsi id (0-7)
 	lea	.acsiid(pc),a0          ; Patch acsi id in the text
@@ -29,14 +35,25 @@ boot	move.b	d7,d0                   ; Get acsi id in d0
 	pea	.msg(pc)                ; Display the message
 	gemdos	Cconws,6                ;
 
-	gemdos	Cconin,2		; Wait until a key is pressed
+	move.l	#1000,d1                ; 5 second timeout
+	add.l	hz200.w,d1              ;
+.wait	cmp.l	hz200.w,d1              ; Test timeout
+	beq.b	.timout                 ;
+	gemdos	Cconis,2                ; Test for key press
+	tst.w	d0                      ;
+	beq.b	.wait                   ; Wait until a key is pressed
 
-	rts
+	gemdos	Crawcin,2		; Flush the keyboard buffer
+
+.timout	rts
 
 .msg	a2st_header
-	dc.b	13,10,'SD'
+	dc.b	7
+	dc.b	13,10
+	dc.b	'SD'
 .acsiid	dc.b	'0 is not bootable !',13,10
 	dc.b	'To use this SD card, you need a driver',13,10
 	dc.b	13,10,0
+	even
 
 ; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm
