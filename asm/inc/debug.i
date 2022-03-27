@@ -14,22 +14,31 @@
 ; You should have received a copy of the GNU General Public License
 ; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-; Atari ST hardware registers and macros
+debugb	macro
+	move	sr,-(sp)
+	move.b	\1,-(sp)
+	move.w	#1,-(sp)
+	bra.w	debug.out
+	addq.l	#4,sp
+	move	(sp)+,sr
+	endm
 
-; DMA hardware registers
+debugw	macro
+	move	sr,-(sp)
+	move.w	\1,-(sp)
+	move.w	#2,-(sp)
+	bra.w	debug.out
+	addq.l	#4,sp
+	move	(sp)+,sr
+	endm
 
-gpip=$fffffa01
-dma=$ffff8604
-dmadata=dma
-dmactrl=dma+2
-dmahigh=dma+5
-dmamid=dma+7
-dmalow=dma+9
-
-; Video registers
-
-screenh=$ffff8201
-screenm=$ffff8203
-screenpal=$ffff8240
+debugl	macro
+	move	sr,-(sp)
+	move.l	\1,-(sp)
+	move.w	#4,-(sp)
+	bra.w	debug.out
+	addq.l	#6,sp
+	move	(sp)+,sr
+	endm
 
 ; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm

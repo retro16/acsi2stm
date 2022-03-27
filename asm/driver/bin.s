@@ -14,22 +14,45 @@
 ; You should have received a copy of the GNU General Public License
 ; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-; Atari ST hardware registers and macros
+; ACSI2STM integrated driver
+; Binary payload loaded by the overlay or the boot sector (drvboot)
 
-; DMA hardware registers
+	org	0
 
-gpip=$fffffa01
-dma=$ffff8604
-dmadata=dma
-dmactrl=dma+2
-dmahigh=dma+5
-dmamid=dma+7
-dmalow=dma+9
+	incdir	..\inc\
+	include	acsi2stm.i
+	include	tos.i
+	include	atari.i
+	include	structs.i
+	include	hook.i
 
-; Video registers
+	dc.l	memend                  ;
+	dc.b	'ACSI2STM OVERLAY'      ; Used to check that DMA worked
 
-screenh=$ffff8201
-screenm=$ffff8203
-screenpal=$ffff8240
+boot
+	include	init.s
+	even
+	include	parts.s
+	even
+	include	blkdev.s
+	even
+	include	acsicmd.s
+	even
+	include	acsierr.s
+	even
+rodata
+	include	rodata.s
+	even
+data
+	include	data.s
+dataend
+	; Align payload to 16 bytes boundary for DMA transfers
+	ifne	dataend&$f
+	ds.b	$10-(dataend&$f)
+	endif
+bss
+	include	bss.s
+
+memend	equ	bss+bss...
 
 ; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm

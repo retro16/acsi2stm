@@ -72,7 +72,7 @@ Once the chip is programmed, switch the BOOT0 jumper back to 0.
 
 **Notes**
 
-The debug output sends data at 115200bps. Set the serial monitor accordingly.
+The debug output sends data at 2Mbps. Set the serial monitor accordingly.
 
 Programming via anything else than the serial bootloader may require to change debug output to Serial0 and may consume more RAM.
 Serial programming is still recommended for best results.
@@ -90,8 +90,9 @@ Settings that you might wish to change:
  * ACSI_DUMP_LEN: Requires ACSI_VERBOSE. Dumps N bytes for each DMA transfer. It helps finding data corruption. Even higher
    performance penalty.
  * ACSI_SERIAL: The serial port used for debug output.
- * ACSI_READONLY: Make all cards read-only. Acsi2stm becomes strictly unable to modify SD cards.
  * ACSI_SD_CARDS: Set this to the number of physical SD card slots you have.
+ * ACSI_STRICT: If set to 1, forces strict mode all the time.
+ * ACSI_READONLY: Make all cards read-only. Acsi2stm becomes strictly unable to modify SD cards.
  * ACSI_DUMMY_BOOT_SECTOR: If no SD card is detected, the ACSI2STM will respond to a boot sector read with a dummy boot sector
    displaying a message that no SD card was detected. Very useful but not 100% SCSI-compliant (some drivers may not like it).
    Set it to 0 to disable that feature and restore 100% normal behavior.
@@ -100,6 +101,7 @@ Settings that you might wish to change:
    This way, people that don't know what to do will have a better user experience. Requires ACSI_DUMMY_BOOT_SECTOR.
    Strict mode jumper must be set to 0 to enable this feature at runtime.
  * ACSI_SD_MAX_SPEED: Maximum SD card speed in MHz. If SD communication fails, the driver automatically retries at a lower speed.
+ * ACSI_HAS_RESET: If set to 0, ignores the RST signal on PA15. If set to 1, quickly resets the unit when RST is activated.
  * ACSI_ACK_FILTER: Enables filtering the ACK line, adding a tiny latency. May improve DMA reliability at the expense of speed.
  * ACSI_CS_FILTER: Enables filtering on the CS line, adding a tiny latency. This is necessary to sample the data bus at the right
    time. Adjust this if commands are corrupt.

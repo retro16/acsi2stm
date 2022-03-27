@@ -21,6 +21,40 @@
 
 msg.header	; Welcome header text
 	a2st_header
+	dc.b	0
+msg.devsel
+	dc.b	13,10
+	dc.b	'Type the device id of the ACSI2STM (0-7)'
+	dc.b	13,10
+	dc.b	'or press Esc to quit'
+	dc.b	13,10,0
+msg.testing
+	dc.b	13,10
+	dc.b	'Testing ...'
+	dc.b	13,10,0
+msg.chkdev
+	dc.b	'Test unit ready'
+	dc.b	13,10,0
+msg.chkvers
+	dc.b	'Checking ACSI2STM version'
+	dc.b	13,10,0
+msg.tstcmd
+	dc.b	'Testing command burst'
+	dc.b	13,10,0
+msg.tstwcmd
+	dc.b	'Testing command burst in write mode'
+	dc.b	13,10,0
+msg.qrybsz
+	dc.b	'Querying buffer size'
+	dc.b	13,10,0
+msg.diag
+	dc.b	'Testing DMA with pattern'
+	dc.b	13,10,0
+msg.halfcmd
+	dc.b	'Testing interrupted command'
+	dc.b	13,10,0
+msg.success
+	dc.b	'Test successful !'
 	dc.b	13,10,0
 msg.nocard
 	dc.b	'No SD card'
@@ -40,21 +74,9 @@ msg.dataerr
 	dc.b	7
 	dc.b	'Data integrity error'
 	dc.b	13,10,0
-msg.devsel
-	dc.b	'Type the device id of the ACSI2STM (0-7)'
-	dc.b	13,10
-	dc.b	'or press Esc to quit'
-	dc.b	13,10,0
-msg.testing
-	dc.b	13,10
-	dc.b	'Testing ...'
-	dc.b	13,10,0
 msg.sensing
 	dc.b	7
 	dc.b	'Sensing error code'
-	dc.b	13,10,0
-msg.success
-	dc.b	'Test successful !'
 	dc.b	13,10,0
 msg.nodev
 	dc.b	'Device not responding'
@@ -82,40 +104,45 @@ crlf	dc.b	13,10,0
 	; ACSI commands
 	even
 acsi.tstunit	; Test unit ready
-	dc.w	4
+	dc.b	4
 	dc.b	$00,$00,$00,$00,$00,$00 ;
 	even
 
 acsi.inquiry	; Inquiry ACSI command
-	dc.w	4
+	dc.b	4
 	dc.b	$12,$00,$00,$00,$30,$00
 	even
 
 acsi.rqsense	; Request sense ACSI command
-	dc.w	4
+	dc.b	4
 	dc.b	$03,$00,$00,$00,$20,$00
 	even
 
 acsi.cmdts	; ACSI2STM command loopback test
-	dc.w	9
+	dc.b	9
 	dc.b	$1f                     ; Extended ICD command
 	dc.b	$20                     ; Vendor-specific command
 	dc.b	'A2STCmdTs'             ; Command test
 	even
 
 acsi.zcmdts	; ACSI2STM zero command loopback test
-	dc.w	9
+	dc.b	9
 	dc.b	$1f                     ; Extended ICD command
 	dc.b	$20                     ; Vendor-specific command
 	ds.b	9                       ; Zero bytes
 	even
 
 acsi.fcmdts	; ACSI2STM 0xff command loopback test
-	dc.w	9
+	dc.b	9
 	dc.b	$1f                     ; Extended ICD command
 	dc.b	$20                     ; Vendor-specific command
 	dc.b	$ff,$ff,$ff,$ff,$ff     ; All ones
 	dc.b	$ff,$ff,$ff,$ff         ;
+	even
+
+acsi.incomplt	; Incomplete command
+	dc.b	1
+	dc.b	$00,$00,$00             ; Only 3 bytes !
 	even
 
 ; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm

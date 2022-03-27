@@ -22,7 +22,7 @@
 
 // acsi2stm global configuration
 
-#define ACSI2STM_VERSION "2.42"
+#define ACSI2STM_VERSION "3.0a"
 
 // Set to 1 to enable debug output on the serial port
 #define ACSI_DEBUG 0
@@ -36,24 +36,33 @@
 
 // Serial port and speed used for debug/verbose output.
 #define ACSI_SERIAL Serial
-#define ACSI_SERIAL_SPEED 115200
-
-// Set to 1 to make all SD cards readonly (returns an error if writing)
-// Set to 2 to ignore writes silently (returns OK but does not actually write)
-#define ACSI_READONLY 0
+#define ACSI_SERIAL_SPEED 2000000
 
 // Number of SD cards (1 to 5)
 #define ACSI_SD_CARDS 5
 
+// Enable strict mode.
+// This disables some features but increases SCSI compatibility.
+// When set to 0, the feature can be turned on or off at runtime with the
+// BOOT1 jumper on PB2.
+// Breaks ACSITEST.TOS if enabled
+#define ACSI_STRICT 0
+
+// Set to 1 to make all SD cards readonly (returns an error if writing)
+// Set to 2 to ignore writes silently (returns OK but does not actually write)
+// Falls back to mode 1 if strict mode is enabled.
+#define ACSI_READONLY 0
+
 // Include a dummy boot sector if no SD card is inserted.
 // This will display an alert message during the ST boot process.
 // This makes the device less SCSI-conformant.
-#define ACSI_DUMMY_BOOT_SECTOR 1
+// Disabled in strict mode.
+#define ACSI_DUMMY_BOOT_SECTOR 0
 
 // Overlay a dummy boot sector if the SD card is not bootable.
 // This will display an alert message during the ST boot process.
 // This makes the device absolutely weird and may break some system tools.
-// Requires ACSI_DUMMY_BOOT_SECTOR.
+// Disabled in strict mode.
 #define ACSI_BOOT_OVERLAY 1
 
 // Set this to limit SD capacity artificially.
@@ -69,6 +78,12 @@
 
 // Device ID of the first SD card on the ACSI bus
 #define ACSI_FIRST_ID 0
+
+// Set this to 1 to use the RST line on the ACSI port
+// Set this to 0 ignore the PA15 pin completely
+// In every case the pin PA15 will be setup as a pull-up so this should work
+// even if you don't connect PA15 to anything.
+#define ACSI_HAS_RESET 1
 
 // Filter/delay data acquisition on ACK pulse.
 // Set this to 1 to sample 13.8ns later

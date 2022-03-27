@@ -48,6 +48,16 @@ Super	macro
 	addq	#4,sp
 	endm
 
+prints	macro
+	bra.b	.prints.\@
+.text.\@
+	dc.b	\1,13,10,0
+	even
+.prints.\@
+	pea	.text.\@(pc)
+	gemdos	Cconws,6
+	endm
+
 ; GEMDOS calls
 Cconin=1
 Cconout=2
@@ -105,14 +115,17 @@ hz200=$4ba                              ; 200Hz timer
 nflops=$4a6                             ; Number of mounted floppies
 drvbits=$4c2                            ; Mounted drives
 sysbase=$4f2                            ; OSHEADER pointer
+pun_ptr=$516                            ; PUN_INFO table
+phystop=$42e                            ; Top of physical RAM
+memtop=$436                             ; Top of TOS RAM
 
 ; Exception vectors
-gemdos_vector=$84
-bios_vector=$b4
-xbios_vector=$b8
-getbpb_vector=$472
-rwabs_vector=$476
-mediach_vector=$47e
+gemdos.vector=$84
+bios.vector=$b4
+xbios.vector=$b8
+getbpb.vector=$472
+rwabs.vector=$476
+mediach.vector=$47e
 
 ; GEMDOS error codes
 ; From emuTOS
@@ -123,6 +136,7 @@ EWRITF=-10      ; write fault
 EREADF=-11      ; read fault
 EWRPRO=-13      ; write protect
 E_CHNG=-14      ; media change
+EUNDEV=-15      ; Unknown device
 EBADSF=-16      ; bad sectors on format
 EOTHER=-17      ; insert other disk
 EFILNF=-33      ; file not found
