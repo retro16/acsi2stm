@@ -14,22 +14,37 @@
 ; You should have received a copy of the GNU General Public License
 ; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-; Atari ST hardware registers and macros
+; Hook macros
 
-; DMA hardware registers
+	; Declare a hook
+	; Parameter:
+	;  \1 name of the hook
+	; Includes the file <hook>.s as the implementation
+hook	macro
+	even
+	dc.b	'XBRA','A2ST'
+hook.\1.old
+	ds.l	1
+hook.\1
+	include	\1.s                    ; Implementation
+	even
+	endm
 
-gpip=$fffffa01
-dma=$ffff8604
-dmadata=dma
-dmactrl=dma+2
-dmahigh=dma+5
-dmamid=dma+7
-dmalow=dma+9
+	; Call the next function in the call chain of a hook
+	; Parameter:
+	;  \1 name of the hook
+hkchain	macro
+	move.l	hook.\1.old(pc),a0      ; Forward to the previous handler
+	jmp	(a0)                    ;
+	endm
 
-; Video registers
-
-screenh=$ffff8201
-screenm=$ffff8203
-screenpal=$ffff8240
+	; Install a hook
+	; Parameter:
+	;  \1 name of the hook
+hkinst	macro
+	lea	hook.\1.old(pc),a0
+	move.l	\1.vector.w,(a0)+
+	move.l	a0,\1.vector.w
+	endm
 
 ; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm

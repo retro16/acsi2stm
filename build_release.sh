@@ -16,41 +16,22 @@ fi
 VERSION=`cat VERSION`
 
 ./build_asm.sh || exit $?
+./build_arduino.sh || exit $?
+./build_tools.sh || exit $?
 
-echo "Patch the source to set VERSION to $VERSION"
+builddir="$PWD/build.release~"
+zipfile="$PWD/acsi2stm-$VERSION-release.zip"
 
-sed -i 's/^\(#define ACSI2STM_VERSION\).*/\1 "'$VERSION'"/' acsi2stm/acsi2stm.h
+rm -rf "$builddir"
+mkdir "$builddir"
 
-echo "Create a clean build directory"
+echo "Copy all the stuff in the release directory"
 
-rm -rf build acsi2stm-*
-mkdir build
-mkdir "acsi2stm-$VERSION"
-
-cd build
-
-echo "Compile the arduino binary"
-
-arduino --pref build.path=./ --preserve-temp-files --verify ../acsi2stm/acsi2stm.ino
-
-[ -e acsi2stm.ino.bin ] || exit $?
-
-echo "Copy the binary in the release directory"
-
-cp acsi2stm.ino.bin "../acsi2stm-$VERSION"
-
-echo "Copy TOS programs in the release directory"
-
-cp -r ../tos "../acsi2stm-$VERSION"
-
-echo "Copy documentation"
-
-cat ../README.md >> "../acsi2stm-$VERSION/README.md"
-cp -r ../doc "../acsi2stm-$VERSION"
+cp -r acsi2stm-*.ino.bin *.tos *.exe README.md doc LICENSE "$builddir"
 
 echo "... and the legal stuff"
 
-cat > "../acsi2stm-$VERSION/README.txt" << EOF
+cat > "$builddir/README.txt" << EOF
 ACSI2STM Atari hard drive emulator
 Copyright (C) 2019-2022 by Jean-Matthieu Coulon
 
@@ -75,13 +56,13 @@ software, see its GitHub page:
 You can open README.md as well as other files in "doc" as text files.
 EOF
 
-cp ../LICENSE "../acsi2stm-$VERSION"
-
 echo "Create release zip package"
 
-cd ..
-zip -r "acsi2stm-$VERSION.zip" "acsi2stm-$VERSION"
+cd "$builddir"
+rm -f "$zipfile"
+zip -r "$zipfile" *
 
 echo "Clean up build directories ..."
 
-rm -rf build "acsi2stm-$VERSION"
+cd ..
+rm -rf "$builddir"

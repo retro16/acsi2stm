@@ -27,7 +27,7 @@ Use this table to match pins on the ACSI port and the STM32:
 |  09  | PB7   | CS  | Chip Select      |
 |  10  | PA8   | IRQ | Interrupt        |
 |  11  | GND   | GND | Ground           |
-|  12  | (nc)  | RST | Reset            |
+|  12  | PA15  | RST | Reset (optional) |
 |  13  | GND   | GND | Ground           |
 |  14  | PA12  | ACK | Acknowledge      |
 |  15  | GND   | GND | Ground           |
@@ -36,7 +36,7 @@ Use this table to match pins on the ACSI port and the STM32:
 |  18  | (nc)  | R/W | Read/Write       |
 |  19  | PA11  | DRQ | Data request     |
 
-**WARNING**: Pinout changed in v2.0: PA8 and PA12 are swapped.
+**WARNING**: Pinout changed since v1.0: PA8 and PA12 are swapped.
 
 **Notes**:
 
@@ -54,8 +54,10 @@ Connecting the SD cards
 
 SD card pins
 
-
-        ______________________
+                             20k-100k
+                           _/\  /\  /\__+3.3V
+                          |   \/  \/
+        __________________|___
       /|  |  |  |  |  |  |  | |
      /_|01|02|03|04|05|06|07|8|
     |  |__|__|__|__|__|__|__|_|
@@ -97,10 +99,11 @@ Leave unused CS pins unconnected.
 
 **Notes**:
 
- * If you need to hot swap your SD card, you need to put a 47k-100k pull-up resistor between +3.3V and PA6.
+ * If you need to hot swap your SD card, you need to put a 20k-100k pull-up resistor between +3.3V and PA6. A single resistor is
+   enough if you have multiple SD card slots.
  * The ACSI2STM module **will** respond to all ACSI IDs, whether a SD card is inserted or not. Change ACSI_SD_CARDS and
    ACSI_FIRST_ID in acsi2stm/acsi2stm.h to change ACSI IDs, or see the table below to disable IDs by connecting pins to +3.3V.
- * The SD card had 2 GND pins. I don't know if they have to be both grounded, maybe one wire is enough.
+ * The SD card had 2 GND pins. Connecting only one is enough.
  * You should put decoupling capacitors of about 100nF and 10uF (in parallel) between VDD and VSS, as close as possible from the
    SD card pins. If you use a pre-built SD slot module it should be properly decoupled already.
  * If you need other ACSI IDs, you can change the sdCs array in the source code. See "Compile-time options" below.
@@ -125,6 +128,7 @@ inverted or disabled using the ACSI_SD_WRITE_LOCK define in acsi2stm/acsi2stm.h.
 
 When the pin is connected to +3.3V, the SD card is completely disabled (the ACSI ID is freed for other devices).
 
+
 Battery-powered real-time clock
 -------------------------------
 
@@ -132,13 +136,13 @@ To use the RTC feature, you need to connect a lithium battery to the VB pin of t
 holder is recommended.
 
 
-Using on an old "Black pill" STM32 board
-----------------------------------------
+Using on an old "Black pill" STM32F103 board
+--------------------------------------------
 
 If you have these cheap "STM32 minimum development boards" from eBay, Amazon, Banggood or other chinese sellers, chances are that
 you have either a "blue pill" or a "black pill" board. "blue" or "black" refers to the color of the PCB.
 
-**WARNING**: There are newer STM32F4xx boards also called "black pill". These newer boards are currently not tested. This part
+**WARNING**: There are newer STM32F4xx boards also called "black pill". These newer boards are currently not tested. This section
 refers to older STM32F103C8T6 black pill boards.
 
 The problem with black pill designs is that the onboard LED is wired on PB12 instead of PC13, messing with data signals.
@@ -147,4 +151,4 @@ You will have to desolder the onboard LED (or its current-limiting resistor righ
 
 If you want an activity LED, put an external one with a 1k resistor in series on PC13.
 
-Other boards were not tested and may require further adjustments.
+Other boards such as red pills were not tested and may require further adjustments.

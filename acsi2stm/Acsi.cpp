@@ -16,19 +16,26 @@
  */
 
 #include "Acsi.h"
-
-#if ACSI_BOOT_OVERLAY && !ACSI_DUMMY_BOOT_SECTOR
-#error ACSI_BOOT_OVERLAY requires ACSI_DUMMY_BOOT_SECTOR
-#endif
+#include "DmaPort.h"
 
 #if ACSI_DUMMY_BOOT_SECTOR
+#if !ACSI_STRICT
 const
 #include "nosdcard.boot.h"
+#else
+#warning ACSI_DUMMY_BOOT_SECTOR is disabled in strict mode
+#endif
 #endif
 
 #if ACSI_BOOT_OVERLAY
+#if !ACSI_STRICT
 const
-#include "bootoverlay.boot.h"
+#include "overlay.boot.h"
+const
+#include "payload.boot.h"
+#else
+#warning ACSI_BOOT_OVERLAY is disabled in strict mode
+#endif
 #endif
 
 // CRC function taken from SdFat's SdSpiCard.cpp
@@ -44,21 +51,21 @@ static uint16_t crc16(const uint8_t* data, size_t n) {
   return crc;
 }
 
-Acsi::Acsi(int deviceId_, int sdCs_, int sdWp_, DmaPort &dma_):
-  dma(dma_),
+Acsi::Acsi(int deviceId_, int sdCs_, int sdWp_):
   card(deviceId_, sdCs_, sdWp_) {}
 
 Acsi::Acsi(Acsi &&other):
-  dma(other.dma),
   card(other.card.deviceId, other.card.csPin, other.card.wpPin) {}
 
 #if ACSI_RTC
 void rtcInit() {}
 #endif
 
-void Acsi::begin() {
+bool Acsi::begin() {
+#if !ACSI_STRICT
   // Read strict mode from the on-board BOOT1 jumper
   strict = digitalRead(PB2);
+#endif
 
   // Check if the device is disabled (wpPin pin to VCC)
   pinMode(card.wpPin, INPUT_PULLDOWN);
@@ -68,11 +75,10 @@ void Acsi::begin() {
     pinMode(card.wpPin, INPUT);
     verbose("SD", card.deviceId, " disabled\n");
     card.deviceId = -1;
-    return;
+    return false;
   }
 
   dbg("Initializing SD", card.deviceId, " ... ");
-  dma.addDevice(card.deviceId);
 
 #if ACSI_RTC
   // For whatever reason, this fixed my clock drift.
@@ -85,7 +91,7 @@ void Acsi::begin() {
     dbg("success\n");
   } else {
     dbg("failed\n\n");
-    return;
+    return true;
   }
 
   // Read media ID to check for media change
@@ -106,6 +112,8 @@ void Acsi::begin() {
 #endif
 
   dbg('\n');
+
+  return true;
 }
 
 void Acsi::mountLuns() {
@@ -140,7 +148,7 @@ void Acsi::mountLuns() {
 void Acsi::process(uint8_t cmd) {
   if(cmd == 0x1f) {
     // Read extended command
-    cmd = dma.readIrq();
+    cmd = DmaPort::readIrq();
   }
 
   if(!readCmdBuf(cmd)) {
@@ -178,7 +186,7 @@ void Acsi::process(uint8_t cmd) {
         commandStatus(ERR_MEDIUMCHANGE);
         return;
       }
-#if ACSI_DUMMY_BOOT_SECTOR
+#if ACSI_DUMMY_BOOT_SECTOR && !ACSI_STRICT
       else if(!strict
        && cmdBuf[0] == 0x08
        && cmdBuf[1] == 0x00
@@ -190,15 +198,14 @@ void Acsi::process(uint8_t cmd) {
         // Boot sector query: inject the dummy payload
         commandStatus(processDummyBootSector());
         return;
-#endif
       }
+#endif
       commandStatus(ERR_NOMEDIUM);
       return;
     }
     break;
 
   // Commands that need to be executed even if the card is not available
-  case 0x00: // Test unit ready
   case 0x03: // Request sense
   case 0x12: // Inquiry
     {
@@ -221,6 +228,7 @@ void Acsi::process(uint8_t cmd) {
 #endif
   case 0x3b: // Write buffer
   case 0x3c: // Read buffer
+  case 0x0d: // Load overlay
     break;
   }
 
@@ -267,7 +275,7 @@ void Acsi::process(uint8_t cmd) {
       buf[21] = (lastBlock) & 0xFF;
     }
     // Send the response
-    dma.sendDma(buf, cmdBuf[4]);
+    DmaPort::sendDma(buf, cmdBuf[4] < 4 ? 4 : cmdBuf[4]);
     
     commandStatus(ERR_OK);
     return;
@@ -276,7 +284,7 @@ void Acsi::process(uint8_t cmd) {
     lastBlock = (((int)cmdBuf[1]) << 16) | (((int)cmdBuf[2]) << 8) | (cmdBuf[3]);
     lastSeek = true;
 
-#if ACSI_BOOT_OVERLAY
+#if ACSI_BOOT_OVERLAY && !ACSI_STRICT
     if(!strict && lastBlock == 0 && cmdBuf[4] == 1 && !dev->bootable) {
       commandStatus(processBootOverlay(dev));
       return;
@@ -290,9 +298,6 @@ void Acsi::process(uint8_t cmd) {
     // Compute the block number
     lastBlock = (((int)cmdBuf[1]) << 16) | (((int)cmdBuf[2]) << 8) | (cmdBuf[3]);
     lastSeek = true;
-
-    if(lastBlock == 0)
-      dbg("WARNING: Write to boot sector\n");
 
     // Do the actual write operation
     commandStatus(processBlockWrite(lastBlock, cmdBuf[4], dev));
@@ -328,7 +333,7 @@ void Acsi::process(uint8_t cmd) {
     buf[2] = 1; // ACSI version
     buf[4] = 31; // Data length
 
-    dma.sendDma(buf, cmdBuf[4]);
+    DmaPort::sendDma(buf, cmdBuf[4]);
 
     lastSeek = false;
     commandStatus(ERR_OK);
@@ -339,11 +344,11 @@ void Acsi::process(uint8_t cmd) {
       switch(cmdBuf[2]) { // Sub-command
       case 0x00:
         dev->modeSense0(buf);
-        dma.sendDma(buf, 16);
+        DmaPort::sendDma(buf, 16);
         break;
       case 0x04:
         dev->modeSense4(buf);
-        dma.sendDma(buf, 24);
+        DmaPort::sendDma(buf, 24);
         break;
       case 0x3f:
         buf[0] = 44;
@@ -352,7 +357,7 @@ void Acsi::process(uint8_t cmd) {
         buf[3] = 0;
         dev->modeSense4(buf + 4);
         dev->modeSense0(buf + 28);
-        dma.sendDma(buf, 44);
+        DmaPort::sendDma(buf, 44);
         break;
       default:
         dbgHex("Error: unsupported mode sense ", (int)cmdBuf[3], '\n');
@@ -371,7 +376,7 @@ void Acsi::process(uint8_t cmd) {
       dbg("UltraSatan:");
       dbg("firmware version query\n");
       // Fake the firmware
-      dma.sendDma((const uint8_t *)("ACSI2STM " ACSI2STM_VERSION "\r\n"), 16);
+      DmaPort::sendDma((const uint8_t *)("ACSI2STM " ACSI2STM_VERSION "\r\n"), 16);
       commandStatus(ERR_OK);
       return;
     }
@@ -391,7 +396,7 @@ void Acsi::process(uint8_t cmd) {
       buf[7] = now.minute;
       buf[8] = now.second;
 
-      dma.sendDma(buf, 16);
+      DmaPort::sendDma(buf, 16);
       commandStatus(ERR_OK);
       return;
     }
@@ -399,7 +404,7 @@ void Acsi::process(uint8_t cmd) {
       dbg("UltraSatan:");
       dbg("clock set\n");
 
-      dma.readDma(buf, 9);
+      DmaPort::readDma(buf, 9);
 
       if(buf[0] != 'R' || buf[1] != 'T' || buf[2] != 'C') {
         dbg("Invalid date format\n");
@@ -459,7 +464,7 @@ void Acsi::process(uint8_t cmd) {
       buf[7] = 0x00;
     }
 
-    dma.sendDma(buf, 8);
+    DmaPort::sendDma(buf, 8);
 
     commandStatus(ERR_OK);
     break;
@@ -489,13 +494,17 @@ void Acsi::process(uint8_t cmd) {
       uint32_t length = (((uint32_t)cmdBuf[6]) << 16) | (((uint32_t)cmdBuf[7]) << 8) | (uint32_t)(cmdBuf[8]);
       switch(cmdBuf[1]) {
       case 0x02: // Data buffer write
+#if !ACSI_STRICT
         if(!strict && cmdBuf[2] == 1) {
           if((offset & 0b11) || (length & 0b11)) {
             dbg("Invalid buffer length\n");
             commandStatus(ERR_INVARG);
             return;
           }
-        } else if(cmdBuf[2] != 0) {
+        }
+        else
+#endif
+        if(cmdBuf[2] != 0) {
           dbg("Invalid buffer id\n");
           commandStatus(ERR_INVARG);
           return;
@@ -509,7 +518,7 @@ void Acsi::process(uint8_t cmd) {
           return;
         }
 
-        dma.readDma(buf + offset, length);
+        DmaPort::readDma(buf + offset, length);
 
         if(cmdBuf[2]) {
           // Check that the write pattern matches
@@ -529,6 +538,7 @@ void Acsi::process(uint8_t cmd) {
         }
         commandStatus(ERR_OK);
         return;
+#if !ACSI_STRICT
       case 0x04: // Code execution
         dbg("Execute buffer\n");
         if(strict) {
@@ -542,7 +552,7 @@ void Acsi::process(uint8_t cmd) {
           return;
         }
 
-        dma.readDma(buf, length);
+        DmaPort::readDma(buf, length);
 
         // Check CRC
         uint16_t crc = (((uint16_t)cmdBuf[4]) << 8) | (uint16_t)(cmdBuf[5]);
@@ -563,6 +573,7 @@ void Acsi::process(uint8_t cmd) {
         dbgHex("Exec buffer CRC error\n");
         commandStatus(ERR_WRITEERR);
         return;
+#endif
       }
       dbgHex("Invalid write buffer mode ", cmdBuf[1], '\n');
       commandStatus(ERR_INVARG);
@@ -574,13 +585,17 @@ void Acsi::process(uint8_t cmd) {
       uint32_t length = (((uint32_t)cmdBuf[6]) << 16) | (((uint32_t)cmdBuf[7]) << 8) | (uint32_t)(cmdBuf[8]);
       switch(cmdBuf[1]) {
       case 0x02: // Data buffer read
+#if !ACSI_STRICT
         if(!strict && cmdBuf[2] == 1) {
           if((offset & 0b11) || (length & 0b11)) {
             dbg("Invalid buffer length\n");
             commandStatus(ERR_INVARG);
             return;
           }
-        } else if(cmdBuf[2] != 0) {
+        }
+        else
+#endif
+        if(cmdBuf[2] != 0) {
           dbg("Invalid buffer id\n");
           commandStatus(ERR_INVARG);
           return;
@@ -594,7 +609,7 @@ void Acsi::process(uint8_t cmd) {
           return;
         }
 
-        dma.sendDma(buf + offset, length);
+        DmaPort::sendDma(buf + offset, length);
         commandStatus(ERR_OK);
         return;
       case 0x03: // Data buffer descriptor read
@@ -608,7 +623,7 @@ void Acsi::process(uint8_t cmd) {
         buf[2] = (uint8_t)(bufSize >> 8);
         buf[3] = (uint8_t)(bufSize);
 
-        dma.sendDma(buf, 4);
+        DmaPort::sendDma(buf, 4);
         commandStatus(ERR_OK);
         return;
       }
@@ -616,6 +631,45 @@ void Acsi::process(uint8_t cmd) {
       commandStatus(ERR_INVARG);
       return;
     }
+#if !ACSI_STRICT
+#if ACSI_BOOT_OVERLAY
+  case 0x0d: // Load overlay payload
+    if(strict) {
+      dbg("Unknown command\n");
+      lastSeek = false;
+      commandStatus(ERR_OPCODE);
+      return;
+    }
+
+    DmaPort::sendDma(payload_boot_bin, payload_boot_bin_len);
+    commandStatus(ERR_OK);
+    return;
+#endif
+  case 0x0f: // Debug output
+    {
+      switch(DmaPort::readIrq()) {
+        case 4:
+          Serial.print(DmaPort::readIrq(), HEX);
+          Serial.print(' ');
+        case 3:
+          Serial.print(DmaPort::readIrq(), HEX);
+          Serial.print(' ');
+        case 2:
+          Serial.print(DmaPort::readIrq(), HEX);
+          Serial.print(' ');
+        case 1:
+          Serial.print(DmaPort::readIrq(), HEX);
+          Serial.print('\n');
+          break;
+        case 0:
+          while((cmd = DmaPort::readIrq()))
+            Serial.print((char)cmd);
+          Serial.print('\n');
+          break;
+      }
+      return;
+    }
+#endif
   }
 
   if(lastErr == ERR_OK)
@@ -625,27 +679,35 @@ void Acsi::process(uint8_t cmd) {
 bool Acsi::readCmdBuf(uint8_t cmd) {
   if(cmd == 0x1f)
     // ICD extended command marker
-    dma.readIrq(cmdBuf, 1);
+    DmaPort::readIrq(cmdBuf, 1);
   else
     // The first byte was the command
     cmdBuf[0] = cmd;
 
+#if !ACSI_STRICT
+  // Single byte commands specific to ACSI2STM
+  if(!strict && cmdBuf[0] >= 0x0c && cmdBuf[0] <= 0x0f) {
+    cmdLen = 1;
+    return true;
+  }
+#endif
+
   if(cmdBuf[0] >= 0xa0) {
     // 12 bytes command
-    dma.readIrq(&cmdBuf[1], 11);
+    DmaPort::readIrq(&cmdBuf[1], 11);
     cmdLen = 12;
   } else if(cmdBuf[0] >= 0x80) {
     // 16 bytes command
-    dma.readIrq(&cmdBuf[1], 15);
+    DmaPort::readIrq(&cmdBuf[1], 15);
     cmdLen = 16;
   } else if(cmdBuf[0] >= 0x20) {
     // 10 bytes command
-    dma.readIrq(&cmdBuf[1], 9);
+    DmaPort::readIrq(&cmdBuf[1], 9);
     cmdLen = 10;
   } else {
     // 6 bytes command
     cmdBuf[0] = cmd;
-    dma.readIrq(&cmdBuf[1], 5);
+    DmaPort::readIrq(&cmdBuf[1], 5);
     cmdLen = 6;
   }
 
@@ -668,10 +730,10 @@ void Acsi::commandStatus(ScsiErr err) {
   lastErr = err;
   if(lastErr == ERR_OK) {
     dbg("Success\n");
-    dma.endTransaction(0);
+    DmaPort::sendIrq(0);
   } else {
     dbgHex("Error ", lastErr, '\n');
-    dma.endTransaction(2);
+    DmaPort::sendIrq(2);
   }
 }
 
@@ -734,7 +796,7 @@ Acsi::ScsiErr Acsi::processBlockRead(uint32_t block, int count, BlockDev *dev) {
       dev->readStop();
       return ERR_READERR;
     }
-    dma.sendDma(buf, ACSI_BLOCKSIZE * burst);
+    DmaPort::sendDma(buf, ACSI_BLOCKSIZE * burst);
 
     s += burst;
   }
@@ -748,11 +810,18 @@ Acsi::ScsiErr Acsi::processBlockWrite(uint32_t block, int count, BlockDev *dev) 
   dbg("Write ", count, " blocks from ", block, " on ", card.deviceId, ',', getLun(), '\n');
 
 #if ACSI_READONLY
-#if ACSI_READONLY == 2
+#if ACSI_READONLY == 2 && !ACSI_STRICT
+  if(strict)
+    return ERR_WRITEPROT;
   for(int s = 0; s < count; ++s)
-    dma.readDma(buf, ACSI_BLOCKSIZE);
+    DmaPort::readDma(buf, ACSI_BLOCKSIZE);
   return ERR_OK;
 #else
+
+#if ACSI_READONLY == 2
+#warning ACSI_READONLY falls back to mode 1 if strict mode is enabled
+#endif
+
   return ERR_WRITEPROT;
 #endif
 #else
@@ -761,16 +830,6 @@ Acsi::ScsiErr Acsi::processBlockWrite(uint32_t block, int count, BlockDev *dev) 
     dbg("Out of range\n");
     return ERR_INVADDR;
   }
-
-#if ACSI_BOOT_OVERLAY
-  if(!strict && block == 0 && !dev->bootable) {
-    // Check that we don't make the drive bootable by accident !
-    if(memcmp(&buf[8], "ACSI2STM OVERLAY", 16) == 0) {
-      // Erase the marker, making the checksum invalid
-      bzero(&buf[8],16);
-    }
-  }
-#endif
 
   if(!dev->writeStart(block)) {
     dbg("Write start error\n");
@@ -783,7 +842,47 @@ Acsi::ScsiErr Acsi::processBlockWrite(uint32_t block, int count, BlockDev *dev) 
     if(burst > count - s)
       burst = count - s;
 
-    dma.readDma(buf, ACSI_BLOCKSIZE * burst);
+    DmaPort::readDma(buf, ACSI_BLOCKSIZE * burst);
+
+#if ACSI_BOOT_OVERLAY && !ACSI_STRICT
+  if(!strict && block == 0 && s == 0) {
+    dbg("WARNING: Write to boot sector\n");
+
+    // Check that we don't rewrite the overlay by accident !
+    if(memcmp(&buf[0x70], "ACSI2STM OVERLAY", 16) == 0) {
+      if(dev->readStart(0)) {
+        Acsi::verbose("Attempting to write the overlay, fetching the old boot code\n");
+
+        // Save the new FAT header and partition table
+        uint8_t fatHeader[0x58];
+        uint8_t partTable[ACSI_BLOCKSIZE - 440];
+        memcpy(fatHeader, &buf[2], sizeof(fatHeader));
+        memcpy(partTable, &buf[440], sizeof(partTable));
+
+        // Read the old boot sector
+        if(dev->readData(buf, 1)) {
+          // Patch in the new FAT header and partition table to the old boot sector
+          memcpy(&buf[2], fatHeader, sizeof(fatHeader));
+          memcpy(&buf[440], partTable, sizeof(partTable));
+          if(dev->bootable) {
+            if(computeChecksum(buf) != 0x1234) {
+              if(buf[510] == 0x55 && buf[511] == 0xaa) {
+                // Try to patch in the checksum at offset 438 (risky, but whatever ...)
+                Acsi::dbg("WARNING: Patching old MS-DOS boot sector checksum blindly.\n");
+                patchBootSector(buf, 438);
+              } else {
+                patchBootSector(buf, 510);
+              }
+            }
+          }
+        }
+
+        dev->readStop();
+      }
+    }
+  }
+#endif
+
     if(!dev->writeData(buf, burst)) {
       dbg("Write error\n");
       dev->writeStop();
@@ -854,15 +953,17 @@ int Acsi::computeChecksum(uint8_t *block) {
   return checksum & 0xffff;
 }
 
-#if ACSI_DUMMY_BOOT_SECTOR
+#if ACSI_DUMMY_BOOT_SECTOR && !ACSI_STRICT
 Acsi::ScsiErr Acsi::processDummyBootSector() {
-  dbg("Sending test boot sector\n");
+  dbg("Sending nosdcard boot sector\n");
   memcpy(buf, nosdcard_boot_bin, nosdcard_boot_bin_len);
   patchBootSector(buf, nosdcard_boot_bin_len);
-  dma.sendDma(buf, ACSI_BLOCKSIZE);
+  DmaPort::sendDma(buf, ACSI_BLOCKSIZE);
   return ERR_OK;
 }
+#endif
 
+#if !ACSI_STRICT && (ACSI_DUMMY_BOOT_SECTOR || ACSI_BOOT_OVERLAY)
 void Acsi::patchBootSector(uint8_t *data, int offset) {
   data[offset] = data[offset + 1] = 0;
   int checksum = 0x1234 - computeChecksum(data);
@@ -871,7 +972,7 @@ void Acsi::patchBootSector(uint8_t *data, int offset) {
 }
 #endif
 
-#if ACSI_BOOT_OVERLAY
+#if ACSI_BOOT_OVERLAY && !ACSI_STRICT
 Acsi::ScsiErr Acsi::processBootOverlay(BlockDev *dev) {
   dbg("Overlay boot sector on ", card.deviceId, ',', getLun(), '\n');
 
@@ -888,10 +989,20 @@ Acsi::ScsiErr Acsi::processBootOverlay(BlockDev *dev) {
     return ERR_READERR;
   }
 
-  memcpy(buf, bootoverlay_boot_bin, bootoverlay_boot_bin_len);
-  patchBootSector(buf, bootoverlay_boot_bin_len);
+  // Overlay jump instruction to address 0x70
+  buf[0x00] = 0x60;
+  buf[0x01] = 0x6e;
 
-  dma.sendDma(buf, ACSI_BLOCKSIZE);
+  // Overlay payload header
+  memcpy(&buf[0x5c], payload_boot_bin, 0x14);
+
+  // Overlay boot loader
+  memcpy(&buf[0x70], overlay_boot_bin, overlay_boot_bin_len);
+
+  // Make it bootable
+  patchBootSector(buf, 0x5a);
+
+  DmaPort::sendDma(buf, ACSI_BLOCKSIZE);
 
   dev->readStop();
 
@@ -900,8 +1011,13 @@ Acsi::ScsiErr Acsi::processBootOverlay(BlockDev *dev) {
 #endif
 
 // Static variables
-bool Acsi::strict;
+
+#if ACSI_RTC
 RTClock Acsi::rtc(RTCSEL_LSE);
+#endif
+#if !ACSI_STRICT
+bool Acsi::strict;
+#endif
 int Acsi::cmdLen;
 uint8_t Acsi::cmdBuf[16];
 uint8_t Acsi::buf[Acsi::bufSize];

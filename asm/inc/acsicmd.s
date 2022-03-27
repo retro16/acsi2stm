@@ -22,8 +22,8 @@ acsicmd	; Execute an ACSI command
 	;  d7.b: Device id in [5..7], other bits 0
 	;  a0  : Command buffer address
 	; Returns:
-	;  d1.l: status byte or -1 if timeout
-	;  a0  : points after the command buffer if d1 is not -1
+	;  d0.l: status byte or -1 if timeout
+	;  a0  : points after the command buffer if d0 is not -1
 
 	st	flock.w                 ; Lock floppy drive
 
@@ -70,7 +70,8 @@ acsicmd	; Execute an ACSI command
 
 	swap	d0                      ; Keep DMA length for later
 
-	move.w	(a0)+,d0                ; d0 = Command byte counter
+	move.b	(a0)+,d0                ; d0 = Command byte counter
+	and.w	#$00ff,d0               ;
 
 	swap	d2                      ;
 	move.b	(a0)+,d2                ; Read first command byte
@@ -97,18 +98,22 @@ acsicmd	; Execute an ACSI command
 .lstcmd	move.l	d2,(a2)                 ;
 
 	; Read status byte
-	bsr.b	.ack                    ; Wait for status byte
+	bsr.b	.acklng                 ; Wait for status byte
 	move.w	#$008a,(a1)             ; Acknowledge status byte
 	move.w	(a2),d0                 ; Read status to d1
 	and.w	#$00ff,d0               ; Keep only the byte value
 
 .abort	sf	flock.w                 ; Unlock floppy drive
 
-	rts	                        ; Exit acsi_exec_cmd
+	rts	                        ; Exit acsicmd
 
 	; Wait until DMA ack (IRQ pulse)
-.ack	move.l	#600,d1                 ; 3 second timeout
-	add.l	hz200.w,d1              ;
+.acklng	move.l	#600,d1                 ; 3 second timeout
+	bra.b	.doack                  ;
+
+.ack	move.l	#20,d1                  ; 100ms timeout
+
+.doack	add.l	hz200.w,d1              ;
 .await	cmp.l	hz200.w,d1              ; Test timeout
 	blt.b	.timout                 ;
 	btst.b	#5,gpip.w               ; Test command acknowledge
@@ -116,7 +121,7 @@ acsicmd	; Execute an ACSI command
 	rts
 
 .timout	moveq	#-1,d0                  ; Return -1
-	addq.l	#4,sp                   ; to the caller of acsi_exec_cmd
+	addq.l	#4,sp                   ; to the caller of acsicmd
 
 	bra.b	.abort                  ; Uninitialize and return
 

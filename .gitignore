@@ -1,3 +1,7 @@
-build*
+build.*
 acsi2stm-*
-tos
+*.tos
+*.exe
+*.bin
+bin
+tools/*.tools.h

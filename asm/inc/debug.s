@@ -14,22 +14,39 @@
 ; You should have received a copy of the GNU General Public License
 ; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-; Atari ST hardware registers and macros
+debug.out
+	st	flock.w
+	move.w	d0,-(sp)
+	clr.w	d0
+	move.w	#$88,dmactrl.w
+	move.l	#$000f008a,dma.w
+	move.w	6(sp),d0
+	bsr.b	.send
+	move.w	#$8a,dmactrl.w
+	move.b	8(sp),d0
+	bsr.b	.send
+	subq.w	#1,4(sp)
+	beq.b	.end
+	move.w	#$8a,dmactrl.w
+	move.b	9(sp),d0
+	bsr.b	.send
+	subq.w	#1,4(sp)
+	beq.b	.end
+	move.w	#$8a,dmactrl.w
+	move.b	10(sp),d0
+	bsr.b	.send
+	subq.w	#1,4(sp)
+	beq.b	.end
+	move.w	#$8a,dmactrl.w
+	move.b	11(sp),d0
+	bsr.b	.send
+	move.w	(sp)+,d0
+.end	sf	flock.w
+	rts
 
-; DMA hardware registers
-
-gpip=$fffffa01
-dma=$ffff8604
-dmadata=dma
-dmactrl=dma+2
-dmahigh=dma+5
-dmamid=dma+7
-dmalow=dma+9
-
-; Video registers
-
-screenh=$ffff8201
-screenm=$ffff8203
-screenpal=$ffff8240
+.send	btst.b	#5,gpip.w               ; Test command acknowledge
+	bne.b	.send
+	move.w	d0,dma.w
+	rts
 
 ; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm

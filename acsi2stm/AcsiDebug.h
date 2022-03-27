@@ -47,7 +47,7 @@ public:
 
 // Debug output functions
 
-  static void beginDbg(int speed) {
+  static void beginDbg(int speed = ACSI_SERIAL_SPEED) {
 #if ACSI_DEBUG
     ACSI_SERIAL.begin(speed);
 #endif
@@ -63,7 +63,7 @@ public:
   static void dbg(T txt) {
 #if ACSI_DEBUG
     ACSI_SERIAL.print(txt);
-    ACSI_SERIAL.flush();
+    flushDbg();
 #endif
   }
 
@@ -84,7 +84,7 @@ public:
   static void dbgHex(T txt) {
 #if ACSI_DEBUG
     ACSI_SERIAL.print(txt, HEX);
-    ACSI_SERIAL.flush();
+    flushDbg();
 #endif
   }
 

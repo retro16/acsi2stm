@@ -18,7 +18,7 @@
 ; Initialized data
 
 acsi.rwbuffer	; ACSI data buffer command
-	dc.w	9                       ; 9 intermediate bytes
+	dc.b	9                       ; 9 intermediate bytes
 	dc.b	$1f                     ; Extended ICD command
 	dc.b	$3c                     ; $3b = write, $3c = read
 	dc.b	$03                     ; $02 = data buffer, $03 = descriptor

@@ -1,7 +1,4 @@
-*Version 2.4: Hardware configuration and asm programming.*
-
-**WARNING**, PA15 was remapped to PB5 since 2.31. It should not impact anyone as this version is recent and PA15 is for SD card 5.
-
+Version 3.0a: **EXPERIMENTAL BRANCH WITH INTEGRATED DRIVER**
 
 ACSI2STM: Atari ST ACSI hard drive emulator
 ===========================================
@@ -15,9 +12,9 @@ ID of each SD card by soldering CS wires on the matching STM32 pin.
 
 It can work in 2 ways:
  * Expose a raw SD card as a hard disk to the Atari.
- * Expose a hard disk image file on a standard SD card to the Atari.
+ * Expose a floppy or hard disk image file on a standard SD card to the Atari.
 
-It also supports an UltraSatan compatible real-time clock.
+It also provides an UltraSatan compatible real-time clock if you add a simple 3V lithium battery.
 
 **WARNING**, the pinout has changed since version 1.0. If you built or bought a unit for the 1.0 firmware, you need to make changes.
 
@@ -28,7 +25,7 @@ The doc directory provides documentation for the end-user as well as hardware im
 
 This is what you can find:
 
- * [manual.md](doc/manual.md): A brief user manual for people owning a unit. Also explains how to install the ICD PRO driver.
+ * [manual.md](doc/manual.md): A brief user manual for people owning a unit.
  * [compiling.md](doc/compiling.md): A step-by-step tutorial to compile and upload a new firmware. Also includes how to customize
    the firmware for non-developers by changing compile-time options.
  * [hardware.md](doc/hardware.md): How to build an acsi2stm unit.
@@ -67,6 +64,7 @@ time. Without them, this project would have not existed.
  * The http://atari.8bitchip.info website and his author, who also contributes on various forums.
  * The Hatari developpers. I used its source code as a reference for ACSI commands.
  * The UltraSatan project for their documentation and their RTC clock tool.
+ * Jean-Louis Guérin (DrCoolZic) for his excellent "Atari Hard Disk File Systems Reference Guide".
  * Sr Antonio, Edu Arana, Frederick321, Ulises74, Maciej G., Olivier Gossuin, Marcel Prisi and Tomasz Orczyk for their very
    detailed feedback that helped me a lot for fine tuning the DRQ/ACK signals and other various aspects of the projects.
  * All people contributing on GitHub, for their code, their ideas, the issues they submit, and their patience when things fail !

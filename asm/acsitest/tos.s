@@ -33,8 +33,7 @@ print	macro
 
 	print	msg.header(pc)          ; Display the header message
 
-again	print	crlf(pc)
-	print	msg.devsel(pc)          ; Ask for the device id
+again	print	msg.devsel(pc)          ; Ask for the device id
 
 	gemdos	Cconin,2                ; Wait for the selection
 
@@ -53,6 +52,8 @@ again	print	crlf(pc)
 	print	msg.testing(pc)
 
 chkdev	; Check that the device is responding with Test Unit Ready
+	print	msg.chkdev(pc)
+
 	moveq	#0,d0                   ; No DMA
 	lea	acsi.tstunit(pc),a0     ; Test unit ready command
 	bsr.w	execcmd                 ;
@@ -77,6 +78,8 @@ chkdev	; Check that the device is responding with Test Unit Ready
 .ready
 
 chkvers	; Do an Inquiry and check the hardware version
+	print	msg.chkvers(pc)
+
 	moveq	#1,d0                   ; Read 1 block
 	lea	bss+buf(pc),a0          ;
 	move.l	a0,d1                   ;
@@ -108,30 +111,14 @@ chkvers	; Do an Inquiry and check the hardware version
 	blt.w	err                     ;
 .not2xx
 
-tstcmd	lea	bss+loops(pc),a0        ; Initialize loop counter
-	move.w	#64,(a0)                ; Do 64 test loops
+tstcmd	print	msg.tstcmd(pc)
+
+	lea	bss+loops(pc),a0        ; Initialize loop counter
+	move.w	#16,(a0)                ; Do 16 test loops
 
 .next	; Command loopback test
 	moveq	#0,d0                   ; No DMA
 	lea	acsi.cmdts,a0           ; ACSI command loopback test
-	bsr.w	acsicmd                 ;
-
-	tst.b	d0                      ; Test result
-	beq.b	.ok                     ;
-
-	print	msg.cmderr(pc)          ; Print error
-	bra.w	again                   ;
-
-.ok	lea	bss+loops(pc),a0        ; Decrement test loop counter
-	sub.w	#1,(a0)                 ;
-	bne.b	.next                   ; Loop tests until successful
-
-tstzcmd	lea	bss+loops(pc),a0        ; Initialize loop counter
-	move.w	#64,(a0)                ; Do 64 test loops
-
-.next	; Zero command loopback test
-	moveq	#0,d0                   ; No DMA
-	lea	acsi.zcmdts,a0          ; ACSI zero command loopback test
 	bsr.w	acsicmd                 ;
 
 	tst.b	d0                      ; Test result
@@ -162,13 +149,73 @@ tstfcmd	lea	bss+loops(pc),a0        ; Initialize loop counter
 	sub.w	#1,(a0)                 ;
 	bne.b	.next                   ; Loop tests until successful
 
+tstzcmd	lea	bss+loops(pc),a0        ; Initialize loop counter
+	move.w	#16,(a0)                ; Do 16 test loops
+
+.next	; Zero command loopback test
+	moveq	#0,d0                   ; No DMA
+	lea	acsi.zcmdts,a0          ; ACSI zero command loopback test
+	bsr.w	acsicmd                 ;
+
+	tst.b	d0                      ; Test result
+	beq.b	.ok                     ;
+
+	print	msg.cmderr(pc)          ; Print error
+	bra.w	again                   ;
+
+.ok	lea	bss+loops(pc),a0        ; Decrement test loop counter
+	sub.w	#1,(a0)                 ;
+	bne.b	.next                   ; Loop tests until successful
+
+tstfwcm	print	msg.tstwcmd(pc)
+
+	lea	bss+loops(pc),a0        ; Initialize loop counter
+	move.w	#64,(a0)                ; Do 64 test loops
+
+.next	; 0xff command loopback test in write mode
+	move.w	#$0100,d0               ; Zero length write DMA
+	moveq	#0,d1                   ;
+	lea	acsi.fcmdts,a0          ; ACSI 0xff command loopback test
+	bsr.w	acsicmd                 ;
+
+	tst.b	d0                      ; Test result
+	beq.b	.ok                     ;
+
+	print	msg.cmderr(pc)          ; Print error
+	bra.w	again                   ;
+
+.ok	lea	bss+loops(pc),a0        ; Decrement test loop counter
+	sub.w	#1,(a0)                 ;
+	bne.b	.next                   ; Loop tests until successful
+
+tstzwcm	lea	bss+loops(pc),a0        ; Initialize loop counter
+	move.w	#64,(a0)                ; Do 64 test loops
+
+.next	; Zero command loopback test in write mode
+	move.w	#$0100,d0               ; Zero length write DMA
+	moveq	#0,d1                   ;
+	lea	acsi.zcmdts,a0          ; ACSI zero command loopback test
+	bsr.w	acsicmd                 ;
+
+	tst.b	d0                      ; Test result
+	beq.b	.ok                     ;
+
+	print	msg.cmderr(pc)          ; Print error
+	bra.w	again                   ;
+
+.ok	lea	bss+loops(pc),a0        ; Decrement test loop counter
+	sub.w	#1,(a0)                 ;
+	bne.b	.next                   ; Loop tests until successful
+
 qrybsz	; Read data buffer descriptor and adjust the ACSI transfer length
+	print	msg.qrybsz(pc)
+
 	moveq	#1,d0
 	lea	bss+buf(pc),a0
 	move.l	a0,d1
 	lea	acsi.rwbuffer(pc),a0    ; Adjust the command
-	move.b	#$3c,3(a0)              ;  Read buffer
-	move.b	#$03,4(a0)              ;  Read buffer descriptor
+	move.b	#$3c,2(a0)              ;  Read buffer
+	move.b	#$03,3(a0)              ;  Read buffer descriptor
 	bsr.w	execcmd
 
 	lea	msg.strict(pc),a0       ; If the command failed, it means that
@@ -186,28 +233,32 @@ qrybsz	; Read data buffer descriptor and adjust the ACSI transfer length
 	move.w	#buf...,d0
 
 .bufok	lea	acsi.rwbuffer(pc),a0    ; Update transfer size in the command
-	move.w	d0,10(a0)               ;
+	lsl.l	#8,d0                   ;
+	and.l	#$00ffff00,d0           ;
+	move.l	d0,8(a0)                ;
 
-diag	move.l	#$f00f55aa,d0           ; Fill the buffer with the test pattern
-	bsr.b	fillbuf                 ;
+diag	print	msg.diag(pc)
+
+	move.l	#$f00f55aa,d0           ; Fill the buffer with the test pattern
+	bsr.w	fillbuf                 ;
 
 	lea	bss+loops(pc),a0        ; Initialize loop counter
 	move.w	#16,(a0)                ; Do 16 test loops
 
 .next	lea	acsi.rwbuffer(pc),a0    ; Switch acsi buffer command to write
-	move.b	#$3b,3(a0)              ; Read buffer
-	move.b	#$02,4(a0)              ; Read data buffer
+	move.b	#$3b,2(a0)              ; Read buffer
+	move.b	#$02,3(a0)              ; Read data buffer
 
 	move.w	#$0120,d0               ; Write 32 buffers max
-	bsr.b	bufop                   ; Do the acsi buffer operation
+	bsr.w	bufop                   ; Do the acsi buffer operation
 
 	move.l	#$0ff0aa55,d0           ; Flip all bits in RAM
 	bsr.b	fillbuf                 ;
 
-	lea	acsi.rwbuffer+3(pc),a0  ; Patch acsi command to read
+	lea	acsi.rwbuffer+2(pc),a0  ; Patch acsi command to read
 	move.b	#$3c,(a0)               ;
 	moveq	#$20,d0                 ; Read 32 buffers max
-	bsr.b	bufop                   ; Do the buffer buffer operation
+	bsr.b	bufop                   ; Do the buffer operation
 
 	lea	msg.dataerr(pc),a0      ;
 	lea	bss+buf(pc),a1          ; Compare the buffer
@@ -220,8 +271,18 @@ diag	move.l	#$f00f55aa,d0           ; Fill the buffer with the test pattern
 	sub.w	#1,(a0)                 ;
 	bne.b	.next                   ; Loop tests until successful
 
-	print	msg.success(pc)         ; Display "Test successful"
+halfcmd	; The hardest test: send a 1 byte command, then chain with a valid one !
+	print	msg.halfcmd(pc)
 
+	st	flock.w                 ; Lock floppy drive
+	move.w	#$0088,dmactrl.w        ; Enable CS+A1
+	move.w	#$0000,dma.w            ; Send a 0 byte
+	sf	flock.w                 ; Unlock floppy drive
+
+	bsr.w	sense                   ; Sense. If the STM32 failed, it will
+		                        ; time out
+
+success	print	msg.success(pc)         ; Display "Test successful"
 	bra.w	again                   ; Go back to device selection
 
 fillbuf	lea	bss+buf(pc),a0
@@ -233,9 +294,10 @@ fillbuf	lea	bss+buf(pc),a0
 setrpt	; Set repeat count for loops to cover the whole buffer
 	; Output:
 	;  d1.w: number of repeats for use with dbra
-	move.w	acsi.rwbuffer+10(pc),d1 ; Read buffer size in bytes
-	lsr	#2,d1                   ; Convert to longs
-	subq	#1,d1                   ; Adjust for dbra
+	move.l	acsi.rwbuffer+8(pc),d1  ; Read buffer size in bytes
+	lsr.l	#8,d1                   ;
+	lsr.w	#2,d1                   ; Convert to longs
+	subq.w	#1,d1                   ; Adjust for dbra
 	rts
 
 bufop	lea	bss+buf(pc),a0          ; DMA from/to SCSI data buffer
