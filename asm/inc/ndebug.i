@@ -14,22 +14,9 @@
 ; You should have received a copy of the GNU General Public License
 ; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-; Atari ST hardware registers and macros
+_DEBUG_	equ	0
 
-; DMA hardware registers
-
-gpip=$fffffa01
-dma=$ffff8604
-dmadata=dma
-dmactrl=dma+2
-dmahigh=dma+5
-dmamid=dma+7
-dmalow=dma+9
-
-; Video registers
-
-screenh=$ffff8201
-screenm=$ffff8203
-screenpal=$ffff8240
+debug	macro
+	endm
 
 ; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm

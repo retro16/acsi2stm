@@ -18,13 +18,11 @@
 #ifndef DMA_PORT_H
 #define DMA_PORT_H
 
+#include <setjmp.h>
+
 struct DmaPort {
   static const int A1 = PB6; // Must be on port B
   static const int CS = PB7; // Must be on port B
-  static const int IRQ = PA8;
-  static const int DRQ = PA11; // Must be on Timer1 channel output
-  static const int ACK = PA12; // Must be on Timer1 external clock
-  // Data pins are on PB8-PB15
 
   // Pin masks for direct port access
   static const int A1_MASK  = 0b0000000001000000;
@@ -32,43 +30,30 @@ struct DmaPort {
   static const int IRQ_MASK = 0b0000000100000000;
   static const int DRQ_MASK = 0b0000100000000000;
   static const int ACK_MASK = 0b0001000000000000;
+  static const int RST_MASK = 0b1000000000000000;
 
-  void begin();
-
-  // Add a device to the list of allowed devices
-  void addDevice(int id);
-
-  // Remove a device from the list of allowed devices
-  void removeDevice(int id);
-
-  // Return true if the ACSI bus is idle:
-  // IRQ, DRQ and ACK are high.
-  static bool idle();
-
-  // Wait until the bus is ready.
+  // Setup the bus and wait until the bus is ready.
   // Uses input pull-down to detect that the ST is actually powered on.
+  // WARNING: this function is longjmp'ed to when RST is detected.
+  // Call it only directly in the loop() function and nowhere else.
   static void waitBusReady();
 
+  // Check if the RST line was pulled.
+  // Long jumps to waitBusReady if RST was pulled.
+  // Call this in all active wait loops.
+  static void checkReset();
+
   // Return true if a new command is available
-  bool checkCommand();
+  static bool checkCommand();
 
   // Read the buffered command.
-  // Returns -1 if the command was not for us
-  int readCommand();
+  // Retriggers timers to read a new value on A1 or CS.
+  static uint8_t readCommand();
 
   // Wait for a new command and return its first byte
-  uint8_t waitCommand();
-
-  // Returns the device id for a given command byte
-  static uint8_t cmdDeviceId(uint8_t cmd) {
-    return cmd >> 5;
-  }
-
-  // Returns the actual command for a given command byte.
-  // Filter out device id.
-  static uint8_t cmdCommand(uint8_t cmd) {
-    return cmd & 0b00011111;
-  }
+  // Equivalent to calling checkReset and checkCommand in a loop,
+  // then calling readCommand.
+  static uint8_t waitCommand();
 
   // Read bytes using the IRQ/CS method.
   static void readIrq(uint8_t *bytes, int count);
@@ -86,34 +71,104 @@ struct DmaPort {
   // Send bytes using the DRQ/ACK method.
   static void sendDma(const uint8_t *bytes, int count);
 
-  // Send the status byte and start listening for A1.
-  static void endTransaction(uint8_t statusByte);
+  // Returns the device id for a given command byte.
+  static uint8_t cmdDeviceId(uint8_t cmd) {
+    return cmd >> 5;
+  }
 
-  // Start listening for the next A1 pulse.
-  static void endTransaction();
+  // Returns the actual command for a given command byte.
+  // Filter out device id.
+  static uint8_t cmdCommand(uint8_t cmd) {
+    return cmd & 0b00011111;
+  }
+
+  // longjmp to this target if reset is detected
+  static jmp_buf resetJump;
 
 protected:
-  // Low level pin manipulation methods
-  static void releaseRq();
-  static void releaseDataBus();
-  static void releaseBus();
-  static void acquireDrq();
-  static void acquireDataBus();
-  static uint8_t waitCs();
-  static bool readAck();
-  static void pullIrq();
-  static bool pullDrqUntilAck();
-  static void writeData(uint8_t byte);
-  static void disableAckFilter();
-  static void enableAckFilter();
-
-  // Device initialization
-  static void setupDrqTimer();
-  static void setupCsTimer();
-  static void setupAckDmaTransfer();
+  // Setup GPIO pins in a neutral state
   static void setupGpio();
 
-  int deviceMask;
+  // Setup the reset detecting timer
+  static void setupResetTimer();
+
+  // Setup CS_TIMER and its DMA channels
+  // Handles CS and CS+A1 cycles
+  static void setupCsTimer();
+
+  // Setup DMA_TIMER and its DMA channel
+  // Handles DRQ/ACK cycles
+  static void setupDrqTimer();
+
+  // Quick reset: reset GPIO and jump to the waitBusReady call
+  static void quickReset();
+
+  // Return true if the bus is completely idle
+  static bool idle();
+
+  // Wait until the bus is idle.
+  // Times out quickly.
+  static void waitIdle();
+
+  // Setup the hardware to read incoming data on the next A1 pulse
+  static void armA1();
+
+  // Setup the hardware to read incoming data on the next CS pulse
+  static void armCs();
+
+  // Pulls the IRQ line low
+  static void pullIrq();
+
+  // Release the IRQ and DRQ lines and wait until the bus is idle
+  static void releaseRq();
+
+  // Returns true if the IRQ signal is up
+  static bool irqUp();
+
+  // Wait until IRQ goes back up. Short timeout.
+  static void waitIrqUp();
+
+  // Returns true if the CS and A1 signals are high (inactive)
+  static bool csUp();
+
+  // Wait until CS and A1 are high (inactive)
+  static void waitCsUp();
+
+  // Returns true if a CS transfer cycle has finished
+  static bool checkCs();
+
+  // Wait until a CS transfer has happened
+  static void waitCs();
+
+  // Return the byte read during a CS cycle
+  static uint8_t csData();
+
+  // Reset DMA transfer flag pulled by a DRQ/ACK cycle
+  static void armDma();
+
+  // Setup DRQ as output and enable automatic handling of DRQ/ACK and DMA
+  static void acquireDrq();
+
+  // Pull DRQ low. It will go back high as soon as ACK goes low.
+  static void triggerDrq();
+  
+  // Returns true if data is available following a DRQ/ACK cycle
+  static bool checkDma();
+
+  // Return the byte read during the DRQ/ACK cycle
+  static uint8_t dmaData();
+
+  // Return true if a DRQ/ACK cycle was completed
+  static bool ackReceived();
+
+  // Set DATA pins as output
+  static void acquireDataBus();
+
+  // Write a byte on the DATA pins
+  static void writeData(uint8_t byte);
+
+  // Release DATA pins output and switch them back to input mode
+  static void releaseDataBus();
 };
 
 // vim: ts=2 sw=2 sts=2 et

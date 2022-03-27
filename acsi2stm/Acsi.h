@@ -23,7 +23,6 @@
 #include "acsi2stm.h"
 #include "AcsiDebug.h"
 #include "Watchdog.h"
-#include "DmaPort.h"
 #include "BlockDev.h"
 #if ACSI_RTC
 #include <RTClock.h>
@@ -48,11 +47,11 @@ public:
     ERR_NOMEDIUM = 0x06003a,
   };
 
-  Acsi(int deviceId, int csPin, int wpPin, DmaPort&);
+  Acsi(int deviceId, int csPin, int wpPin);
   Acsi(Acsi&&);
 
   // Initialize the ACSI bridge
-  void begin();
+  bool begin();
 
   // Mount all LUNs on the SD card.
   void mountLuns();
@@ -101,16 +100,18 @@ public:
   // Compute the 16 bits checksum of a block.
   static int computeChecksum(uint8_t *block);
 
-#if ACSI_DUMMY_BOOT_SECTOR
+#if ACSI_DUMMY_BOOT_SECTOR && !ACSI_STRICT
   // Send the dummy boot sector to the Atari.
   ScsiErr processDummyBootSector();
+#endif
 
+#if !ACSI_STRICT && (ACSI_DUMMY_BOOT_SECTOR || ACSI_BOOT_OVERLAY)
   // Patch the sector in the buffer so it is bootable.
   // You can specify the offset to patch.
   static void patchBootSector(uint8_t *data, int offset = 438);
 #endif
 
-#if ACSI_BOOT_OVERLAY
+#if ACSI_BOOT_OVERLAY && !ACSI_STRICT
   // Overlay the device's boot sector with a small boot program.
   ScsiErr processBootOverlay(BlockDev *dev);
 #endif
@@ -118,12 +119,11 @@ public:
   // Maximum number of LUNs
   static const int maxLun = ACSI_MAX_LUNS;
 
+#if !ACSI_STRICT
   // Strict mode flag
   // In strict mode, boot overlays and custom commands are disabled
   static bool strict;
-
-  // Dependent devices
-  DmaPort &dma;
+#endif
 
   // LUN array.
   BlockDev *luns[maxLun];
