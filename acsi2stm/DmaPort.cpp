@@ -477,8 +477,17 @@ void DmaPort::acquireDataBus() {
 }
 
 uint8_t DmaPort::waitCs() {
+  // Wait for a DMA transfert
   DMA1_BASE->IFCR = DMA_IFCR_CTCIF7;
   while(!(DMA1_BASE->ISR & DMA_ISR_TCIF7));
+
+  // Wait until CS and A1 go high
+  while(((GPIOB->regs->IDR) | ~(A1_MASK | CS_MASK)) != ~0);
+
+  // Retrigger DMA on CS/A1 pulses
+  CS_TIMER->CNT = 0;
+  CS_TIMER->CR1 |= TIMER_CR1_CEN;
+
   return (CS_TIMER->CCR4) >> 8;
 }
 
@@ -518,7 +527,7 @@ void DmaPort::setupDrqTimer() {
 }
 
 void DmaPort::setupCsTimer() {
-  CS_TIMER->CR1 = TIMER_CR1_URS;
+  CS_TIMER->CR1 = TIMER_CR1_URS | TIMER_CR1_OPM;
   CS_TIMER->SMCR = TIMER_SMCR_SMS_ENCODER2;
   CS_TIMER->CCMR1 = TIMER_CCMR1_CC1S_INPUT_TI1
 #if ACSI_CS_FILTER
