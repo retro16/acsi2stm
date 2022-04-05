@@ -18,7 +18,7 @@
 
 a2st_version	macro
 	; The following line is patched automatically by build_asm.sh
-	dc.b	'2.41'			; ACSI2STM VERSION NUMBER
+	dc.b	'2.42'			; ACSI2STM VERSION NUMBER
 	endm
 
 a2st_header	macro

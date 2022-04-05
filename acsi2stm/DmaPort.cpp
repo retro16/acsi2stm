@@ -445,7 +445,12 @@ void DmaPort::sendDma(const uint8_t *bytes, int count) {
 }
 
 void DmaPort::endTransaction() {
-  DMA1_BASE->IFCR = DMA_IFCR_CTCIF5; // Clear A1 received flag
+  // Wait until CS goes high
+  while(!GPIOB->regs->IDR & CS_MASK);
+
+  // Get ready to receive A1+CS pulse
+  DMA1_BASE->IFCR = DMA_IFCR_CTCIF5 | DMA_IFCR_CTCIF7;
+  CS_TIMER->CR1 = (CS_TIMER->CR1 & ~TIMER_CR1_OPM) | TIMER_CR1_CEN;
 }
 
 void DmaPort::releaseRq() {
@@ -478,15 +483,7 @@ void DmaPort::acquireDataBus() {
 
 uint8_t DmaPort::waitCs() {
   // Wait for a DMA transfert
-  DMA1_BASE->IFCR = DMA_IFCR_CTCIF7;
   while(!(DMA1_BASE->ISR & DMA_ISR_TCIF7));
-
-  // Wait until CS and A1 go high
-  while(((GPIOB->regs->IDR) | ~(A1_MASK | CS_MASK)) != ~0);
-
-  // Retrigger DMA on CS/A1 pulses
-  CS_TIMER->CNT = 0;
-  CS_TIMER->CR1 |= TIMER_CR1_CEN;
 
   return (CS_TIMER->CCR4) >> 8;
 }
@@ -496,6 +493,13 @@ bool DmaPort::readAck() {
 }
 
 void DmaPort::pullIrq() {
+  // Wait until CS goes high
+  while(!GPIOB->regs->IDR & CS_MASK);
+
+  // Rearm timer and DMA
+  CS_TIMER->CR1 |= TIMER_CR1_CEN;
+  DMA1_BASE->IFCR = DMA_IFCR_CTCIF7;
+
   GPIOA->regs->CRH = 0x44444BB3;
 }
 
