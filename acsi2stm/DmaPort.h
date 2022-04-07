@@ -161,6 +161,13 @@ protected:
   // Return true if a DRQ/ACK cycle was completed
   static bool ackReceived();
 
+  // Disable ACK filter
+  static void disableAckFilter();
+
+  // Enable ACK filter
+  // Sets the filter value at ACSI_ACK_FILTER
+  static void enableAckFilter();
+
   // Set DATA pins as output
   static void acquireDataBus();
 

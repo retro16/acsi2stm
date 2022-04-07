@@ -1,6 +1,32 @@
 Creating your own ACSI2STM hardware
 ===================================
 
+Hardware needed
+---------------
+
+ * A STM32F103C8T6 or compatible board. You can find them for a few dollars online. The "blue pill" works out of the box and the
+   older "black pill" requires minor modifications.
+ * A USB-serial dongle for programming the STM32 chip, with a 3.3V USART.
+ * One or more SD card port(s) for your STM32. You can also solder wires on a SD to microSD adapter.
+ * One or more SD card(s).
+ * A male DB19 port (you can modify a DB25 port to fit) with a ribbon cable.
+ * (recommended) A protoboard PCB to solder all the components and wires together.
+ * Do *NOT* connect USB data lines on the STM32. Use the +5V or +3.3V pin to power it if you are unsure.
+
+**Notes**
+
+Some people reported problems with STM32 clones. I have many variants of the blue pill STM32, all of them work exactly the same.
+Variants I had and that worked: round and rectangle reset buttons, some chips marked STM32F / 103 and other marked STM32 / F103.
+If anyone has concrete proof of misbehaving clones and information on how to spot them, feel free to contact me or create an issue
+on GitHub to let people know about that.
+
+Since 2.40, the internal DMA was fixed to avoid relying on timing, but check the actual DMA flags. This has fixed many issues on
+some newer clones I bought more recently.
+
+Please provide feedback if you are trying to make this work with the new STM32F4x1 "black pill" boards. The best configuration is
+to have a working blue pill so results can be compared by switching the boards. Porting efforts will be high, the F4xx has a
+totally different way of handling DMA.
+
 
 Building the ACSI connector
 ---------------------------

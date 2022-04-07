@@ -16,9 +16,18 @@
 
 ; ACSI2STM specific defines
 
+; Settings
+
+; Maximum sector size
+; Must be a power of 2 between 512 and 16384
+; Setting this to more than 512 allocates much more RAM and uses slightly more
+; complex algorithms.
+maxsecsize	equ	512
+
+; Constants
 a2st_version	macro
 	; The following line is patched automatically by build_asm.sh
-	dc.b	'3.0a'			; ACSI2STM VERSION NUMBER
+	dc.b	'3.0b'			; ACSI2STM VERSION NUMBER
 	endm
 
 a2st_header	macro

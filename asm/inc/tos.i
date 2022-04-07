@@ -118,6 +118,8 @@ sysbase=$4f2                            ; OSHEADER pointer
 pun_ptr=$516                            ; PUN_INFO table
 phystop=$42e                            ; Top of physical RAM
 memtop=$436                             ; Top of TOS RAM
+dskbufp=$4c6                            ; Disk buffers
+bufl=$4b2                               ; Buffer lists
 
 ; Exception vectors
 gemdos.vector=$84

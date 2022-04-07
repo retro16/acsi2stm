@@ -22,7 +22,7 @@ VERSION=`cat VERSION`
 
 echo "Patch the source to set VERSION to $VERSION"
 
-sed -i '/; ACSI2STM VERSION NUMBER/s/dc\.b.'\''.*'\''/dc.b\t'\'"$VERSION"\'/ asm/inc/acsi2stm.i
+sed -i '/; ACSI2STM VERSION NUMBER/s/dc\.b.'\''.*'\''/dc.b\t'\'"$VERSION"\'/ asm/acsi2stm.i
 
 # Remove previous build artifacts and create a build directory
 rm -rf "$builddir"

@@ -64,7 +64,7 @@ pun	dc.w	0			; pun.puns
 	dc.l	pun+pun.p_cookie        ; pun.p_cookptr
 	dc.w	$0300                   ; pun.p_version
 	dc.w	$0200                   ; Maximum sector size
-	ds.l	16                      ; Reserved
+	ds.l	16                      ; Reserved (used for sector sizes)
 
 	; Extended pun table for drives >= 16
 punext	dc.w	0			; pun.puns
@@ -74,6 +74,11 @@ punext	dc.w	0			; pun.puns
 	dc.b	$ff,$ff,$ff,$ff         ;
 	dc.l	0,0,0,0,0,0,0,0         ; pun.part_start
 	dc.l	0,0,0,0,0,0,0,0         ;
+	dc.l	'AHDI'                  ; pun.p_cookie
+	dc.l	punext+pun.p_cookie     ; pun.p_cookptr
+	dc.w	$0300                   ; pun.p_version
+	dc.w	$0200                   ; Maximum sector size
+	ds.l	16                      ; Reserved (used for sector sizes)
 
 	; Masks
 mchmask	dc.l	0                       ; Media change mask

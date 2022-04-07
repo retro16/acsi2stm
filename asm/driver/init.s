@@ -23,7 +23,6 @@ drvinit	; Driver initialization
 .doack	add.l	hz200.w,d1              ;
 .await	cmp.l	hz200.w,d1              ; Test timeout
 	beq.b	.await                  ;
-	
 
 	; Initialize the pun_info structure
 	lea	pun(pc),a0              ; a0 = local pun table
@@ -35,6 +34,53 @@ drvinit	; Driver initialization
 	lea	pun_ptr.w,a1            ;
 	move.l	a0,(a1)                 ; Install the main pun table
 
+	ifgt	maxsecsize-$200
+
+	; Initialize big buffers in bufl
+
+	lea	bss+bcb(pc),a0          ; a0 = pointer to the current BCB struct
+	lea	bss+bcbbufr(pc),a1      ; a1 = pointer to the current buffer
+
+	bsr.b	.bufini                 ; Initialize the first buffer list
+
+	lea	bufl.w,a2               ; Store the first buffer list in bufl
+	move.l	a0,(a2)                 ;
+
+	lea	bcb...*2(a0),a0         ; a0 = pointer to the second BCB struct
+	lea	maxsecsize(a1),a1       ; a1 = pointer to the 3rd buffer
+
+	bsr.b	.bufini                 ; Initialize the second buffer list
+
+	lea	(bufl+4).w,a2           ; Store the second buffer list in bufl+4
+	move.l	a0,(a2)                 ;
+
+	bra.b	.bufend                 ; Skip the subroutine
+
+.bufini	; Initialize a linked list of 2 BCB buffers
+	; Input:
+	;  a0: pointer to the BCB struct
+	;  a1: pointer to the actual buffers
+	;  maxsecsize: constant defining the maximum sector size
+	; Output:
+	;  a0: untouched
+	;  a1: pointer to the 2nd buffer
+
+	lea	bcb...(a0),a2           ; a2 = Pointer to the second buffer
+
+	move.l	a2,(a0)                 ; Link the first buffer to the second
+	clr.l	(a2)                    ; Terminate the linked list
+
+	move.w	#-1,bcb.bufdrv(a0)      ; Set Drive# to -1
+	move.w	#-1,bcb.bufdrv(a2)      ;
+
+	move.l	a1,bcb.bufr(a0)         ; Pointer to the 1st data buffer
+	lea	maxsecsize(a1),a1       ; a1 = pointer to the 2nd buffer
+	move.l	a1,bcb.bufr(a2)         ; Pointer to the 2nd data buffer
+	rts
+.bufend
+
+	endif
+
 	hkinst	getbpb                  ; Let's thrash that poor system
 	hkinst	rwabs                   ; Install hooks
 	hkinst	mediach                 ;
@@ -45,7 +91,23 @@ drvinit	; Driver initialization
 	
 	prints	'Driver loaded',13,10   ; Signal that everything is okay
 
-	; TODO: set boot drive
+	; Set boot drive
+
+	moveq	#2,d1
+	bsr.w	getpart
+	cmp.b	#$ff,d7
+	beq.b	.nobdrv
+
+	move.w	d1,bootdev.w            ; Write boot drive to C:
+
+	move.w	d1,-(sp)                ; Set current drive to C:
+	gemdos	Dsetdrv                 ;
+
+	move.w	'\'*$100,-(sp)          ; Set current path to \
+	pea	(sp)                    ;
+	gemdos	Dsetpath,12             ;
+
+.nobdrv
 
 	move.b	#$e0,d7                 ; Don't boot other drives
 	rts

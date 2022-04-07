@@ -59,21 +59,30 @@ getbpb.dev	rs.w	1
 	moveq	#0,d0                   ;
 	rts
 .nerr
-
 	; Compute BPB (code inspired from emuTOS)
-
 	lea	bss+buf(pc),a0          ; a0 = Partition header
 	lea	bss+bpb(pc),a1          ; a1 = BPB address
 
-	move.w	#$200,(a1)+             ; d0 = bpb.recsiz = 512 (hardcoded)
+	ifgt	maxsecsize-$200
+	move.b	fat.bps+1(a0),(a1)+     ; bpb.recsiz
+	clr.b	(a1)+                   ;
+	else
+	move.w	#$200,(a1)+             ; bpb.recsiz = 512
+	endif
 
 	clr.b	(a1)+                   ;
+	moveq	#0,d0                   ;
 	move.b	fat.spc(a0),d0          ;
 	move.b	d0,(a1)+                ; bpb.clsiz = fat.spc
 
-	lsl.b	#1,d0                   ; assumes recsiz == $200
+	ifgt	maxsecsize-$200         ;
+	mulu.w	-4(a1),d0               ;
+	move.w	d0,(a1)+                ; bpb.clsizb = bpb.clsiz * bpb.recsiz
+	else                            ;
+	lsl.w	#1,d0                   ; bpb.clsizb = bpb.clsiz * 512
 	move.b	d0,(a1)+                ;
-	clr.b	(a1)+                   ; bpb.clsizb = bpb.clsiz * 512
+	clr.b	(a1)+                   ;
+	endif                           ;
 
 	moveq	#0,d0                   ; Clear d0 MSB
 
@@ -122,12 +131,13 @@ getbpb.dev	rs.w	1
 	move.w	d1,(a1)+                ; bpb.numcl
 
 	cmp.w	#4084,d1                ; A FAT with more than 4084 clusters
-	bpl.b	.fat12                  ; is FAT16.
+	blt.b	.fat12                  ; is FAT16.
 	move.w	#1,(a1)+                ;
 	bra.b	.bpbok                  ;
 .fat12	clr.w	(a1)+                   ; bpb.bflags
 .bpbok
 	lea	bss+bpb(pc),a0          ; a0 = BPB address
+ move.l	#$badc0de,d0
 	move.l	a0,d0                   ; Return BPB address
 	move.w	(sp)+,d7                ; Restore d7
 	rts
