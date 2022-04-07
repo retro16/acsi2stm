@@ -18,6 +18,7 @@
 
 	text
 
+	incdir	..\
 	incdir	..\inc\
 	include	acsi2stm.i
 	include	tos.i

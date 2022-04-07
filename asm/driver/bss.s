@@ -21,8 +21,12 @@
 		rsreset
 sdcount		rs.w	1               ; SD card slot count
 bpb             rs.b	bpb...          ; Bios Parameter Block
-buf...		equ	$200            ; Sector buffer size
+buf...		equ	$200            ; Boot sector buffer size
 buf		rs.b	buf...          ; One sector buffer
+		ifgt	maxsecsize-$200
+bcb		rs.b	4*bcb...	; GEMDOS buffers
+bcbbufr		rs.b	4*maxsecsize    ; Enough space for 4 buffers
+		endif
 bss...		rs.b	0               ; Total size of BSS
 
 ; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm

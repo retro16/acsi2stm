@@ -99,5 +99,17 @@ pun.p_cookptr	rs.l	1               ; Must point to p_cookie
 pun.p_version	rs.w	1               ; AHDI version (>= $0300)
 pun.max_sector	rs.w	1               ; Maximum sector size
 pun.reserved	rs.l	16              ; Reserved
+pun...		rs.b	0
+
+; Buffer Control Block
+		rsreset
+bcb.link	rs.l	1               ; Next BCB
+bcb.bufdrv	rs.w	1               ; Drive# or -1
+bcb.buftyp	rs.w	1               ; Buffer type
+bcb.bufrec	rs.w	1               ; Record #
+bcb.dirty	rs.w	1               ; Dirty flag
+bcb.dm		rs.l	1               ; Drive Media Descriptor
+bcb.bufr	rs.l	1               ; Pointer to the actual buffer
+bcb...		rs.b	0
 
 ; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm

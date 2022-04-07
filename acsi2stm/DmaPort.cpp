@@ -214,6 +214,27 @@ DMA block transfer stop process:
  * Set DRQ pin as input
  * Disable Timer1
 
+
+How RESET is handled
+====================
+
+Because the RESET pulse can be short, we have to latch it using hardware.
+
+Using interrupts is out of question because it can disturb the tight loop of
+DMA transfers and disabling interrupts during DMA transfers defeats the purpose
+of having a RESET line.
+
+Timer2 is used to memorize that the RESET line was going low. It is used in
+capture & compare mode.
+
+The timer's counter is locked to 0, the timer's channel 1 is configured to
+capture on PA15 falling edge. It's CCR (capture & compare register) is set to 1
+so whenever a value is captured on RESET, it captures 0.
+
+To check whether RESET has happened in the past or not, you just have to read
+CCR1: if it is 1, RESET didn't happen since last init, if it's 0, RESET
+happened.
+
 */
 
 #include "acsi2stm.h"
@@ -354,20 +375,27 @@ void DmaPort::readDma(uint8_t *bytes, int count) {
   // Disable systick that introduces jitter.
   systick_disable();
 
+  disableAckFilter();
+
   acquireDrq();
 
   // Unroll for speed
   int i = 0;
 #if ACSI_FAST_DMA
 #define ACSI_READ_BYTE(b) do { \
-      while(!checkDma()); \
+      if(!checkDma()) \
+        if(!checkDma()) \
+          if(!checkDma()) \
+            if(!checkDma()) \
+              while(!checkDma()) \
+                checkReset(); \
       triggerDrq(); \
-      armDma(); \
       bytes[b] = dmaData(); \
+      armDma(); \
     } while(0)
   for(i = 0; i <= count - 16; i += 16) {
-    triggerDrq();
     armDma();
+    triggerDrq();
     ACSI_READ_BYTE(0);
     ACSI_READ_BYTE(1);
     ACSI_READ_BYTE(2);
@@ -383,7 +411,12 @@ void DmaPort::readDma(uint8_t *bytes, int count) {
     ACSI_READ_BYTE(12);
     ACSI_READ_BYTE(13);
     ACSI_READ_BYTE(14);
-    while(!checkDma());
+    if(!checkDma())
+      if(!checkDma())
+        if(!checkDma())
+          if(!checkDma())
+            while(!checkDma())
+              checkReset();
     bytes[15] = dmaData();
     bytes += 16;
   }
@@ -393,7 +426,8 @@ void DmaPort::readDma(uint8_t *bytes, int count) {
   while(i < count) {
     armDma();
     triggerDrq(); // Trigger DRQ
-    while(!checkDma()); // Wait for DMA complete
+    while(!checkDma()) // Wait for DMA complete
+      checkReset();
     *bytes = dmaData(); // Copy data into the buffer
     ++i;
     ++bytes;
@@ -419,6 +453,8 @@ void DmaPort::sendDma(const uint8_t *bytes, int count) {
   // Disable systick that introduces jitter.
   systick_disable();
 
+  enableAckFilter();
+
   acquireDataBus();
   acquireDrq();
 
@@ -428,7 +464,12 @@ void DmaPort::sendDma(const uint8_t *bytes, int count) {
 #define ACSI_SEND_BYTE(b) do { \
       triggerDrq(); \
       writeData(bytes[b]); \
-      while(!ackReceived()); \
+      if(!ackReceived()) \
+        if(!ackReceived()) \
+          if(!ackReceived()) \
+            if(!ackReceived()) \
+              while(!ackReceived()) \
+                checkReset(); \
     } while(0)
   for(i = 0; i <= count - 16; i += 16) {
     ACSI_SEND_BYTE(0);
@@ -455,7 +496,8 @@ void DmaPort::sendDma(const uint8_t *bytes, int count) {
   while(i < count) {
     writeData(*bytes); // Put data on the bus
     triggerDrq(); // Trigger DRQ
-    while(!ackReceived()); // Wait for ACK
+    while(!ackReceived()) // Wait for ACK
+      checkReset();
     ++i;
     ++bytes;
   }
@@ -479,15 +521,25 @@ void DmaPort::setupGpio() {
 
 void DmaPort::setupResetTimer() {
 #if ACSI_HAS_RESET
+  // Reset values so CCR1 and CCMR1 can be written to.
   RESET_TIMER->CCER = 0;
   RESET_TIMER->CCMR1 = 0;
+
+  // Set the capture & compare register to 1
   RESET_TIMER->CCR1 = 1;
+
+  // Capture on TI1 (remapped to PA15)
   RESET_TIMER->CCMR1 = TIMER_CCMR1_CC1S_INPUT_TI1;
+
+  // Lock counter to 0
   RESET_TIMER->ARR = 1;
-  RESET_TIMER->DIER = 0;
   RESET_TIMER->CNT = 0;
+
+  // On PA15 falling edge, capture counter (0) to CCR1
   RESET_TIMER->CCER = TIMER_CCER_CC1E | TIMER_CCER_CC1P;
-  RESET_TIMER->EGR |= TIMER_EGR_UG; // Update the timer
+
+  // Update and enable the timer
+  RESET_TIMER->EGR |= TIMER_EGR_UG;
   RESET_TIMER->CR1 |= TIMER_CR1_CEN;
 #endif
 }
@@ -745,6 +797,18 @@ uint8_t DmaPort::dmaData() {
 
 bool DmaPort::ackReceived() {
   return DMA_TIMER->CNT;
+}
+
+void DmaPort::disableAckFilter() {
+  DMA_TIMER->SMCR = TIMER_SMCR_ETP | TIMER_SMCR_TS_ETRF | TIMER_SMCR_SMS_EXTERNAL;
+}
+
+void DmaPort::enableAckFilter() {
+  DMA_TIMER->SMCR = 
+#if ACSI_ACK_FILTER
+    ((ACSI_ACK_FILTER) << 8) |
+#endif
+    TIMER_SMCR_ETP | TIMER_SMCR_TS_ETRF | TIMER_SMCR_SMS_EXTERNAL;
 }
 
 void DmaPort::acquireDataBus() {
