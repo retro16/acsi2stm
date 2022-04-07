@@ -1,33 +1,6 @@
 Compiling and installing a new firmware
 =======================================
 
-Hardware needed
----------------
-
- * A STM32F103C8T6 or compatible board. You can find them for a few dollars online. The "blue pill" works out of the box and the
-   older "black pill" requires minor modifications.
- * A USB-serial dongle for programming the STM32 chip, with a 3.3V USART.
- * One or more SD card port(s) for your STM32. You can also solder wires on a SD to microSD adapter.
- * One or more SD card(s).
- * A male DB19 port (you can modify a DB25 port to fit) with a ribbon cable.
- * (recommended) A protoboard PCB to solder all the components and wires together.
- * Do *NOT* connect USB data lines on the STM32. Use the +5V or +3.3V pin to power it if you are unsure.
-
-**Notes**
-
-Some people reported problems with STM32 clones. I have many variants of the blue pill STM32, all of them work exactly the same.
-Variants I had and that worked: round and rectangle reset buttons, some chips marked STM32F / 103 and other marked STM32 / F103.
-If anyone has concrete proof of misbehaving clones and information on how to spot them, feel free to contact me or create an issue
-on GitHub to let people know about that.
-
-Since 2.40, the internal DMA was fixed to avoid relying on timing, but check the actual DMA flags. This has fixed many issues on
-some newer clones I bought more recently.
-
-Please provide feedback if you are trying to make this work with the new STM32F4x1 "black pill" boards. The best configuration is
-to have a working blue pill so results can be compared by switching the boards. Porting efforts will be high, the F4xx has a
-totally different way of handling DMA.
-
-
 Software needed
 ---------------
 
@@ -120,10 +93,50 @@ installed. This regenerates header files in the acsi2stm folder for boot overlay
 The script is meant to run in bash under Linux. It may or may not run under cygwin, git bash or macos (untested).
 
 
+ASM code compile-time options
+-----------------------------
+
+The file *asm/acsi2stm.i* contains compile-time options. For these to take effect, you need to rebuild both the ASM code and the
+Arduino code.
+
+Settings that can be changed:
+
+ * maxsecsize: Maximum sector size for FAT partitions.
+
+
+Building the tools for your platform
+------------------------------------
+
+**Note:** Before building the tools, you need to rebuild the ASM code.
+
+The build_tools.sh script will try to compile C code for your platform using one of the following commands:
+
+ * The command set in your CC environment variable
+ * cc
+ * gcc
+ * clang
+
+Binaries are compiled into the *bin* subdirectory.
+
+
+Building the Windows EXE tools
+------------------------------
+
+The build_tools.sh script requires [mingw-w64](https://www.mingw-w64.org/) to build.
+
+One of the following C compiler commands must be in your PATH:
+
+ * i686-w64-mingw32-cc
+ * x86_64-w64-mingw32-cc
+
+You can define the WINCC environment variable if you wish to build with another compiler. Any sufficiently modern C compiler should
+work perfectly.
+
+
 Building a release package
 --------------------------
 
-The build_release.sh shell script patches VERSION into STM32 code, calls build_asm.sh, builds the arduino firmware then packages
-everything into a zip file.
+The build_release.sh shell script patches VERSION in all sources, calls build_asm.sh, build_tools.sh, build_arduino.sh, then
+packages everything generated into a zip file.
 
 Arduino must be properly configured through the graphical interface before calling this script. See *Installing software* above.

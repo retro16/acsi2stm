@@ -49,46 +49,39 @@ scan	; Scan devices and partitions, and mount everything
 	move.w	(sp)+,d7
 	rts
 
-getpun	; Compute pun and drive index. Allows using extended pun table
-	; Input:
-	;  d1.w: Drive number (C: = 2, D: = 3, ...)
-	; Output:
-	;  d0.w: Offset in the pun table
-	;  d1.w: Drive number (kept intact)
-	;  a0: Pointer to the pun table
-	;  other registers unmodified
-
-	move.w	d1,d0                   ; d0 = pun offset
-	cmp.w	#16,d0                  ;
-	bge.b	.punext                 ;
-
-	move.l	pun_ptr.w,a0            ; Load the regular pun table
-	rts
-
-.punext	lea	punext(pc),a0           ; Drive number >= 16: use local pun
-	sub.w	#16,d0                  ;
-
-	rts
-
 getpart	; Query the ACSI id and partition offset from pun
 	; Input:
 	;  d1.w: Drive number (C: = 2, D: = 3, ...)
 	; Output:
+	;  d0.b: Sector size shift (0 = 512, 1 = 1024, 2 = 2048, ...)
 	;  d1.w: Drive number (kept intact)
 	;  d2.l: Partition offset
 	;  d7.b: ACSI id or $ff if failed
 
-	bsr.b	getpun                  ; Load the pun table
+	move.w	d1,d2                   ; d2 = pun offset
+	cmp.w	#16,d2                  ;
+	bge.b	.punext                 ;
 
-	move.b	pun.pun(a0,d0),d7       ; Read flags
+	move.l	pun_ptr.w,a0            ; Load the regular pun table
+	bra.b	.punok
+
+.punext	lea	punext(pc),a0           ; Drive number >= 16: use local pun
+	sub.w	#16,d2                  ;
+.punok		                        ; a0 = pointer to the pun table
+
+	move.b	pun.pun(a0,d2),d7       ; Read flags
 
 	btst	#7,d7                   ; Bit 7 = Not managed
 	bne.b	.nodrv                  ;
 
 	lsl.b	#5,d7                   ; Convert to ACSI id
 
-	lsl.w	#2,d0                   ; Load partition start sector
-	move.l	pun.part_start(a0,d0),d2;
+	ifgt	maxsecsize-$200
+	move.b	pun.reserved(a0,d2),d0  ; Load sector size shift
+	endif
+
+	lsl.w	#2,d2                   ; Load partition start sector
+	move.l	pun.part_start(a0,d2),d2;
 
 	rts
 
@@ -188,8 +181,13 @@ mntdev	; Mount a block device or a partition
 	beq.b	.nfat                   ;
 	; The device is a FAT partition. Mount it
 	moveq	#-1,d1                  ; Choose the next available drive
-	bsr.w	setdrv                  ; Associate to the drive letter
-	bra.b	.end
+
+	ifgt	maxsecsize-$200
+	move.b	fat.bps+1(a0),d2        ; Read sector size
+	lsl.w	#8,d2                   ;
+	endif
+
+	bra.w	setdrv                  ; Mount the FAT partition
 .nfat
 
 	lea	bss+buf(pc),a0          ;
@@ -198,7 +196,7 @@ mntdev	; Mount a block device or a partition
 	beq.w	.nmbr                   ;
 	; The device is a MBR partition table. Iterate its partitions.
 	lea	bss+buf(pc),a0          ;
-	bsr.w	mntmbr
+	bra.w	mntmbr
 .nmbr
 
 .end	rts
@@ -231,7 +229,7 @@ mntmbr	; Mount all partitions in a MBR partition table.
 	move.l	d2,(a1)+                ; Store on the stack
 
 	move.l	mpart.size(a0),d0       ; Read partition size
-	rol.w	#8,d0                   ;
+	rol.w	#8,d0                   ; FIXME: skip this with extended part
 	swap	d0                      ;
 	rol.w	#8,d0                   ;
 	move.l	d0,(a1)+                ; Store on the stack
@@ -258,6 +256,7 @@ mntmbr	; Mount all partitions in a MBR partition table.
 setdrv	; Associate a partition to a mounted drive letter
 	; Input:
 	;  d1.w: Drive letter or -1 for dynamic allocation
+	;  d2.w: Sector size (only if maxsecsize > 512)
 	;  d5.l: Partition start sector
 	;  d7.b: ACSI id
 	; Output:
@@ -309,6 +308,24 @@ setdrv	; Associate a partition to a mounted drive letter
 	move.b	d0,pun.pun(a2,d1)       ; Set flags
 
 	addq.w	#1,pun.puns(a2)         ; Add one drive
+
+	; Set sector size shift
+
+	ifgt	maxsecsize-$200
+
+	cmp.w	pun.max_sector(a2),d2   ; Update maximum sector size
+	ble.b	.noszup                 ;
+	move.w	d2,pun.max_sector(a2)   ;
+.noszup
+
+	moveq	#-2,d0                  ;
+	lsr.w	#8,d2                   ; Compute bit shift for sector size
+.secsz	addq.b	#1,d0                   ; d0 = 0: 512 bytes sectors
+	lsr.w	#1,d2                   ;      1: 1024 bytes sectors
+	bne.b	.secsz                  ;      2: 2048 bytes sectors
+.sszok	move.b	d0,pun.reserved(a2,d1)  ;      [...]
+
+	endif
 
 	move.w	d1,d0                   ;
 	lsl.w	#2,d0                   ;
@@ -368,7 +385,12 @@ ismbr	; Tries to detect if this is a valid MBR partition table
 	cmp.l	d1,d4                   ; Cannot start outside the device
 	ble.b	.no                     ; XXX not sure if ble is correct
 
-	move.l	mpart.size(a1),d0       ; Read partition size
+	tst.l	d4                      ; Ignore partition size for extended
+	beq.b	.ckpsiz                 ; partition chain entry
+	cmp.w	#3,d2                   ;
+	bne.b	.nxpart                 ;
+
+.ckpsiz	move.l	mpart.size(a1),d0       ; Read partition size
 	beq.b	.no                     ; Cannot be 0 for a defined part
 	rol.w	#8,d0                   ;
 	swap	d0                      ;
@@ -402,10 +424,25 @@ isfatfs	; Detects whether this is a valid FAT boot sector
 	cmp.b	#$f0,fat.media(a0)      ; Check media type
 	blt.w	.no
 
-	tst.b	fat.bps(a0)             ; Check that we have 512 bytes sectors
-	bne.w	.no
-	cmp.b	#2,fat.bps+1(a0)
-	bne.w	.no
+	tst.b	fat.bps(a0)             ; Check sector size is a multiple of 256
+	bne.w	.no                     ;
+	move.b	fat.bps+1(a0),d0        ;
+	cmp.b	#2,d0                   ; Check sector size is >= 512
+
+	ifgt	maxsecsize-$200         ; If sector size limit is > 512
+
+	blt.w	.no                     ;
+	cmp.b	#maxsecsize/$100,d0     ; Check sector size <= maxsecsize
+	bgt.b	.no                     ;
+	subq.b	#1,d0                   ; Check that sector size is a power of 2
+	and.b	fat.bps+1(a0),d0        ;
+	bne.b	.no                     ;
+
+	else	                        ; If sector size limit is 512
+
+	bne.b	.no                     ; Only accept $200
+
+	endif
 
 	move.b	fat.spc(a0),d1          ; Check sectors per cluster
 	beq.w	.no                     ; It can't be 0

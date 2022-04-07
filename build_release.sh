@@ -20,7 +20,7 @@ VERSION=`cat VERSION`
 ./build_tools.sh || exit $?
 
 builddir="$PWD/build.release~"
-zipfile="$PWD/acsi2stm-$VERSION-release.zip"
+zipfile="$PWD/acsi2stm-$VERSION.zip"
 
 rm -rf "$builddir"
 mkdir "$builddir"

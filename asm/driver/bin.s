@@ -19,6 +19,7 @@
 
 	org	0
 
+	incdir	..\
 	incdir	..\inc\
 	include	acsi2stm.i
 	include	tos.i
