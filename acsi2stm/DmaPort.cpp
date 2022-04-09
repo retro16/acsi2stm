@@ -332,6 +332,8 @@ void DmaPort::readDma(uint8_t *bytes, int count) {
   // Disable systick that introduces jitter.
   systick_disable();
 
+  disableAckFilter();
+
   Acsi::verbose("DMA read ");
 
   acquireDrq();
@@ -394,6 +396,8 @@ void DmaPort::sendDma(const uint8_t *bytes, int count) {
 
   // Disable systick that introduces jitter.
   systick_disable();
+
+  enableAckFilter();
 
   acquireDataBus();
   acquireDrq();
@@ -505,6 +509,18 @@ void DmaPort::pullIrq() {
 
 void DmaPort::writeData(uint8_t byte) {
   GPIOB->regs->ODR = ((int)byte) << 8;
+}
+
+void DmaPort::disableAckFilter() {
+  DMA_TIMER->SMCR = TIMER_SMCR_ETP | TIMER_SMCR_TS_ETRF | TIMER_SMCR_SMS_EXTERNAL;
+}
+
+void DmaPort::enableAckFilter() {
+  DMA_TIMER->SMCR = 
+#if ACSI_ACK_FILTER
+    ((ACSI_ACK_FILTER) << 8) |
+#endif
+    TIMER_SMCR_ETP | TIMER_SMCR_TS_ETRF | TIMER_SMCR_SMS_EXTERNAL;
 }
 
 void DmaPort::setupDrqTimer() {

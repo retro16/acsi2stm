@@ -104,6 +104,8 @@ protected:
   static void pullIrq();
   static bool pullDrqUntilAck();
   static void writeData(uint8_t byte);
+  static void disableAckFilter();
+  static void enableAckFilter();
 
   // Device initialization
   static void setupDrqTimer();
