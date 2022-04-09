@@ -17,6 +17,26 @@
 ; ACSI2STM integrated driver
 ; Data structures
 
+; tpart: TOS partition entry
+		rsreset
+tpart.status	rs.b	1   ; $00       ; Status: bit 0 = exists
+			                ;         bit 7 = bootable
+tpart.id	rs.b	3   ; $01       ; Partition type (GEM / BGM / ...)
+tpart.start 	rs.l	1   ; $04       ; Partition offset in 512 bytes sectors
+tpart.size	rs.l	1   ; $08       ; Partition size in 512 bytes sectors
+tpart...	rs.b	0
+
+; ttbl: TOS partition table
+		rsreset
+ttbl.boot	rs.b	440 ; $000      ; Boot code
+		rs.b	10  ; $1b8      ; Legacy fields (ignored by the driver)
+ttbl.nsects	rs.l	1   ; $1c2      ; Hard disk size in sectors
+ttbl.parts	rs.b	tpart... ;$1c6  ; Partition entries
+ttbl.bso	rs.l	1   ; $1f6      ; Bad sector list offset
+ttbl.bsc	rs.l	1   ; $1fa      ; Bad sector count
+ttbl.cksum	rs.w	1   ; $1fe      ; Boot sector offset
+ttbl...		rs.b	0
+
 ; mpart: MBR partition entry
 ; All values are little endian
 		rsreset
@@ -98,7 +118,10 @@ pun.p_cookie	rs.l	1               ; Must be 'AHDI'
 pun.p_cookptr	rs.l	1               ; Must point to p_cookie
 pun.p_version	rs.w	1               ; AHDI version (>= $0300)
 pun.max_sector	rs.w	1               ; Maximum sector size
-pun.reserved	rs.l	16              ; Reserved
+			                ; Reserved fields:
+pun.size_mb	rs.w	16              ; Size of the partition in MB
+pun.sectorsize	rs.b	16              ; Sector size
+		rs.b	16              ; Reserved
 pun...		rs.b	0
 
 ; Buffer Control Block

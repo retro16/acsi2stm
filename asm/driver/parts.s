@@ -77,7 +77,7 @@ getpart	; Query the ACSI id and partition offset from pun
 	lsl.b	#5,d7                   ; Convert to ACSI id
 
 	ifgt	maxsecsize-$200
-	move.b	pun.reserved(a0,d2),d0  ; Load sector size shift
+	move.b	pun.sectorsize(a0,d2),d0; Load sector size shift
 	endif
 
 	lsl.w	#2,d2                   ; Load partition start sector
@@ -123,7 +123,7 @@ mount	; Mount ACSI device
 	lea	punext(pc),a0           ; Remove the device from the ext pun
 	bsr.w	.unpun                  ;
 
-	movem.l	d4-d5,-(sp)             ; Save extra registers
+	movem.l	d4-d6,-(sp)             ; Save extra registers
 
 	bsr.w	blk.cap                 ; Get device size
 	tst.l	d0                      ;
@@ -131,12 +131,14 @@ mount	; Mount ACSI device
 
 	move.l	d0,d4                   ; d4 = logical drive size
 	moveq	#0,d5                   ; d5 = logical drive offset
+	moveq	#0,d6                   ; d6 = extended partition offset
 
 	bsr.b	mntdev                  ; Detect and mount what's in this device
-	movem.l	(sp)+,d4-d5             ;
+	movem.l	(sp)+,d4-d6             ;
 	rts
 
 .dummy	moveq	#-1,d1                  ;
+	moveq	#0,d4                   ;
 	moveq	#-1,d5                  ; No media: create a dummy drive letter
 	bsr.w	setdrv                  ;
 
@@ -165,8 +167,8 @@ mntdev	; Mount a block device or a partition
 	; Input:
 	;  d4.l: Partition/device size
 	;  d5.l: Partition/device offset
+	;  d6.b: Extended partition offset
 	;  d7.b: ACSI id
-
 	move.l	d5,d2                   ; Read boot sector
 	moveq	#1,d0                   ;
 	lea	bss+buf(pc),a0          ; Read into the local buffer
@@ -198,6 +200,13 @@ mntdev	; Mount a block device or a partition
 	lea	bss+buf(pc),a0          ;
 	bra.w	mntmbr
 .nmbr
+	lea	bss+buf(pc),a0          ;
+	bsr.w	istos                   ; Check if it contains a TOS table
+	tst.l	d0                      ;
+	beq.w	.end                    ;
+	; The device is a TOS partition table. Iterate its partitions.
+	lea	bss+buf(pc),a0          ;
+	bra.w	mnttos
 
 .end	rts
 
@@ -207,39 +216,114 @@ mntmbr	; Mount all partitions in a MBR partition table.
 	; Input:
 	;  d4.l: Partition/device size
 	;  d5.l: Partition/device offset
+	;  d6.l: Extended partition offset
 	;  d7.b: ACSI id
 	;  a0: pointer to the boot sector data
 	; Output:
 	;  nothing
 
-	movem.l	d4-d5,-(sp)             ; Store current partition pointer
+	movem.l	d4-d6,-(sp)             ; Store current partition pointer
+
+	moveq	#3,d1                   ; Partition counter
+
+	lea	-12*4(sp),sp            ; Store partition pointers on the stack
+	lea	(sp),a1                 ;
+
+	lea	mtbl.parts(a0),a0       ; Point at partition table
+.read	
+	move.l	mpart.size(a0),d0       ; Read partition size
+	rol.w	#8,d0                   ;
+	swap	d0                      ;
+	rol.w	#8,d0                   ;
+	move.l	d0,(a1)+                ; Store on the stack
+
+	move.l	mpart.start(a0),d2      ; Read partition start sector
+	rol.w	#8,d2                   ;
+	swap	d2                      ;
+	rol.w	#8,d2                   ;
+
+	move.b	mpart.type(a0),d0       ; Handle extended partition specially
+	cmp.b	#$5,d0                  ;
+	beq.b	.ext                    ;
+	cmp.b	#$f,d0                  ;
+	beq.b	.ext                    ;
+
+	add.l	d5,d2                   ; Compute the physical offset
+	move.l	d2,(a1)+                ; Store on the stack
+	move.l	d6,(a1)+                ; Propagate d6 as-is
+
+	bra.b	.scnnxt
+
+.ext	move.l	d2,(a1)                 ; Compute physical offset from extended
+	add.l	d6,(a1)+                ; partition LBA
+
+	tst.l	d6                      ;
+	beq.b	.extst                  ; If not starting the extended partition
+	move.l	d6,(a1)+                ; Propagate d6 as-is
+	bra.b	.scnnxt                 ; Else
+.extst	move.l	d2,(a1)+		; Store extended partition LBA
+
+.scnnxt	lea	mpart...(a0),a0         ; Point at the next partition
+	dbra	d1,.read                ;
+
+	; Try to mount the 4 partitions
+
+	moveq	#3,d1                   ; Partition counter
+
+.mnt	
+	movem.l	(sp)+,d4-d6             ; Read partition offset
+		                        ; Read extended partition offset
+		                        ; Read partition size
+	move.w	d1,-(sp)                ;
+	tst.l	d4                      ;
+	beq.b	.next                   ; Size == 0: not defined
+
+	; Mount a primary partition
+	bsr.w	mntdev                  ; Mount whatever we detect in it
+
+.next	move.w	(sp)+,d1                ;
+	dbra	d1,.mnt                 ;
+
+	movem.l	(sp)+,d4-d6             ; Restore current partition pointer
+
+	rts
+
+mnttos	; Mount all partitions in a TOS partition table.
+	; istos must have been called before to check data format.
+	; Input:
+	;  d4.l: Partition/device size
+	;  d5.l: Partition/device offset
+	;  d7.b: ACSI id
+	;  a0: pointer to the boot sector data
+	; Output:
+	;  nothing
+
+	movem.l	d4-d6,-(sp)             ; Store current partition pointer
 
 	moveq	#3,d1                   ; Partition counter
 
 	lea	-4*2*4(sp),sp           ; Store partition pointers on the stack
 	lea	(sp),a1                 ;
 
-	lea	mtbl.parts(a0),a0       ; Point at partition table
+	lea	ttbl.parts(a0),a0       ; Point at partition table
 
-.read	move.l	mpart.start(a0),d2      ; Read partition start sector
-	rol.w	#8,d2                   ;
-	swap	d2                      ;
-	rol.w	#8,d2                   ;
-	add.l	d5,d2                   ; Compute the physical offset
-	move.l	d2,(a1)+                ; Store on the stack
+.read	move.l	(a0)+,d0
 
-	move.l	mpart.size(a0),d0       ; Read partition size
-	rol.w	#8,d0                   ; FIXME: skip this with extended part
-	swap	d0                      ;
-	rol.w	#8,d0                   ;
-	move.l	d0,(a1)+                ; Store on the stack
+	btst	#24,d0                  ; Check if the partition is present
+	beq.b	.ignore                 ;
 
-	lea	mpart...(a0),a0         ; Point at the next partition
+	move.l	(a0)+,(a1)+             ; Push the partition offset
+	move.l	(a0)+,(a1)+             ; Push the partition size
+
+	bra.b	.scannx
+
+.ignore	addq.l	#8,a0                   ;
+	addq.l	#4,a1                   ; Mark the partition as ignored
+	clr.l	(a1)+                   ; (size = 0)
+.scannx
 	dbra	d1,.read                ;
 
-	; Try to mount the 4 partitions
-
-	moveq	#3,d1                   ; Partition counter
+	moveq	#3,d1
 
 .mnt	move.l	(sp)+,d5                ; Read partition offset
 	move.l	(sp)+,d4                ; Read partition size
@@ -247,9 +331,9 @@ mntmbr	; Mount all partitions in a MBR partition table.
 	move.w	d1,-(sp)                ;
 	bsr.w	mntdev                  ; Mount whatever we detect in it
 	move.w	(sp)+,d1                ;
-.next	dbra	d1,.mnt                 ;
+.next	dbra	d1,.mnt
 
-	movem.l	(sp)+,d4-d5             ; Restore current partition pointer
+	movem.l	(sp)+,d4-d6             ; Restore current partition pointer
 
 	rts
 
@@ -257,6 +341,7 @@ setdrv	; Associate a partition to a mounted drive letter
 	; Input:
 	;  d1.w: Drive letter or -1 for dynamic allocation
 	;  d2.w: Sector size (only if maxsecsize > 512)
+	;  d4.l: Partition size
 	;  d5.l: Partition start sector
 	;  d7.b: ACSI id
 	; Output:
@@ -301,6 +386,10 @@ setdrv	; Associate a partition to a mounted drive letter
 	lea	mchmask(pc),a0          ;
 	or.l	d0,(a0)                 ;
 
+	; Allow media check immediately
+	lea	mchnext(pc),a0          ;
+	move.l	hz200.w,(a0)            ;
+
 	; Update pun
 	move.b	d7,d0                   ; ACSI id
 	rol.b	#3,d0                   ;
@@ -323,12 +412,21 @@ setdrv	; Associate a partition to a mounted drive letter
 .secsz	addq.b	#1,d0                   ; d0 = 0: 512 bytes sectors
 	lsr.w	#1,d2                   ;      1: 1024 bytes sectors
 	bne.b	.secsz                  ;      2: 2048 bytes sectors
-.sszok	move.b	d0,pun.reserved(a2,d1)  ;      [...]
+.sszok	move.b	d0,pun.sectorsize(a2,d1);      [...]
 
 	endif
 
 	move.w	d1,d0                   ;
-	lsl.w	#2,d0                   ;
+	lsl.w	#1,d0                   ;
+
+	move.l	d4,d2                   ; Compute partition size in MB
+	lsr.l	#1,d2                   ;
+	add.l	#1023,d2                ;
+	lsr.l	#8,d2                   ;
+	lsr.l	#2,d2                   ;
+	move.w	d2,pun.size_mb(a2,d0)   ;
+
+	lsl.w	#1,d0                   ;
 	move.l	d5,pun.part_start(a2,d0); Set partition offset
 
 	rts
@@ -360,7 +458,12 @@ ismbr	; Tries to detect if this is a valid MBR partition table
 	bra.w	.no                     ; No partition !
 .nempty
 
+	tst.l	d6
+	bne.b	.in_ext
 	moveq	#3,d2                   ; d2 = partition iterator counter
+	bra.b	.it_set                 ;
+.in_ext	moveq	#0,d2                   ;
+.it_set
 	lea	mtbl.parts(a0),a1       ; a1 = partition entry address
 
 	; Check if this partition entry makes sense
@@ -385,11 +488,6 @@ ismbr	; Tries to detect if this is a valid MBR partition table
 	cmp.l	d1,d4                   ; Cannot start outside the device
 	ble.b	.no                     ; XXX not sure if ble is correct
 
-	tst.l	d4                      ; Ignore partition size for extended
-	beq.b	.ckpsiz                 ; partition chain entry
-	cmp.w	#3,d2                   ;
-	bne.b	.nxpart                 ;
-
 .ckpsiz	move.l	mpart.size(a1),d0       ; Read partition size
 	beq.b	.no                     ; Cannot be 0 for a defined part
 	rol.w	#8,d0                   ;
@@ -405,6 +503,52 @@ ismbr	; Tries to detect if this is a valid MBR partition table
 	dbra	d2,.ckpart              ;
 
 	; This is a valid MBR. Return the size in d0.
+	move.l	d4,d0
+	rts
+
+.no	moveq	#0,d0
+	rts
+
+istos	; Tries to detect if this is a valid TOS partition table
+	; There is no real clear 100% foolproof way to do that
+	; Some heuristics will be applied.
+	; Input:
+	;  d4.l: Partition/device size
+	;  d5.l: Partition/device offset
+	;  a0: pointer to the boot sector data
+	; Output:
+	;  d0.l: Device capacity if it is a valid TOS table, 0 otherwise
+
+	cmp.l	ttbl.nsects(a0),d4      ; Check disk size
+	blt.b	.no                     ; Partition table bigger than the disk !
+
+	moveq	#3,d2                   ; d2 = partition iterator counter
+	lea	ttbl.parts(a0),a1       ; a1 = partition entry
+
+.ckpart	lea	(a1),a2                 ; a2 = moving pointer
+	btst	#0,(a2)+                ; Check that the partition exists
+	beq.b	.nxpart                 ;
+
+	moveq	#2,d0                   ; Check that partition type is made of
+.nxtchr	cmp.b	#'A',(a2)               ; 3 upper-case letters
+	blt.b	.no                     ;
+	cmp.b	#'Z',(a2)+              ;
+	bgt.b	.no                     ;
+	dbra	d0,.nxtchr              ;
+
+	move.l	(a2)+,d0                ; d0 = partition offset
+
+	cmp.l	d0,d4                   ; Check that it starts inside the disk
+	blt.b	.no                     ;
+
+	add.l	(a2)+,d0                ; Check that it ends inside the disk
+	cmp.l	d0,d4                   ;
+	blt.b	.no                     ;
+
+.nxpart	lea	tpart...(a1),a1         ; Point at next partition entry
+	dbra	d2,.ckpart              ;
+
+	; This is a valid TOS partition. Return the size in d0.
 	move.l	d4,d0
 	rts
 

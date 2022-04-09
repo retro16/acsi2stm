@@ -1,4 +1,10 @@
-Version 3.0a: **EXPERIMENTAL BRANCH WITH INTEGRATED DRIVER**
+Version 3: **EXPERIMENTAL BRANCH WITH INTEGRATED DRIVER**
+
+**Incoming pinout change** : SD card write lock logic may be inverted in 3.x. (PB0, PB1 and PB3-5)
+
+Meaning: GND means read-write, floating pin means read-only and VCC still means disabled. #define will allow tuning all that.
+
+For production, use the stable 2.4 release.
 
 ACSI2STM: Atari ST ACSI hard drive emulator
 ===========================================
