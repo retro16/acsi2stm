@@ -19,6 +19,7 @@
 
 ; bss: Global uninitialized variables structure
 		rsreset
+mchnext		rs.l	1               ; hz200 value of the next disk query
 sdcount		rs.w	1               ; SD card slot count
 bpb             rs.b	bpb...          ; Bios Parameter Block
 buf...		equ	$200            ; Boot sector buffer size

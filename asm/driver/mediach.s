@@ -49,6 +49,10 @@ mediach.dev	rs.w	1
 	hkchain	mediach
 
 .mountd
+	move.l	mchnext(pc),d0          ; Anti-spam filter
+	cmp.l	hz200.w,d0              ;
+	bgt.b	.nmch                   ;
+
 	cmp.l	#$ffffffff,d2           ; Test if no medium
 	bne.b	.hasmed                 ;
 
@@ -58,7 +62,12 @@ mediach.dev	rs.w	1
 	move.w	(sp)+,d7
 	rts
 
-.hasmed	bsr.w	blk.tst
+.hasmed	
+	lea	mchnext(pc),a0          ; Don't refresh immediately
+	move.l	hz200.l,(a0)            ;
+	add.l	#mchtimeout,(a0)        ;
+
+	bsr.w	blk.tst                 ; Check media with "test unit ready"
 
 	cmp.l	#$2806,d0               ; Check for media changed
 	bne.b	.nmch                   ;

@@ -17,4 +17,10 @@
 ; ACSI2STM integrated driver
 ; Shared read-only data
 
+text.init	dc.b	'Driver init',13,10,0
+text.scan	dc.b	'Scan for drives',13,10,13,10,0
+text.started	dc.b	13,10,'Driver started',13,10,13,10,0
+
+prtpart.none	dc.b	7,'No partition detected',13,10,0
+
 ; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm

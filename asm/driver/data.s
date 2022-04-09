@@ -80,8 +80,15 @@ punext	dc.w	0			; pun.puns
 	dc.w	$0200                   ; Maximum sector size
 	ds.l	16                      ; Reserved (used for sector sizes)
 
-	; Masks
-mchmask	dc.l	0                       ; Media change mask
-devmask	ds.w	0                       ; Present ACSI devices mask
+		; Partition printout strings
+		even
+prtpart.txt1	dc.b	'  '
+prtpart.drv	dc.b	'C: SD'
+prtpart.sd	dc.b	'? ',0
+prtpart.end	dc.b	'M',13,10,0
+
+		; Masks
+mchmask		dc.l	0               ; Media change mask
+devmask		dc.w	0               ; Present ACSI devices mask
 
 ; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm

@@ -16,13 +16,8 @@
 
 
 drvinit	; Driver initialization
-
-	prints	'Driver initialization',13,10
-
-.ack	move.l	#5,d1
-.doack	add.l	hz200.w,d1              ;
-.await	cmp.l	hz200.w,d1              ; Test timeout
-	beq.b	.await                  ;
+	pea	text.init(pc)
+	gemdos	Cconws,6
 
 	; Initialize the pun_info structure
 	lea	pun(pc),a0              ; a0 = local pun table
@@ -85,11 +80,10 @@ drvinit	; Driver initialization
 	hkinst	rwabs                   ; Install hooks
 	hkinst	mediach                 ;
 
-	prints	'Scan for drives',13,10
+	pea	text.scan(pc)
+	gemdos	Cconws,6
 
 	bsr.w	scan                    ; Scan devices and mount them
-	
-	prints	'Driver loaded',13,10   ; Signal that everything is okay
 
 	; Set boot drive
 
@@ -108,6 +102,11 @@ drvinit	; Driver initialization
 	gemdos	Dsetpath,12             ;
 
 .nobdrv
+	; Display partitions
+	bsr.w	prtpart
+
+	pea	text.started(pc)
+	gemdos	Cconws,6
 
 	move.b	#$e0,d7                 ; Don't boot other drives
 	rts

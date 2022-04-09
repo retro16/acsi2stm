@@ -35,6 +35,10 @@ boot
 	even
 	include	parts.s
 	even
+	include	prtpart.s
+	even
+	include	print.s
+	even
 	include	blkdev.s
 	even
 	include	acsicmd.s

@@ -425,6 +425,19 @@ void Acsi::process(uint8_t cmd) {
       return;
     }
 #endif
+    if(memcmp(&cmdBuf[1], "A2STFmtCd", 9) == 0) {
+      dbg("ACSI2STM format SD card\n");
+      ExFatFormatter exFatFormatter;
+      FatFormatter fatFormatter;
+      bool worked = card.blocks > 67108864 ?
+        exFatFormatter.format(&card.card, buf):
+        fatFormatter.format(&card.card, buf);
+      if(worked)
+        commandStatus(ERR_OK);
+      else
+        commandStatus(ERR_WRITEERR);
+      return;
+    }
     if(memcmp(&cmdBuf[1], "A2STCmdTs", 9) == 0) {
       dbg("ACSI2STM command test\n");
       commandStatus(ERR_OK);
@@ -845,42 +858,11 @@ Acsi::ScsiErr Acsi::processBlockWrite(uint32_t block, int count, BlockDev *dev) 
     DmaPort::readDma(buf, ACSI_BLOCKSIZE * burst);
 
 #if ACSI_BOOT_OVERLAY && !ACSI_STRICT
-  if(!strict && block == 0 && s == 0) {
-    dbg("WARNING: Write to boot sector\n");
+    if(!strict && block == 0 && s == 0) {
+      dbg("WARNING: Write to boot sector\n");
 
-    // Check that we don't rewrite the overlay by accident !
-    if(memcmp(&buf[0x70], "ACSI2STM OVERLAY", 16) == 0) {
-      if(dev->readStart(0)) {
-        Acsi::verbose("Attempting to write the overlay, fetching the old boot code\n");
-
-        // Save the new FAT header and partition table
-        uint8_t fatHeader[0x58];
-        uint8_t partTable[ACSI_BLOCKSIZE - 440];
-        memcpy(fatHeader, &buf[2], sizeof(fatHeader));
-        memcpy(partTable, &buf[440], sizeof(partTable));
-
-        // Read the old boot sector
-        if(dev->readData(buf, 1)) {
-          // Patch in the new FAT header and partition table to the old boot sector
-          memcpy(&buf[2], fatHeader, sizeof(fatHeader));
-          memcpy(&buf[440], partTable, sizeof(partTable));
-          if(dev->bootable) {
-            if(computeChecksum(buf) != 0x1234) {
-              if(buf[510] == 0x55 && buf[511] == 0xaa) {
-                // Try to patch in the checksum at offset 438 (risky, but whatever ...)
-                Acsi::dbg("WARNING: Patching old MS-DOS boot sector checksum blindly.\n");
-                patchBootSector(buf, 438);
-              } else {
-                patchBootSector(buf, 510);
-              }
-            }
-          }
-        }
-
-        dev->readStop();
-      }
+      fixOverlayWrite(dev);
     }
-  }
 #endif
 
     if(!dev->writeData(buf, burst)) {
@@ -1007,6 +989,41 @@ Acsi::ScsiErr Acsi::processBootOverlay(BlockDev *dev) {
   dev->readStop();
 
   return ERR_OK;
+}
+
+void Acsi::fixOverlayWrite(BlockDev *dev) {
+  // Check that we don't rewrite the overlay by accident !
+  if(memcmp(&buf[0x70], "ACSI2STM OVERLAY", 16) == 0) {
+    if(dev->readStart(0)) {
+      Acsi::verbose("Attempting to write the overlay, fetching the old boot code\n");
+
+      // Save the new FAT header and partition table
+      uint8_t fatHeader[0x58];
+      uint8_t partTable[ACSI_BLOCKSIZE - 440];
+      memcpy(fatHeader, &buf[2], sizeof(fatHeader));
+      memcpy(partTable, &buf[440], sizeof(partTable));
+
+      // Read the old boot sector
+      if(dev->readData(buf, 1)) {
+        // Patch in the new FAT header and partition table to the old boot sector
+        memcpy(&buf[2], fatHeader, sizeof(fatHeader));
+        memcpy(&buf[440], partTable, sizeof(partTable));
+        if(dev->bootable) {
+          if(computeChecksum(buf) != 0x1234) {
+            if(buf[510] == 0x55 && buf[511] == 0xaa) {
+              // Try to patch in the checksum at offset 438 (risky, but whatever ...)
+              Acsi::dbg("WARNING: Patching old MS-DOS boot sector checksum blindly.\n");
+              patchBootSector(buf, 438);
+            } else {
+              patchBootSector(buf, 510);
+            }
+          }
+        }
+      }
+
+      dev->readStop();
+    }
+  }
 }
 #endif
 

@@ -114,6 +114,10 @@ public:
 #if ACSI_BOOT_OVERLAY && !ACSI_STRICT
   // Overlay the device's boot sector with a small boot program.
   ScsiErr processBootOverlay(BlockDev *dev);
+
+  // Check if the overlay is going to be written.
+  // If that's the case: fix that by restoring the old code in the boot sector
+  void fixOverlayWrite(BlockDev *dev);
 #endif
 
   // Maximum number of LUNs

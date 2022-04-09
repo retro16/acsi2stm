@@ -49,6 +49,10 @@ getbpb.dev	rs.w	1
 	bclr	d1,d0                   ;
 	move.l	d0,(a0)                 ;
 
+	lea	mchnext(pc),a0          ; Don't refresh immediately
+	move.l	hz200.l,(a0)            ;
+	add.l	#mchtimeout,(a0)        ;
+
 	lea	bss+buf(pc),a0          ; Read partition header
 	move.l	a0,d1                   ;
 	moveq	#1,d0                   ;
@@ -56,7 +60,8 @@ getbpb.dev	rs.w	1
 
 	tst.b	d0                      ; Check for error
 	beq.b	.nerr                   ;
-	moveq	#0,d0                   ;
+
+	moveq	#0,d0                   ; Error: no BPB
 	rts
 .nerr
 	; Compute BPB (code inspired from emuTOS)
@@ -64,7 +69,8 @@ getbpb.dev	rs.w	1
 	lea	bss+bpb(pc),a1          ; a1 = BPB address
 
 	ifgt	maxsecsize-$200
-	move.b	fat.bps+1(a0),(a1)+     ; bpb.recsiz
+	move.b	fat.bps+1(a0),d1        ; d1.b = logical sector size / 256
+	move.b	d1,(a1)+                ; bpb.recsiz
 	clr.b	(a1)+                   ;
 	else
 	move.w	#$200,(a1)+             ; bpb.recsiz = 512
@@ -86,12 +92,20 @@ getbpb.dev	rs.w	1
 
 	moveq	#0,d0                   ; Clear d0 MSB
 
-	move.b	fat.ndirs+1(a0),d0      ;
-	lsl.w	#8,d0                   ;
+	move.b	fat.ndirs+1(a0),d0      ; d0 = bpb.rdlen = (fat.ndirs + 15) / 16
+	lsl.w	#8,d0                   ;                  / (fat.bps / 512)
 	move.b	fat.ndirs(a0),d0        ;
 	add.w	#$f,d0                  ;
 	lsr.w	#4,d0                   ;
-	move.w	d0,(a1)+                ; d0 = bpb.rdlen = (fat.ndirs + 15) / 16
+	ifgt	maxsecsize-$200         ;
+	lsr.b	#1,d1                   ;
+.rdldiv	lsr.b	#1,d1                   ; rdlen is in logical sectors
+	beq.b	.rdlok                  ;
+	lsr.w	#1,d0                   ;
+	bra.b	.rdldiv                 ;
+.rdlok                                  ;
+	endif                           ;
+	move.w	d0,(a1)+                ; 
 
 	move.w	fat.spf(a0),d1          ;
 	rol.w	#8,d1                   ;
@@ -130,14 +144,18 @@ getbpb.dev	rs.w	1
 .numcl
 	move.w	d1,(a1)+                ; bpb.numcl
 
-	cmp.w	#4084,d1                ; A FAT with more than 4084 clusters
-	blt.b	.fat12                  ; is FAT16.
-	move.w	#1,(a1)+                ;
+	cmp.l	#'ICDI',2(a0)           ; ICD always formats as FAT16, breaking
+	bne.b	.nicd                   ; FAT12 autodetection.
+	cmp.w	#'NC',6(a0)             ;
+	beq.b	.fat16                  ;
+
+.nicd	cmp.w	#4084,d1                ; A FAT with more than 4084 clusters
+	ble.b	.fat12                  ; is FAT16.
+.fat16	move.w	#1,(a1)+                ;
 	bra.b	.bpbok                  ;
 .fat12	clr.w	(a1)+                   ; bpb.bflags
 .bpbok
 	lea	bss+bpb(pc),a0          ; a0 = BPB address
- move.l	#$badc0de,d0
 	move.l	a0,d0                   ; Return BPB address
 	move.w	(sp)+,d7                ; Restore d7
 	rts
