@@ -1,6 +1,6 @@
 
 
-ACSI2STM SD bridge v2.40
+ACSI2STM SD bridge v2.43
 
 Initializing SD0 ... (fs ok) (rw) (36MHz 62529536 blocks) success
 Searching image /acsi2stm/hd0.img ... opened read-only
@@ -418,12 +418,12 @@ Success
 [#0]
 [0:1F][<20][<55][<53][<43][<75][<72][<6E][<74][<46][<57](10 bytes)
 UltraSatan:firmware version query
-DMA send (16 bytes): 41 43 53 49 32 53 54 4D 20 32 2E 34 30 D A 0 OK
+DMA send (16 bytes): 41 43 53 49 32 53 54 4D 20 32 2E 34 33 D A 0 OK
 Success
 [#0]
 [0:1F][<20][<55][<53][<52][<64][<43][<6C][<52][<54][<43](10 bytes)
 UltraSatan:clock read
-DMA send (16 bytes): 52 54 43 E2 1 1 2 1C 2C 0 16 82 5F 46 69 6C OK
+DMA send (16 bytes): 52 54 43 E2 1 1 13 37 2F 0 16 82 5F 46 69 6C OK
 Success
 [#0]
 [0:8][<0][<0][<F4][<1][<0](6 bytes)
@@ -747,4 +747,3 @@ Read 1 blocks from 651 on 0,0
 DMA send (512 bytes): D8 1 58 88 8 E 6 12 8 C 6 12 8 A 6 14 1 2 5E 4E 1 E4 BC E2 1 78 [...] OK
 Success
 [#0]
-
