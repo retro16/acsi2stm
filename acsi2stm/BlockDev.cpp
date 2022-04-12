@@ -123,7 +123,13 @@ bool SdDev::reset() {
       Acsi::verbose("(fs ok) ");
 
     // Get writable pin status
+#if !ACSI_SD_WRITE_LOCK
+    writable = true;
+#elif ACSI_SD_WRITE_LOCK == 1
     writable = digitalRead(wpPin);
+#elif ACSI_SD_WRITE_LOCK == 2
+    writable = !digitalRead(wpPin);
+#endif
     Acsi::verbose(writable ? "(rw) ": "(ro) ");
 
     // Check if bootable
