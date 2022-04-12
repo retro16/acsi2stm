@@ -22,7 +22,7 @@
 
 // acsi2stm global configuration
 
-#define ACSI2STM_VERSION "2.43"
+#define ACSI2STM_VERSION "2.44"
 
 // Set to 1 to enable debug output on the serial port
 #define ACSI_DEBUG 0
@@ -64,6 +64,17 @@
 // The driver automatically downgrades to a slower speed on each retry.
 #define ACSI_SD_MAX_SPEED 36
 
+// SD card write lock pin behavior (PB0, PB1 and PB3-PB5).
+// In every case, soldering these pins to VCC (+3.3V) will disable the SD card
+// and free the corresponding ACSI id on the bus.
+//
+// This #define indicates how the pin behaves when connected to the SD card
+// reader's "write lock" pin.
+// If set to 0: the pin is completely ignored, the SD card is always writable
+// If set to 1: the pin is floating when read-write, tied to GND when read-only
+// If set to 2: the pin is tied to GND when read-write, floating when read-only
+#define ACSI_SD_WRITE_LOCK 1
+
 // Data buffer size in 512 bytes blocks
 #define ACSI_BLOCKS 8
 
@@ -73,7 +84,7 @@
 // Filter/delay data acquisition on ACK pulse.
 // Set this to 1 to sample 13.8ns later
 // Set this to 2 to sample 41.6ns later
-// Only impacts DMA transfers
+// Only impacts STM->ST DMA transfers
 #define ACSI_ACK_FILTER 2
 
 // Filter/delay data acquisition on CS pulse.
@@ -83,7 +94,7 @@
 // Only impacts command transfers
 #define ACSI_CS_FILTER 0
 
-// Push data faster in DMA reads (STM32 -> ST)
+// Push data faster in DMA transfers
 // Setting to 1 unrolls the DMA transfer code but may be less compatible
 // with some ST DMA controllers.
 #define ACSI_FAST_DMA 1
