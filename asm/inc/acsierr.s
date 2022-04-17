@@ -61,4 +61,4 @@ acsierr	; Converts an ACSI ASCQ/ASC/Sense error code to a TOS error code
 	moveq	#ERR,d0
 	rts
 
-; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm
+; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm tw=80

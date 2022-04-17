@@ -15,7 +15,12 @@
 ; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ; ACSI2STM boot sector when no SD card is inserted.
-; Does a quick DMA buffer check and displays a message.
+; Displays a message and waits 1 second to allow entering setup.
+;
+; Program format:
+;  $00-$03: 'A2ST' signature
+;  $04-$07: memory allocation size
+;      $08: entry point
 
 	org	0
 
@@ -25,99 +30,100 @@
 	include	tos.i
 	include	atari.i
 
-	pea	msg(pc)                 ; Display the header message
-	gemdos	Cconws,6                ;
-
-diag	move.b	d7,d0                   ; Get the acsi id
+nosd
+	move.b	d7,d0                   ; Get the acsi id
 	lea	acsiid(pc),a0           ; Patch acsi id in the text
 	lsr.b	#5,d0                   ;
 	add.b	d0,(a0)                 ; Add acsi id to '0'
 
-	move.l	#$f00f55aa,d0           ; Challenge data integrity
-	bsr.b	fillbuf                 ;
-
-	move.w	#$0101,d0               ; Write 1 block
-	bsr.b	echoop                  ; Do the echo buffer operation
-
-	move.l	#$0ff0aa55,d0           ; Flip all bits in RAM
-	bsr.b	fillbuf                 ;
-
-	lea	acsidta+3(pc),a0        ; Patch acsi command to
-	move.b	#$3c,(a0)               ;  read data buffer
-	moveq	#1,d0                   ; Read 1 block
-	bsr.b	echoop                  ; Do the echo buffer operation
-
-	lea	bss+buf(pc),a0
-	moveq	#127,d0
-.check	cmp.l	#$f00f55aa,(a0)+
-	bne.b	dmaerr
-	dbra	d0,.check
-
-	pea	nocard(pc)              ; Display "No SD card" because that's
-	gemdos	Cconws,6                ; what this sector is all about
-
-	rts	                        ; Return to system
-
-dmaerr	pea	dataerr(pc)
-	bra.b	diagerr
-
-fillbuf	lea	bss+buf(pc),a0
-	moveq	#127,d1
-.copy	move.l	d0,(a0)+
-	dbra	d1,.copy
-	rts
-
-echoop	lea	bss+buf(pc),a0          ; DMA from/to echo buffer
-	move.l	a0,d1                   ;
-	lea	acsidta(pc),a0          ; ACSI data buffer command
-	bsr.w	acsicmd                 ;
-
-	tst.b	d0                      ; Check for acsi error
-	bne.b	dcmderr                 ; Display "Error"
-
-	rts
-
-dcmderr	
-	addq	#4,sp                   ; Don't return from echoop
-	pea	cmderr(pc)              ; Print "Error"
-diagerr	pea	sdid(pc)                ; Display the SD card id
+	pea	msg.nosd(pc)            ; Display the header message
 	gemdos	Cconws,6                ;
-	gemdos	Cconws,6                ; Print the error message
 
-waitkey	gemdos	Cconin,2                ; Wait for a key and return to system
-        rts
+	move.l	d3,-(sp)                ; d3 = hz200 + 2 second
+	move.l	hz200.w,d3              ;
+	add.l	#400,d3                 ;
 
-	include	acsicmd.s
+.wait	gemdos	Cconis,2                ; Check if a key is pressed
+	tst.b	d0                      ;
+	beq.b	.nokey                  ;
 
-msg	a2st_header                     ; Welcome header text
-	dc.b	13,10,0
-nocard	dc.b	'No SD card'            ; "No SD card" message
+	gemdos	Cnecin,2                ;
+	cmp.b	#'S',d0                 ; If Shift+S was pressed
+	beq.w	setup                   ; Run setup
+
+	bra.b	.quit                   ; Else quit right now
+
+.nokey	cmp.l	hz200.w,d3              ; Loop for 1 second
+	bpl.b	.wait                   ;
+
+.quit	move.l	(sp)+,d3                ; Exit to boot
+	rts                             ;
+
+msg.nosd
+	a2st_header                     ; Welcome header text
+	dc.b	13,10
+ 	dc.b	'SD'                    ; "SD0", patched to match the SD id
+acsiid	dc.b	'0: '
+	dc.b	'No SD card',13,10      ; "No SD card" message
+	dc.b	'Shift+S to run setup'	;
 	dc.b	13,10
 	dc.b	13,10,0
-dataerr	dc.b	'DMA '                  ; "DMA Error" message
-cmderr	dc.b	'Error'                 ; "Error" message
-	dc.b	7,13,10
-crlf	dc.b	13,10,0                 ; A single CRLF
-sdid  	dc.b	'SD'                    ; "SD0", patched to match the SD id
-acsiid	dc.b	'0: ',0
 	even
 
-acsidta	; ACSI data buffer command
-	dc.w	9                       ; 9 intermediate bytes
-	dc.b	$1f                     ; Extended ICD command
-	dc.b	$3b,$02                 ; Write data buffer
-	dc.b	$01,$00,$00,$00         ; Buffer id and offset
-	dc.b    $00,$02,$00             ; 512 bytes
-	dc.b	$00                     ; Control byte
+setup	; Load setup from the STM32 firmware using the single byte command 0x0c
+	; Any kind of error triggers a full reset
+	; Input:
+	;  d7.b: ACSI id
 
-	even
+	pea	-1.w                    ; Allocate all available RAM for setup
+	gemdos	Malloc,6                ;
+	tst.l	d0                      ;
+	beq.b	reset                   ;
 
-	; Uninitialized global data
-	rsreset
-buf...	equ	512                     ; Buffer size
-buf	rs.b	buf...                  ; Main buffer
-bss...	rs.b	0                       ; Total size of BSS
+	move.l	d0,a2                   ; Save program address
 
-bss		                        ; Falls into the globl disk buffer
+	st	flock.w                 ; Lock floppy drive
 
-; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm
+	lea	dmactrl.w,a1
+	move.w	#$190,(a1)              ; Reset DMA
+	move.w	#$90,(a1)               ; Read mode, set DMA length
+
+	; DMA transfer address
+	move.b	d0,dmalow.w             ; Set DMA address low
+	lsr.l	#8,d0                   ;
+	move.b	d0,dmamid.w             ; Set DMA address mid
+	lsr.w	#8,d0                   ;
+	move.b	d0,dmahigh.w            ; Set DMA address high
+
+	move.l	#$00ff0088,dma.w        ; Read 255 blocks. Switch to command.
+
+	move.b	d7,d0                   ; Build command: ACSI id | command
+	or.b	#$0c,d0                 ;
+	swap	d0                      ; Command in data register, then DMA.
+	move.l	d0,dma.w                ; Send command and start DMA
+
+	; Wait until DMA ack (IRQ pulse)
+	move.l	#20,d0                  ; 100ms timeout
+	add.l	hz200.w,d0              ;
+.await	cmp.l	hz200.w,d0              ; Test timeout
+	bmi.b	reset                   ;
+	btst.b	#5,gpip.w               ; Test command acknowledge
+	bne.b	.await                  ;
+
+	move.w	#$008a,(a1)             ; Acknowledge status byte
+	move.w	dma.w,d0                ;
+
+	sf	flock.w                 ; Unlock floppy drive
+
+	tst.b	d0                      ; If DMA failed,
+	bne.b	reset                   ; just reset
+
+	cmp.l	#'A2ST',(a2)            ; Check signature
+	bne.b	reset                   ;
+
+	jsr	8(a2)                   ; Call the code
+
+reset	move.l	4.w,a0                  ; Reset instead of trying to clean up
+	jmp	(a0)                    ;
+
+; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm tw=80

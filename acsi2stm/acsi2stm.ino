@@ -25,29 +25,68 @@
 // Change this table to remap ACSI device IDs, SD CS pin and SD lock pin.
 // Important: device IDs must be consecutive.
 Acsi acsi[] = {
-  Acsi(ACSI_FIRST_ID + 0, PA4, PB0),
+  Acsi(PA4, PB0),
 #if ACSI_SD_CARDS >= 2
-  Acsi(ACSI_FIRST_ID + 1, PA3, PB1),
+  Acsi(PA3, PB1),
 #endif
 #if ACSI_SD_CARDS >= 3
-  Acsi(ACSI_FIRST_ID + 2, PA2, PB3),
+  Acsi(PA2, PB3),
 #endif
 #if ACSI_SD_CARDS >= 4
-  Acsi(ACSI_FIRST_ID + 3, PA1, PB4),
+  Acsi(PA1, PB4),
 #endif
 #if ACSI_SD_CARDS >= 5
-  Acsi(ACSI_FIRST_ID + 4, PA0, PB5),
+  Acsi(PA0, PB5),
 #endif
 };
 static const int sdCount = sizeof(acsi) / sizeof(acsi[0]);
 
 static int deviceMask = 0;
 
+#if ACSI_ID_OFFSET_PINS
+static int idOffset = 0;
+
+void senseIdOffset() {
+  // Check if PA13 is set to VCC
+  pinMode(PA13, INPUT_PULLDOWN);
+  pinMode(PA14, INPUT_PULLUP);
+  delay(1);
+  if(digitalRead(PA13)) {
+    pinMode(PA13, INPUT);
+    idOffset = 1;
+    return;
+  }
+  if(!digitalRead(PA14)) {
+    pinMode(PA14, INPUT);
+    idOffset = 3;
+    return;
+  }
+  pinMode(PA14, OUTPUT);
+  digitalWrite(PA14, 1);
+  if(digitalRead(PA13)) {
+    pinMode(PA14, OUTPUT);
+    idOffset = 2;
+    return;
+  }
+}
+#endif
+
 // Main setup function
 void setup() {
+#if ACSI_ID_OFFSET_PINS
+
+#if ACSI_FIRST_ID
+#error ACSI_FIRST_ID must be 0 to use ACSI_ID_OFFSET_PINS
+#endif
+  // Disable JTAG to allow using PB3, PB4, PA13, PA14 and PA15
+  // Remap TIM2 on PA15 to sense RST asynchronously
+  AFIO_BASE->MAPR = AFIO_MAPR_SWJ_CFG_NO_JTAG_NO_SW | AFIO_MAPR_TIM2_REMAP_FULL;
+  senseIdOffset();
+#else
   // Disable JTAG to allow using PB3, PB4 and PA15
   // Remap TIM2 on PA15 to sense RST asynchronously
   AFIO_BASE->MAPR = AFIO_MAPR_SWJ_CFG_NO_JTAG_SW | AFIO_MAPR_TIM2_REMAP_FULL;
+#endif
 
   Acsi::ledOn(); // Enable activity LED on power up to signal init activity.
 
@@ -68,7 +107,12 @@ void setup() {
 
   // Initialize the ACSI bridges
   for(int c = 0; c < sdCount; ++c)
-    if(acsi[c].begin())
+    if(acsi[c].begin(
+      ACSI_FIRST_ID + c
+#if ACSI_ID_OFFSET_PINS
+      + idOffset
+#endif
+    ))
       deviceMask |= 1 << c;
 }
 
@@ -89,7 +133,11 @@ void loop() {
     Acsi::dbg("ACSI", deviceId, ':');
 #endif
 
-    int deviceIndex = deviceId - ACSI_FIRST_ID;
+    int deviceIndex = deviceId - ACSI_FIRST_ID
+#if ACSI_ID_OFFSET_PINS
+                               - idOffset
+#endif
+    ;
     if(deviceMask & (1 << deviceIndex)) {
       acsi[deviceIndex].process(DmaPort::cmdCommand(cmd));
     } else {

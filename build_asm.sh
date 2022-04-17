@@ -62,7 +62,7 @@ buildasm() {
   if [ -e "$srcdir/$1/tos.s" ]; then
     echo "Compile $1 TOS program"
     [ -e "$tosdir" ] || mkdir "$tosdir"
-    vasmm68k_mot -devpac -ldots -showopt -Ftos -L "$builddir/$1.lst" -o "$tosdir/$1.tos" "$srcdir/$1/tos.s" || exit $?
+    vasmm68k_mot -devpac -monst -ldots -showopt -Ftos -L "$builddir/$1.lst" -o "$tosdir/$1.tos" "$srcdir/$1/tos.s" || exit $?
     [ -e "$tosdir/$1.tos" ] || exit $?
   fi
 }

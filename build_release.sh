@@ -15,6 +15,8 @@ fi
 
 VERSION=`cat VERSION`
 
+rm acsi2stm-*.ino.bin *.tos *.exe
+
 ./build_asm.sh || exit $?
 ./build_arduino.sh || exit $?
 ./build_tools.sh || exit $?
@@ -27,7 +29,7 @@ mkdir "$builddir"
 
 echo "Copy all the stuff in the release directory"
 
-cp -r acsi2stm-*.ino.bin *.tos *.exe README.md doc LICENSE "$builddir"
+cp -r "acsi2stm-$VERSION.ino.bin" *.tos *.exe README.md doc LICENSE "$builddir"
 
 echo "... and the legal stuff"
 

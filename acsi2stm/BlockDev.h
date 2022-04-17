@@ -66,11 +66,11 @@ protected:
 
 class SdDev: public BlockDev {
 public:
-  SdDev(int deviceId_, int csPin_, int wpPin_):
-    deviceId(deviceId_),
+  SdDev(int csPin_, int wpPin_):
     csPin(csPin_),
     wpPin(wpPin_) {}
-  bool begin() {
+  bool begin(int deviceId_) {
+    deviceId = deviceId_;
     return reset();
   }
   bool reset();

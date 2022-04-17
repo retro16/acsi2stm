@@ -102,6 +102,7 @@ Arduino code.
 Settings that can be changed:
 
  * maxsecsize: Maximum sector size for FAT partitions.
+ * mchtimeout: Minimum amount of time between 2 media check calls, in 200Hz timer ticks.
 
 
 Building the tools for your platform

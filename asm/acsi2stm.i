@@ -31,7 +31,7 @@ mchtimeout	equ	200/2           ; 200/2 = 500ms
 ; Constants
 a2st_version	macro
 	; The following line is patched automatically by build_asm.sh
-	dc.b	'3.0c'			; ACSI2STM VERSION NUMBER
+	dc.b	'3.0d'			; ACSI2STM VERSION NUMBER
 	endm
 
 a2st_header	macro
@@ -49,4 +49,4 @@ a2st_head_short	macro
 	dc.b	' https://github.com/retro16/acsi2stm',13,10
 	endm
 
-; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm
+; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm tw=80

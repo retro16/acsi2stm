@@ -265,6 +265,10 @@ uint32_t SdDev::mediaId() {
   for(int i = 0; i < sizeof(cid) / 4; ++i)
     id ^= ((const uint32_t*)&cid)[i];
 
+  // Make sure that the id is never 0
+  if(!id)
+    ++id;
+
   return id;
 }
 

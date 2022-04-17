@@ -22,7 +22,7 @@
 
 // acsi2stm global configuration
 
-#define ACSI2STM_VERSION "3.0c"
+#define ACSI2STM_VERSION "3.0d"
 
 // Set to 1 to enable debug output on the serial port
 #define ACSI_DEBUG 0
@@ -90,6 +90,10 @@
 // Device ID of the first SD card on the ACSI bus
 #define ACSI_FIRST_ID 0
 
+// Use jumpers on debug pins to offset ACSI IDs
+// ACSI_FIRST_ID must be 0 to enable this feature
+#define ACSI_ID_OFFSET_PINS 1
+
 // Set this to 1 to use the RST line on the ACSI port
 // Set this to 0 ignore the PA15 pin completely
 // In every case the pin PA15 will be setup as a pull-up so this should work
@@ -122,13 +126,13 @@
 #define ACSI_MAX_LUNS 1
 
 // Folder containing disk images
-// It must end with a "/"
-#define ACSI_IMAGE_FOLDER "/acsi2stm/"
+// It must not end with a "/"
+#define ACSI_IMAGE_FOLDER "/acsi2stm"
 
 // File folder name and extension of LUN images
 // The LUN number is inserted between the prefix and extension.
 // Example:
-//   ACSI_IMAGE_FOLDER "/acsi2stm/"
+//   ACSI_IMAGE_FOLDER "/acsi2stm"
 //   ACSI_LUN_IMAGE_PREFIX "hd"
 //   ACSI_LUN_IMAGE_EXT ".img"
 //   The image file for LUN 0 will be "/acsi2stm/hd0.img"

@@ -22,6 +22,7 @@
 #include <string.h>
 #include "acsi2stm.h"
 #include "drvboot.h"
+#include "a2stdrv.h"
 
 int badImage() {
   printf(
@@ -176,22 +177,32 @@ int main(int argc, char **argv) {
   imgSize = ftell(f);
 
   // Check partition size
-  if(imgSize < (drvboot_tools_bin_len+511)/512) {
+  if(imgSize < (drvboot_tools_bin_len + a2stdrv_tools_bin_len + 511) / 512) {
     // The file is too small to contain the driver !
     return badImage();
   }
 
+  int allocszOffset = 0;
   int checksumOffset = 0;
 
   // Try patching all possible formats
-  if(patchFat(f, imgSize))
+  if(patchFat(f, imgSize)) {
+    allocszOffset = 434+0x3e;
     checksumOffset = 438+0x3e;
-  else if(patchMbr(f, imgSize))
+  } else if(patchMbr(f, imgSize)) {
+    allocszOffset = 434;
     checksumOffset = 438;
-  else if(patchTos(f, imgSize))
+  } else if(patchTos(f, imgSize)) {
+    allocszOffset = 434;
     checksumOffset = 510;
-  else
+  } else
     return badImage();
+
+  // Patch malloc size and sector count
+  drvboot_tools_bin[allocszOffset] = a2stdrv_tools_bin[4];
+  drvboot_tools_bin[allocszOffset+1] = a2stdrv_tools_bin[5];
+  drvboot_tools_bin[allocszOffset+2] = a2stdrv_tools_bin[6];
+  drvboot_tools_bin[allocszOffset+3] = a2stdrv_tools_bin[7];
 
   // Patch the checksum to make the drive bootable
   drvboot_tools_bin[checksumOffset] = 0;
@@ -204,12 +215,17 @@ int main(int argc, char **argv) {
   drvboot_tools_bin[checksumOffset] = (uint8_t)(sum >> 8);
   drvboot_tools_bin[checksumOffset + 1] = (uint8_t)sum;
 
+  // Write the boot sector
+ 
   fseek(f, 0, SEEK_SET);
   if(!fwrite(drvboot_tools_bin, 1, drvboot_tools_bin_len, f)) {
     printf("Write error !\n");
     fclose(f);
     return 1;
   }
+
+  // Write the driver
+  fwrite(a2stdrv_tools_bin, 1, a2stdrv_tools_bin_len, f);
 
   fclose(f);
 

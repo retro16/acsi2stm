@@ -18,24 +18,32 @@
 #include "Acsi.h"
 #include "DmaPort.h"
 
-#if ACSI_DUMMY_BOOT_SECTOR
 #if !ACSI_STRICT
+
+#if ACSI_DUMMY_BOOT_SECTOR
 const
 #include "nosdcard.boot.h"
-#else
-#warning ACSI_DUMMY_BOOT_SECTOR is disabled in strict mode
-#endif
 #endif
 
 #if ACSI_BOOT_OVERLAY
-#if !ACSI_STRICT
 const
 #include "overlay.boot.h"
 const
-#include "payload.boot.h"
+#include "a2stdrv.boot.h"
+#endif
+
+const
+#include "a2setup.boot.h"
+
 #else
+
+#if ACSI_DUMMY_BOOT_SECTOR
+#warning ACSI_DUMMY_BOOT_SECTOR is disabled in strict mode
+#endif
+#if ACSI_BOOT_OVERLAY
 #warning ACSI_BOOT_OVERLAY is disabled in strict mode
 #endif
+
 #endif
 
 // CRC function taken from SdFat's SdSpiCard.cpp
@@ -51,17 +59,17 @@ static uint16_t crc16(const uint8_t* data, size_t n) {
   return crc;
 }
 
-Acsi::Acsi(int deviceId_, int sdCs_, int sdWp_):
-  card(deviceId_, sdCs_, sdWp_) {}
+Acsi::Acsi(int sdCs_, int sdWp_):
+  card(sdCs_, sdWp_) {}
 
 Acsi::Acsi(Acsi &&other):
-  card(other.card.deviceId, other.card.csPin, other.card.wpPin) {}
+  card(other.card.csPin, other.card.wpPin) {}
 
 #if ACSI_RTC
 void rtcInit() {}
 #endif
 
-bool Acsi::begin() {
+bool Acsi::begin(int deviceId) {
 #if !ACSI_STRICT
   // Read strict mode from the on-board BOOT1 jumper
   strict = digitalRead(PB2);
@@ -87,7 +95,7 @@ bool Acsi::begin() {
 #endif
 
   // Initialize the SD card
-  if(card.begin()) {
+  if(card.begin(deviceId)) {
     dbg("success\n");
   } else {
     dbg("failed\n\n");
@@ -117,7 +125,7 @@ bool Acsi::begin() {
 }
 
 void Acsi::mountLuns() {
-  int prefixLen = strlen(ACSI_IMAGE_FOLDER ACSI_LUN_IMAGE_PREFIX);
+  int prefixLen = strlen(ACSI_IMAGE_FOLDER "/" ACSI_LUN_IMAGE_PREFIX);
 
   // Detach all LUNs
   for(int l = 0; l < maxLun; ++l)
@@ -129,7 +137,7 @@ void Acsi::mountLuns() {
       continue;
 
     // Build the image file name
-    strcpy((char *)buf, ACSI_IMAGE_FOLDER ACSI_LUN_IMAGE_PREFIX);
+    strcpy((char *)buf, ACSI_IMAGE_FOLDER "/" ACSI_LUN_IMAGE_PREFIX);
     buf[prefixLen] = '0' + l;
     strcpy((char *)&buf[prefixLen + 1], ACSI_LUN_IMAGE_EXT);
 
@@ -176,7 +184,6 @@ void Acsi::process(uint8_t cmd) {
       commandStatus(ERR_INVLUN);
       return;
     }
-
     // Handle media change
     if(!dev || hasMediaChanged()) {
       refresh();
@@ -221,14 +228,13 @@ void Acsi::process(uint8_t cmd) {
       }
     }
     break;
-#if ACSI_RTC
-  case 0x20:
-    // UltraSatan RTC has no LUN nor device access.
-    break;
-#endif
+  case 0x0c: // Single byte commands
+  case 0x0d:
+  case 0x0e:
+  case 0x0f:
+  case 0x20: // UltraSatan / ACSI2STM commands have no LUN
   case 0x3b: // Write buffer
   case 0x3c: // Read buffer
-  case 0x0d: // Load overlay
     break;
   }
 
@@ -374,7 +380,7 @@ void Acsi::process(uint8_t cmd) {
 #if ACSI_RTC
     if(memcmp(&cmdBuf[1], "USCurntFW", 9) == 0) {
       dbg("UltraSatan:");
-      dbg("firmware version query\n");
+      dbg("firmware query\n");
       // Fake the firmware
       DmaPort::sendDma((const uint8_t *)("ACSI2STM " ACSI2STM_VERSION "\r\n"), 16);
       commandStatus(ERR_OK);
@@ -407,7 +413,7 @@ void Acsi::process(uint8_t cmd) {
       DmaPort::readDma(buf, 9);
 
       if(buf[0] != 'R' || buf[1] != 'T' || buf[2] != 'C') {
-        dbg("Invalid date format\n");
+        dbg("Invalid date\n");
         commandStatus(ERR_INVARG);
         return;
       }
@@ -425,17 +431,105 @@ void Acsi::process(uint8_t cmd) {
       return;
     }
 #endif
-    if(memcmp(&cmdBuf[1], "A2STFmtCd", 9) == 0) {
-      dbg("ACSI2STM format SD card\n");
+    if(memcmp(&cmdBuf[1], "A2STFmtSd", 9) == 0) {
+      // TODO: check read-only flag
+      dbg("ACSI2STM format SD\n");
       ExFatFormatter exFatFormatter;
       FatFormatter fatFormatter;
-      bool worked = card.blocks > 67108864 ?
+      dbg("Format started\n");
+
+      // Start formatting
+      // Return now so the ST can poll with inquiry
+      commandStatus(ERR_OK);
+
+      Watchdog::pause();
+      card.blocks > 67108864 ?
         exFatFormatter.format(&card.card, buf):
         fatFormatter.format(&card.card, buf);
-      if(worked)
-        commandStatus(ERR_OK);
-      else
+      Watchdog::resume();
+
+      dbg("Format finished\n");
+      mediaId = 0;
+      return;
+    }
+    if(memcmp(&cmdBuf[1], "A2STCIm", 7) == 0) {
+      // TODO: check read-only flag
+      dbg("ACSI2STM create image\n");
+
+      if(!card.fsOpen) {
+        dbg("No filesystem\n");
         commandStatus(ERR_WRITEERR);
+        return;
+      }
+
+      auto &fs = card.fs;
+      FsFile dir = fs.open(ACSI_IMAGE_FOLDER);
+      if(!dir.isDirectory()) {
+        if(!dir) {
+          fs.mkdir(ACSI_IMAGE_FOLDER);
+          dir = fs.open(ACSI_IMAGE_FOLDER);
+          if(!dir) {
+            dbg("Cannot create directory\n");
+            commandStatus(ERR_WRITEERR);
+            return;
+          }
+        } else {
+          dbg(ACSI_IMAGE_FOLDER " is not a directory\n");
+          commandStatus(ERR_WRITEERR);
+          return;
+        }
+      }
+
+      if(fs.exists(ACSI_IMAGE_FOLDER "/" ACSI_LUN_IMAGE_PREFIX "0" ACSI_LUN_IMAGE_EXT)) {
+        dbg("Image already exists: remove it\n");
+        fs.remove(ACSI_IMAGE_FOLDER "/" ACSI_LUN_IMAGE_PREFIX "0" ACSI_LUN_IMAGE_EXT);
+      }
+
+      // Read image size in multiples of 64k
+      uint32_t imgSize = (uint32_t)cmdBuf[8] << 24 | (uint32_t)cmdBuf[9] << 16;
+
+      if(!imgSize) {
+        // If size is 0, delete the file
+        commandStatus(ERR_OK);
+        return;
+      }
+
+      dbg("Image size:", imgSize, '\n');
+
+      FsFile f = fs.open(ACSI_IMAGE_FOLDER "/" ACSI_LUN_IMAGE_PREFIX "0" ACSI_LUN_IMAGE_EXT, O_CREAT|O_RDWR);
+      if(!f) {
+        dbg("Cannot create image\n");
+        commandStatus(ERR_WRITEERR);
+        return;
+      }
+
+      // Image created.
+      // Return now so the ST can poll with inquiry
+      commandStatus(ERR_OK);
+
+      uint32_t fsize = (uint32_t)f.fileSize();
+      f.seekEnd();
+      bzero(buf, bufSize);
+      while(fsize < imgSize - bufSize) {
+        Watchdog::feed();
+        if(f.write(buf, bufSize)) {
+          fsize += bufSize;
+        } else {
+          dbg("Cannot write image\n");
+          return;
+        }
+      }
+      if(fsize < imgSize) {
+        Watchdog::feed();
+        if(!f.write(buf, imgSize - fsize)) {
+          dbg("Cannot write image\n");
+          return;
+        }
+      }
+
+      f.close();
+
+      mediaId = 0;
       return;
     }
     if(memcmp(&cmdBuf[1], "A2STCmdTs", 9) == 0) {
@@ -645,43 +739,14 @@ void Acsi::process(uint8_t cmd) {
       return;
     }
 #if !ACSI_STRICT
-#if ACSI_BOOT_OVERLAY
-  case 0x0d: // Load overlay payload
-    if(strict) {
-      dbg("Unknown command\n");
-      lastSeek = false;
-      commandStatus(ERR_OPCODE);
-      return;
-    }
-
-    DmaPort::sendDma(payload_boot_bin, payload_boot_bin_len);
+  case 0x0c:
+    DmaPort::sendDma(a2setup_boot_bin, a2setup_boot_bin_len);
     commandStatus(ERR_OK);
     return;
-#endif
-  case 0x0f: // Debug output
-    {
-      switch(DmaPort::readIrq()) {
-        case 4:
-          Serial.print(DmaPort::readIrq(), HEX);
-          Serial.print(' ');
-        case 3:
-          Serial.print(DmaPort::readIrq(), HEX);
-          Serial.print(' ');
-        case 2:
-          Serial.print(DmaPort::readIrq(), HEX);
-          Serial.print(' ');
-        case 1:
-          Serial.print(DmaPort::readIrq(), HEX);
-          Serial.print('\n');
-          break;
-        case 0:
-          while((cmd = DmaPort::readIrq()))
-            Serial.print((char)cmd);
-          Serial.print('\n');
-          break;
-      }
-      return;
-    }
+  case 0x0d:
+    DmaPort::sendDma(a2stdrv_boot_bin, a2stdrv_boot_bin_len);
+    commandStatus(ERR_OK);
+    return;
 #endif
   }
 
@@ -750,8 +815,7 @@ void Acsi::commandStatus(ScsiErr err) {
   }
 }
 
-Acsi::ScsiErr Acsi::refresh() {
-  int lun = getLun();
+Acsi::ScsiErr Acsi::refresh(int lun) {
   dbg("Refreshing ", card.deviceId, ',', lun, ":");
   mediaChecked();
 
@@ -858,11 +922,8 @@ Acsi::ScsiErr Acsi::processBlockWrite(uint32_t block, int count, BlockDev *dev) 
     DmaPort::readDma(buf, ACSI_BLOCKSIZE * burst);
 
 #if ACSI_BOOT_OVERLAY && !ACSI_STRICT
-    if(!strict && block == 0 && s == 0) {
-      dbg("WARNING: Write to boot sector\n");
-
+    if(!strict && block == 0 && s == 0)
       fixOverlayWrite(dev);
-    }
 #endif
 
     if(!dev->writeData(buf, burst)) {
@@ -937,7 +998,7 @@ int Acsi::computeChecksum(uint8_t *block) {
 
 #if ACSI_DUMMY_BOOT_SECTOR && !ACSI_STRICT
 Acsi::ScsiErr Acsi::processDummyBootSector() {
-  dbg("Sending nosdcard boot sector\n");
+  verbose("Sending nosdcard boot sector\n");
   memcpy(buf, nosdcard_boot_bin, nosdcard_boot_bin_len);
   patchBootSector(buf, nosdcard_boot_bin_len);
   DmaPort::sendDma(buf, ACSI_BLOCKSIZE);
@@ -971,18 +1032,18 @@ Acsi::ScsiErr Acsi::processBootOverlay(BlockDev *dev) {
     return ERR_READERR;
   }
 
-  // Overlay jump instruction to address 0x70
+  // Overlay bra.b instruction to boot org
   buf[0x00] = 0x60;
-  buf[0x01] = 0x6e;
+  buf[0x01] = bootOrg - 2;
 
-  // Overlay payload header
-  memcpy(&buf[0x5c], payload_boot_bin, 0x14);
+  // Overlay alloc sizes
+  memcpy(&buf[bootOrg - 4], &a2stdrv_boot_bin[4], 4);
 
   // Overlay boot loader
-  memcpy(&buf[0x70], overlay_boot_bin, overlay_boot_bin_len);
+  memcpy(&buf[bootOrg], overlay_boot_bin, overlay_boot_bin_len);
 
   // Make it bootable
-  patchBootSector(buf, 0x5a);
+  patchBootSector(buf, bootOrg - 6);
 
   DmaPort::sendDma(buf, ACSI_BLOCKSIZE);
 
@@ -993,9 +1054,9 @@ Acsi::ScsiErr Acsi::processBootOverlay(BlockDev *dev) {
 
 void Acsi::fixOverlayWrite(BlockDev *dev) {
   // Check that we don't rewrite the overlay by accident !
-  if(memcmp(&buf[0x70], "ACSI2STM OVERLAY", 16) == 0) {
+  if(memcmp(&buf[bootOrg], overlay_boot_bin, overlay_boot_bin_len) == 0) {
     if(dev->readStart(0)) {
-      Acsi::verbose("Attempting to write the overlay, fetching the old boot code\n");
+      Acsi::verbose("Rewriting overlay ! Merging FAT and MBR\n");
 
       // Save the new FAT header and partition table
       uint8_t fatHeader[0x58];
@@ -1012,7 +1073,7 @@ void Acsi::fixOverlayWrite(BlockDev *dev) {
           if(computeChecksum(buf) != 0x1234) {
             if(buf[510] == 0x55 && buf[511] == 0xaa) {
               // Try to patch in the checksum at offset 438 (risky, but whatever ...)
-              Acsi::dbg("WARNING: Patching old MS-DOS boot sector checksum blindly.\n");
+              Acsi::dbg("WARNING: Patching MS-DOS boot sector.\n");
               patchBootSector(buf, 438);
             } else {
               patchBootSector(buf, 510);

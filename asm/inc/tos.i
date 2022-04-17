@@ -26,7 +26,7 @@ syscall	macro
 	ifgt	\3-8                    ;
 	lea	\3(sp),sp               ; Rewind the stack
 	elseif                          ;
-	addq	#\3,sp                  ; Rewind using addq
+	addq.l	#\3,sp                  ; Rewind using addq
 	endc                            ;
 	endc                            ;
 	endm
@@ -45,28 +45,68 @@ Super	macro
 	clr.l	-(sp)
 	move.w	#Super,-(sp)
 	trap	#1
-	addq	#4,sp
+	addq.l	#6,sp
 	endm
 
-prints	macro
-	bra.b	.prints.\@
-.text.\@
-	dc.b	\1,13,10,0
-	even
-.prints.\@
-	pea	.text.\@(pc)
+print	macro	; Print a string
+	pea	\1
 	gemdos	Cconws,6
 	endm
+
+pchar	macro	; Print a character
+	move.l	#(\1)!(Cconout<<16),-(sp)
+	trap	#1
+	addq.l	#4,sp
+	endm
+
+pchar2	macro	; Print 2 characters
+	move.l	#(\1)!((\2)<<16),-(sp)
+	gemdos	Cconout,4
+	gemdos	Cconout,4
+	endm
+
+bell	macro	; Ring the bell
+	pchar	7
+	endm
+
+escape	macro	; Print an escape code
+	pchar2	$1b,\1
+	endm
+
+cls	macro	; Clear the screen
+	escape	'E'
+	endm
+
+crlf	macro	; Print a carriage return
+	pchar2	$0d,$0a
+	endm
+
+ask	macro	; Ask: print a message, wait for a key and print its character
+	pea	\1
+	gemdos	Cconws
+	gemdos	Cconin,8
+	endm
+
+asksil	macro	; Ask silently: print a message and wait for a key
+	pea	\1
+	gemdos	Cconws
+	gemdos	Cnecin,8
+	endm
+
 
 ; GEMDOS calls
 Cconin=1
 Cconout=2
 Crawcin=7
+Cnecin=8
 Cconws=9
+Cconrs=10
 Cconis=11
 Dsetdrv=14
 Dgetdrv=25
 Super=32
+Tsetdate=43
+Tsettime=45
 Fgetdta=47
 Ptermres=49
 Dcreate=57
@@ -145,4 +185,9 @@ EFILNF=-33      ; file not found
 ENSAME=-48      ; not the same drive
 EPLFMT=-66      ; invalid program load format
 
-; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm
+; Structures
+
+; PD/BASEPAGE size
+pd...		equ	256
+
+; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm tw=80
