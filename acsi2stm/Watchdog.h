@@ -20,7 +20,7 @@
 
 #include <Arduino.h>
 
-#define WATCHDOG_TIMER Timer2
+#define WATCHDOG_TIMER Timer3
 
 // Timer-based watchdog
 struct Watchdog {

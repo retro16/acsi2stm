@@ -111,11 +111,11 @@ acsicmd	; Execute an ACSI command
 .acklng	move.l	#600,d1                 ; 3 second timeout
 	bra.b	.doack                  ;
 
-.ack	move.l	#20,d1                  ; 100ms timeout
+.ack	moveq	#20,d1                  ; 100ms timeout
 
 .doack	add.l	hz200.w,d1              ;
 .await	cmp.l	hz200.w,d1              ; Test timeout
-	blt.b	.timout                 ;
+	bmi.b	.timout                 ;
 	btst.b	#5,gpip.w               ; Test command acknowledge
 	bne.b	.await                  ;
 	rts
@@ -125,4 +125,4 @@ acsicmd	; Execute an ACSI command
 
 	bra.b	.abort                  ; Uninitialize and return
 
-; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm
+; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm tw=80

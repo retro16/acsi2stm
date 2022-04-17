@@ -32,4 +32,91 @@ screenh=$ffff8201
 screenm=$ffff8203
 screenpal=$ffff8240
 
-; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm
+; Align code to 16 bytes boundary for DMA transfers
+align16	macro
+.\@
+	ifne	.\@&$f
+	ds.b	$10-(.\@&$f)
+	endif
+	endm
+
+; Create a stack frame and save current PC in it
+; Use the restart macro to go back to this point
+; Use the return macro to unwind stack and do a rts
+; Alters a0 and a6.
+enter	macro
+	link	a6,#-4
+	lea	._enter_\@(pc),a0
+	move.l	a0,(sp)
+._enter_\@
+	endm
+
+; Unwind stack and jump back to the matching enter call
+; Alters a0.
+restart	macro
+	lea	-4(a6),sp
+	move.l	(sp),a0
+	jmp	(a0)
+	endm
+
+; Restart if equal
+rsteq	macro
+	bne.b	.rst\@
+	restart
+.rst\@
+	endm
+
+; Restart if not equal
+rstne	macro
+	beq.b	.rst\@
+	restart
+.rst\@
+	endm
+
+; Exit the stack frame created by enter but do not return
+; Alters a6
+exit	macro
+	unlk	a6
+	endm
+
+; Unwind stack and execute rts, returning to the caller of the "enter" macro
+; Input:
+;  \1: Value to moveq into d0. d0 is not modified if ignored.
+; Alters a6
+return	macro
+	ifnc	'','\1'
+	moveq	#\1,d0
+	endc
+	unlk	a6
+	rts
+	endm
+
+; Return if equal
+reteq	macro
+	bne.b	.ret\@
+	return	\1
+.ret\@
+	endm
+
+; Return if not equal
+retne	macro
+	beq.b	.ret\@
+	return	\1
+.ret\@
+	endm
+
+; Conditional branch to subroutines
+
+bsreq	macro
+	bne.b	.bsr\@
+	bsr.\0	\1
+.bsr\@
+	endm
+
+bsrne	macro
+	beq.b	.bsr\@
+	bsr.\0	\1
+.bsr\@
+	endm
+
+; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm tw=80

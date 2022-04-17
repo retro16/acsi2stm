@@ -15,27 +15,30 @@
  * along with the program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "acsi2stm.h"
 #include "Watchdog.h"
 #include <libmaple/iwdg.h>
 
-void Watchdog::begin(int millis) {
-  WATCHDOG_TIMER.pause();
-  WATCHDOG_TIMER.setMode(TIMER_CH1, TIMER_OUTPUTCOMPARE);
-  WATCHDOG_TIMER.setPrescaleFactor(36000);
-  WATCHDOG_TIMER.setOverflow(65535);
-  WATCHDOG_TIMER.setCompare(TIMER_CH1, millis * 2);
-  WATCHDOG_TIMER.attachInterrupt(TIMER_CH1, Watchdog::reboot);
-  WATCHDOG_TIMER.setCount(0);
-  WATCHDOG_TIMER.refresh();
-}
-
-void Watchdog::reboot() {
-  WATCHDOG_TIMER.pause();
-
+void Watchdog_reboot() {
   // Reset the whole STM32
   iwdg_init(IWDG_PRE_4, 1);
   iwdg_feed();
   for(;;);
+}
+
+void Watchdog::begin(int millis) {
+  WATCHDOG_TIMER.pause();
+  WATCHDOG_TIMER.setCount(0);
+  WATCHDOG_TIMER.setMode(TIMER_CH1, TIMER_OUTPUTCOMPARE);
+  WATCHDOG_TIMER.setPeriod(500);
+  WATCHDOG_TIMER.setOverflow(65000);
+  WATCHDOG_TIMER.setCompare(TIMER_CH1, millis * 2);
+  WATCHDOG_TIMER.attachInterrupt(TIMER_CH1, Watchdog_reboot);
+  WATCHDOG_TIMER.refresh();
+}
+
+void Watchdog::reboot() {
+  Watchdog_reboot();
 }
 
 // vim: ts=2 sw=2 sts=2 et

@@ -3,5 +3,4 @@ acsi2stm-*
 *.tos
 *.exe
 *.bin
-bin
-tools/*.tools.h
+a2stboot*

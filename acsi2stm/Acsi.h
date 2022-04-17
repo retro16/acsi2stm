@@ -47,11 +47,11 @@ public:
     ERR_NOMEDIUM = 0x06003a,
   };
 
-  Acsi(int deviceId, int csPin, int wpPin);
+  Acsi(int csPin, int wpPin);
   Acsi(Acsi&&);
 
   // Initialize the ACSI bridge
-  bool begin();
+  bool begin(int deviceId);
 
   // Mount all LUNs on the SD card.
   void mountLuns();
@@ -81,7 +81,10 @@ public:
   //   ERR_OK if the device is operational
   //   ERR_MEDIUMCHANGE if the card was swapped
   //   ERR_NOMEDIUM if the card was removed
-  ScsiErr refresh();
+  ScsiErr refresh(int lun);
+  ScsiErr refresh() {
+    return refresh(getLun());
+  }
 
   // Process block I/O requests
   ScsiErr processBlockRead(uint32_t block, int count, BlockDev *dev);
@@ -118,6 +121,9 @@ public:
   // Check if the overlay is going to be written.
   // If that's the case: fix that by restoring the old code in the boot sector
   void fixOverlayWrite(BlockDev *dev);
+
+  // ORG of acsi2stm_boot_bin relative to the buffer
+  const int bootOrg = 0x60;
 #endif
 
   // Maximum number of LUNs
