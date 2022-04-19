@@ -241,6 +241,83 @@ blkdev.wait
 	bne.b	blkdev.wait
 	rts
 
+blkdev.pname
+	; Print the device's name and version
+	; Input:
+	;  d7.b: device id
+
+	lea	bss+buf(pc),a0
+	bsr.w	blkdev.inq
+	tst.b	d0
+	rtsne
+
+	lea	bss+buf+8(pc),a0
+
+	clr.b	24(a0)                  ; Add an end of string marker
+	print	(a0)                    ; Print the device string
+
+	moveq	#0,d0
+	rts
+
+	ifne	stm32flash              ; Only if running from STM32 flash
+blkdev.1byte
+	; Read driver code with the specialized 1 byte command
+	; Input:
+	;  a0: target address
+	;  d1.b: ACSI command to send
+	;  d7.b: ACSI id
+	; Output:
+	;  a0: kept intact
+	;  d0.l: 0 if success, 1 if failure
+	;  Z: set if success, clear if failure
+
+	st	flock.w                 ; Lock floppy drive
+
+	lea	dmactrl.w,a1
+	move.w	#$190,(a1)              ; Reset DMA
+	move.w	#$90,(a1)               ; Read mode, set DMA length
+
+	; DMA transfer address
+	move.l	a0,d0
+	move.b	d0,dmalow.w             ; Set DMA address low
+	lsr.l	#8,d0                   ;
+	move.b	d0,dmamid.w             ; Set DMA address mid
+	lsr.w	#8,d0                   ;
+	move.b	d0,dmahigh.w            ; Set DMA address high
+
+	move.l	#$00ff0088,dma.w        ; Read 255 blocks. Switch to command.
+
+	move.b	d7,d0                   ; Build command: ACSI id | command
+	or.b	d1,d0                   ;
+	swap	d0                      ; Command in data register, then DMA.
+	move.l	d0,dma.w                ; Send command $d and start DMA
+
+	; Wait until DMA ack (IRQ pulse)
+	moveq	#20,d0                  ; 100ms timeout
+	add.l	hz200.w,d0              ;
+.await	cmp.l	hz200.w,d0              ; Test timeout
+	bmi.b	.fail                   ;
+	btst.b	#5,gpip.w               ; Test command acknowledge
+	bne.b	.await                  ;
+
+	move.w	#$008a,(a1)             ; Acknowledge status byte
+	move.w	dma.w,d0                ;
+
+	sf	flock.w                 ; Unlock floppy drive
+
+	tst.b	d0                      ; If DMA failed,
+	bne.b	.fail                   ; free RAM and continue
+
+	cmp.l	#'A2ST',(a0)            ; Check signature
+	bne.b	.fail                   ;
+
+	moveq	#0,d0
+	rts
+.fail	moveq	#1,d0
+	rts
+
+	endc
+
 blkdev.tst.c	; Test unit ready
 	dc.b	4
 	dc.b	$00,$00,$00,$00,$00,$00	; This one is easy

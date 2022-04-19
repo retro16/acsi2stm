@@ -89,6 +89,8 @@ prtpart.end	dc.b	'M',13,10,0
 
 		; Masks
 mchmask		dc.l	0               ; Media change mask
-devmask		dc.w	0               ; Present ACSI devices mask
+mprmask		dc.b	0               ; Media present mask
+rdevmsk		dc.b	0               ; Removable ACSI devices
+		even
 
 ; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm tw=80

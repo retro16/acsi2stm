@@ -24,6 +24,8 @@
 	include	creatimg.s
 	include	a2sttest.s
 	include	timeset.s
+	include	parttool.s
+	include	parts.s
 	include	acsicmd.s
 	include	tui.s
 	include	rtc.s

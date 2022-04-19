@@ -46,8 +46,6 @@ text
 	even
 	include	acsicmd.s
 	even
-	include	acsierr.s
-	even
 	include	rtc.s
 	even
 	include	rodata.s

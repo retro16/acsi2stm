@@ -19,7 +19,6 @@
 
 ; Parameters
 		rsreset
-		rs.l	1
 rwabs.rwflag	rs.w	1
 rwabs.buff	rs.l	1
 rwabs.cnt	rs.w	1
@@ -27,69 +26,66 @@ rwabs.recnt	rs.w	1
 rwabs.dev	rs.w	1
 rwabs.lrecno	rs.l	1
 
-; Parameters within the stack frame
-		rsreset
-		rs.l	1
-		rs.l	1
-rwabs.f.rwflag	rs.w	1
-rwabs.f.buff	rs.l	1
-rwabs.f.cnt	rs.w	1
-rwabs.f.recnt	rs.w	1
-rwabs.f.dev	rs.w	1
-rwabs.f.lrecno	rs.l	1
-
 	; Stack frame macros
-rwabs_framein	macro
-	link	a6,#0
+rwabs_in	macro
 	ifgt	maxsecsize-$200
-	movem.l	d3-d7/a3-a4,-(sp)
+	movem.l	d3-d6/a3-a5,-(sp)
 	else
-	movem.l	d3-d7/a4,-(sp)
+	movem.l	d3-d6/a5,-(sp)
+	endif
+	move.l	a2,a5                   ; a5 = parameters address
+	endm
+
+rwabs_out	macro
+	ifgt	maxsecsize-$200
+	movem.l	(sp)+,d3-d6/a3-a5
+	else
+	movem.l	(sp)+,d3-d6/a5
 	endif
 	endm
 
-rwabs_frameout	macro
-	ifgt	maxsecsize-$200
-	movem.l	(sp)+,d3-d7/a3-a4
-	else
-	movem.l	(sp)+,d3-d7/a4
-	endif
-	unlk	a6
-	endm
+rwabs_handler
+	; a2 = parameters
+	move.w	rwabs.dev(a2),d1        ; d1 = device number
 
-rwabs
-	move.w	rwabs.dev(sp),d1        ; d1 = current drive
+	btst	#1,rwabs.rwflag+1(a2)   ; Pay attention to media change ?
+	bne.b	.nmch                   ;
 
-	btst	#1,rwabs.rwflag+1(sp)   ; Pay attention to media change ?
-	bne.b	.nomch                  ;
+	lea	mchmask(pc),a0          ; Do a quick flag check
+	move.l	(a0),d0                 ;
+	btst	d1,d0                   ;
+	beq.b	.nmch                   ;
 
-	move.l	mchmask(pc),d0          ; d0 = mchmask
-	btst	d1,d0                   ; Check media change flag
-	beq.b	.nomch                  ;
-	moveq	#E_CHNG,d0              ; Media changed
-	rts
+	bclr	d1,d0                   ; Flag was set: clear it
+	move.l	(a0),d0                 ;
+	
+	moveq	#E_CHNG,d0              ; Return media change
+	rte
 
-.nomch	rwabs_framein                   ; Now we get serious
+.nmch	move.w	d7,-(sp)
 
-	bsr.w	getpart                 ; Get partition from pun
-	cmp.b	#$ff,d7                 ; Is the drive mounted
-	bne.w	.mountd                 ;
+	bsr.w	getpart                 ; Find the partition matching device
 
-	; Pass the call to the next driver
-	rwabs_frameout
-	hkchain rwabs
+	cmp.b	#$ff,d7                 ; Check if we own the partition
+	bne.b	.mountd                 ;
 
-.mountd	; The drive is mounted
+	move.w	(sp)+,d7                ; Not our drive: pass the call
+	hkchain	bios                    ;
+
+.mountd	btst	#8,d7                   ; Check media present flag
+	bne.b	.mok                    ;
+
+	moveq	#EUNDEV,d0              ; No media: return "invalid device"
+	move.w	(sp)+,d7                ;
+	rte	                        ;
+
+.mok	rwabs_in
+
+	; The drive is mounted
 	; Returned from getpart:
 	;  d0.b: Sector size shift (0 = 512, 1 = 1024, 2 = 2048, ...)
 	;  d2.l = partition offset
 	;  d7.b = ACSI id
-
-	cmp.l	#$ffffffff,d2           ; Test if no medium
-	bne.b	.hasmed                 ;
-
-	moveq	#ERR,d0                 ; Return a generic error
-	bra.w	.end                    ; XXX try something smarter
 
 	; Compute final offset
 .hasmed
@@ -106,14 +102,14 @@ rwabs
 
 	endif
 
-	btst	#2,rwabs.f.rwflag+1(a6) ; Check no retry flag
+	btst	#2,rwabs.rwflag+1(a5)   ; Check no retry flag
 	seq	d6                      ; d6[0..7] = retry flag
 .retry
 	moveq	#0,d5                   ;
-	move.w	rwabs.f.recnt(a6),d5    ; Load 16 bits rec number
+	move.w	rwabs.recnt(a5),d5      ; Load 16 bits rec number
 	cmp.w	#$ffff,d5               ; If rec number == $ffff
 	bne.b	.srecno                 ;
-	move.l	rwabs.f.lrecno(a6),d5   ; Load 32 bits rec number
+	move.l	rwabs.lrecno(a5),d5     ; Load 32 bits rec number
 .srecno
 	ifgt	maxsecsize-$200
 	swap	d6
@@ -121,12 +117,12 @@ rwabs
 	swap	d6
 	endif
 
-	btst	#3,rwabs.f.rwflag+1(a6) ; Check physical flag
+	btst	#3,rwabs.rwflag+1(a5)   ; Check physical flag
 	bne.b	.phys
 	add.l	a4,d5                   ; d5 = physical sector
 .phys
 	moveq	#0,d3                   ;
-	move.w	rwabs.f.cnt(a6),d3      ; d3 = sector count
+	move.w	rwabs.cnt(a5),d3        ; d3 = sector count
 
 	ifgt	maxsecsize-$200         ;
 	swap	d6                      ;
@@ -134,7 +130,7 @@ rwabs
 	swap	d6                      ;
 	endif
 
-	move.l	rwabs.f.buff(a6),d4     ; d4 = buffer address
+	move.l	rwabs.buff(a5),d4       ; d4 = buffer address
 	beq.w	.nulptr                 ; Check for null pointer
 
 	moveq	#0,d0                   ; Preload success code
@@ -152,22 +148,14 @@ rwabs
 	move.l	d4,d1                   ; d1 = buffer address
 	move.l	d5,d2                   ; d2 = sector number
 
-	btst	#0,rwabs.f.rwflag+1(a6) ; Check read or write
+	btst	#0,rwabs.rwflag+1(a5)   ; Check read or write
 	beq.b	.read                   ;
 	bsr.w	blk.wr                  ; Call write
 	bra.b	.endop                  ;
 .read	bsr.w	blk.rd                  ; Call read
 .endop
-	tst.b	d0                      ; Check for error
+.onerr	bsr.w	acsierr                 ; Get error code in TOS format
 	beq.b	.nerr                   ;
-
-.onerr	cmp.w	#$3a06,d0               ; Check for "no medium"
-	bne.b	.nnomed                 ;
-	bsr.w	mount                   ; No medium: remount
-	moveq	#EUNDEV,d0              ; Return "unknown device"
-	bra.b	.end                    ;
-
-.nnomed	bsr.w	acsierr                 ; Convert ACSI error to TOS
 
 	cmp.w	#E_CHNG,d0              ; Check for media change
 	beq.b	.mch                    ;
@@ -187,17 +175,12 @@ rwabs
 	sub.l	#$ff,d3                 ; Subtract transfer size to sector count
 	bge.b	.next                   ;
 
-.end	rwabs_frameout
-	rts
+.end	rwabs_out
+	move.w	(sp)+,d7
+	rte
 
-.mch	; Media changed
-	move.w	rwabs.f.dev(a6),d1      ; d1 = current drive
-
-	lea	mchmask(pc),a0          ; Set media change flag
-	move.l	(a0),d2                 ;
-	bset	d1,d2                   ;
-	move.l	d2,(a0)                 ;
-
+.mch	move.w	rwabs.dev(a5),d1        ; d1 = current drive
+	bsr.w	setmch                  ; Set media change flag
 	bra.b	.end
 
 .unalig	; Specialized unaligned memory operation
@@ -208,8 +191,8 @@ rwabs
 	move.l	a0,d1                   ; d1 = buffer address
 	move.l	d5,d2                   ; d2 = sector number
 
-	btst	#0,rwabs.f.rwflag+1(a6) ; Check read or write
-	beq.b	.uread                   ;
+	btst	#0,rwabs.rwflag+1(a5)   ; Check read or write
+	beq.b	.uread                  ;
 	bsr.w	blk.wr                  ; Call write
 	bra.b	.uendop                 ;
 .uread	bsr.w	blk.rd                  ; Call read

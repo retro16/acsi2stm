@@ -14,40 +14,35 @@
 ; You should have received a copy of the GNU General Public License
 ; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-; ACSI2STM setup program
-; TOS program version
+bios_handler
+	move.w	bss+traplen(pc),d0
+	lea	0(sp,d0),a2
+	move.w	(a2)+,d1
 
-	; Flag to indicate that we don't run from the STM32 flash
-stm32flash	equ	0
+	cmp.w	#Rwabs,d1
+	blt.b	.chain
+	beq.b	rwabs_handler
 
-	incdir	..\
-	incdir	..\inc\
-	include	acsi2stm.i
-	include	tos.i
-	include	atari.i
+	cmp.w	#Drvmap,d1
+	bgt.b	.chain
+	beq.w	drvmap_handler
 
-	include	bss.i
+	cmp.w	#Mediach,d1
+	bne.b	.nmch
+	move.w	(a2),d1
+	bra.w	mediach_handler
+.nmch
+	cmp.w	#Getbpb,d1
+	bne.b	.chain
+	move.w	(a2),d1
+	bra.w	getbpb_handler
 
-	opt	O+
+.chain
+	hkchain	bios
 
-	text
-
-	Super	                        ; Enter supervisor mode
-	lea	stacktop(pc),sp         ; Set local stack
-
-	bsr.w	main
-
-	Pterm0                          ; Exit cleanly
-main
-	include	text.s                  ; Subroutines and code includes
-
-	data
-
-	include	data.s                  ; Initialized data
-
-	bss
-bss	ds.b	bss...                  ; Allocate BSS from the bss... struct
-	ds.b	1024                    ; Stack size
-stacktop
+	include	rwabs.s
+	include	drvmap.s
+	include	mediach.s
+	include	getbpb.s
 
 ; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm tw=80

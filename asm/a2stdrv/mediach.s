@@ -17,66 +17,38 @@
 ; ACSI2STM integrated driver
 ; Mediach handler
 
-; int32_t Mediach ( int16_t dev );
+mediach_handler
+	; d1 = current device
 
-; Parameters
-		rsreset
-		rs.l	1
-mediach.dev	rs.w	1
+	bsr.b	.chk                    ; Do a quick flag check
 
-	move.w	mediach.dev(sp),d1	; d1 = current device
+.nmch	move.w	d7,-(sp)
 
-	lea	mchmask(pc),a0          ;
-	move.l	(a0),d0                 ; d0 = change mask
+	bsr.w	rescan                  ; Rescan and remount if necessary
+	bsr.w	getpart                 ; Find the partition matching device
 
-	btst	d1,d0                   ; Test the flag as-is
-	beq.b	.query                  ;
+	cmp.b	#$ff,d7                 ; Check if we own the partition
+	bne.b	.mountd                 ;
 
-	bclr	d1,d0                   ; Clear the flag
+	move.w	(sp)+,d7                ; Not our drive: pass the call
+	hkchain	bios                    ;
+
+.mountd	move.w	(sp)+,d7                ; Restore d7
+	bsr.b	.chk                    ; Check flag again because of rescan
+
+	moveq	#0,d0                   ; Flag was not set
+	rte
+
+.chk	lea	mchmask(pc),a0          ; Check the flag
+	move.l	(a0),d0                 ;
+	btst	d1,d0                   ;
+	rtseq	                        ;
+
+	bclr	d1,d0                   ; Flag was set: clear it
 	move.l	d0,(a0)                 ;
-
-	moveq	#2,d0                   ; Return "changed"
-	rts
-
-.query	; Query the device
-	move.w	d7,-(sp)
-
-	bsr.w	getpart
-	cmp.b	#$ff,d7
-	bne.b	.mountd
-
-	move.w	(sp)+,d7                ; Pass the call
-	hkchain	mediach
-
-.mountd
-	move.l	bss+mchnext(pc),d0      ; Anti-spam filter
-	cmp.l	hz200.w,d0              ;
-	bgt.b	.nmch                   ;
-
-	cmp.l	#$ffffffff,d2           ; Test if no medium
-	bne.b	.hasmed                 ;
-
-	bsr.w	remount                 ; Try to remount the drive
-
-	moveq	#0,d0                   ; Return no change for now
-	move.w	(sp)+,d7
-	rts
-
-.hasmed	
-	lea	bss+mchnext(pc),a0      ; Don't refresh immediately
-	move.l	hz200.l,(a0)            ;
-	add.l	#mchtimeout,(a0)        ;
-
-	bsr.w	blk.tst                 ; Check media with "test unit ready"
-
-	cmp.l	#$2806,d0               ; Check for media changed
-	bne.b	.nmch                   ;
-	moveq	#2,d0                   ; Return "changed"
-	move.w	(sp)+,d7
-	rts
-
-.nmch	moveq	#0,d0
-	move.w	(sp)+,d7
-	rts
+	
+	moveq	#2,d0                   ; Return media change
+	addq.l	#4,sp                   ; Skip subroutine return
+	rte	                        ; Return BIOS call directly
 
 ; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm tw=80

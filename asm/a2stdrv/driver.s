@@ -42,11 +42,8 @@ boot
 	even
 	include	acsicmd.s
 	even
-	include	acsierr.s
-	even
 	include	rtc.s
 	even
-rodata
 	include	rodata.s
 	even
 data

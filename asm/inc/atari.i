@@ -73,10 +73,25 @@ rstne	macro
 .rst\@
 	endm
 
-; Exit the stack frame created by enter but do not return
+; Exit the stack frame created by enter and restart the calling stack frame
 ; Alters a6
 exit	macro
 	unlk	a6
+	restart
+	endm
+
+; Exit if equal
+exiteq	macro
+	bne.b	.exit\@
+	exit
+.exit\@
+	endm
+
+; Exit if not equal
+exitne	macro
+	beq.b	.exit\@
+	exit
+.exit\@
 	endm
 
 ; Unwind stack and execute rts, returning to the caller of the "enter" macro
@@ -117,6 +132,30 @@ bsrne	macro
 	beq.b	.bsr\@
 	bsr.\0	\1
 .bsr\@
+	endm
+
+rtseq	macro
+	bne.b	.rts\@
+	rts
+.rts\@
+	endm
+
+rtsne	macro
+	beq.b	.rts\@
+	rts
+.rts\@
+	endm
+
+rteeq	macro
+	bne.b	.rte\@
+	rte
+.rte\@
+	endm
+
+rtene	macro
+	beq.b	.rte\@
+	rte
+.rte\@
 	endm
 
 ; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm tw=80

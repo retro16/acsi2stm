@@ -17,52 +17,45 @@
 ; ACSI2STM integrated driver
 ; Getbpb handler
 
-; BPB *Getbpb ( int16_t dev );
-
-		rsreset
-		rs.l	1
-getbpb.dev	rs.w	1
-
-	move.w	getbpb.dev(sp),d1	; d1 = current device
+getbpb_handler
+	; d1 = current device
 
 	move.w	d7,-(sp)
 
-	bsr.w	getpart                 ; Get device from pun
-	cmp.b	#$ff,d7                 ;
-	bne.w	.own                    ;
+	bsr.w	rescan                  ; Rescan and remount if necessary
+	bsr.w	getpart                 ; Find the partition matching device
 
-	move.w	(sp)+,d7                ; Restore d7
-	hkchain	getbpb                  ; Chain call to BIOS
+	cmp.b	#$ff,d7                 ; Check if we own the partition
+	bne.b	.mountd                 ;
 
-.own	
-	cmp.l	#$ffffffff,d2           ; Test if no medium
-	bne.b	.hasmed                 ;
+	move.w	(sp)+,d7                ; Not our drive: pass the call
+	hkchain	bios                    ;
 
-	bsr.w	remount                 ; Try to remount the drive
+.mountd	btst	#8,d7                   ; Check media present flag
+	bne.b	.mok                    ;
 
-	moveq	#0,d0                   ; Return an error
-	move.w	(sp)+,d7                ; Restore d7
-	rts
+	moveq	#0,d0                   ; No media: return NULL !
+	move.w	(sp)+,d7                ;
+	rte                             ;
 
-.hasmed	lea	mchmask(pc),a0          ; Clear media change flag
-	move.l	(a0),d0                 ;
-	bclr	d1,d0                   ;
-	move.l	d0,(a0)                 ;
+.mok	bsr.w	clrmch                  ; Clear media change
 
-	lea	bss+mchnext(pc),a0      ; Don't refresh immediately
-	move.l	hz200.l,(a0)            ;
-	add.l	#mchtimeout,(a0)        ;
+	move.w	d1,-(sp)                ; Keep d1 intact
 
 	lea	bss+buf(pc),a0          ; Read partition header
 	move.l	a0,d1                   ;
 	moveq	#1,d0                   ;
 	bsr.w	blk.rd                  ;
 
+	move.w	(sp)+,d1                ; Restore d1
+
 	tst.b	d0                      ; Check for error
 	beq.b	.nerr                   ;
 
 	moveq	#0,d0                   ; Error: no BPB
-	rts
+	move.w	(sp)+,d7                ;
+	rte
+
 .nerr
 	; Compute BPB (code inspired from emuTOS)
 	lea	bss+buf(pc),a0          ; a0 = Partition header
@@ -158,6 +151,6 @@ getbpb.dev	rs.w	1
 	lea	bss+bpb(pc),a0          ; a0 = BPB address
 	move.l	a0,d0                   ; Return BPB address
 	move.w	(sp)+,d7                ; Restore d7
-	rts
+	rte
 
 ; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm tw=80

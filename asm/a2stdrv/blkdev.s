@@ -24,7 +24,7 @@ blk.wr	; Write to block device
 	;  d2.l: Block number
 	;  d7.b: Device id
 	; Output:
-	;  d0.l: ASCQ/ASC/Key or -1 if timeout
+	;  d0.l: ASC/Key or -1 if timeout
 
 	lea	acsi.rw(pc),a0
 	move.b	#$2a,2(a0)
@@ -41,7 +41,7 @@ blk.rd	; Read from block device
 	;  d2.l: Block number
 	;  d7.b: Device id
 	; Output:
-	;  d0.l: ASCQ/ASC/Key or -1 if timeout
+	;  d0.l: ASC/Key or -1 if timeout
 
 	lea	acsi.rw(pc),a0
 	move.b	#$28,2(a0)
@@ -62,7 +62,7 @@ blk.sns	; Sense error code
 	; Input:
 	;  d7.b: Device id
 	; Output:
-	;  d0.l: ASCQ/ASC/Key or -1 if timeout
+	;  d0.l: ASC/Key or -1 if timeout
 
 	lea	acsi.sns(pc),a0         ; Run Request sense
 	moveq	#1,d0                   ;
@@ -78,13 +78,25 @@ blk.sns	; Sense error code
 	rts                             ;
 
 .snsok	moveq	#0,d0
-	lea	bss+buf(pc),a0          ; Read ASCQ/ASC/Key
-	move.b	3(a0),d0                ; ASCQ
-	swap	d0                      ;
-	move.b	12(a0),d0               ; ASC
-	lsl.w	#8,d0                   ;
+	lea	bss+buf(pc),a0          ; Read ASC/Key
+	move.b	12(a0),-(sp)            ; ASC
+	move.w	(sp)+,d0                ;
 	move.b	2(a0),d0                ; Sense key
 	rts
+
+blk.inq	; Inquiry
+	; Input:
+	;  d7.b: Device id
+	; Output:
+	;  bss+buf: inquiry data
+	;  d0.b: 0 iif successful
+
+	lea	acsi.inq(pc),a0         ; Send inquiry
+	moveq	#1,d0                   ;
+	lea	bss+buf(pc),a1          ;
+	move.l	a1,d1                   ;
+	bra.w	acsicmd                 ;
+
 
 blk.cap	; Read capacity
 	; Input:
@@ -120,7 +132,7 @@ blk.tst	; Test unit ready
 	; Input:
 	;  d7.b: Device id
 	; Output:
-	;  d0.l: ASCQ/ASC/Key or -1 if timeout
+	;  d0.l: ASC/Key or -1 if timeout
 
 	moveq	#0,d0
 	lea	acsi.tst(pc),a0
@@ -134,5 +146,53 @@ blk.tst	; Test unit ready
 
 .end	rts
 
+; ACSI to TOS error code conversion
+
+acsierr	; Converts an ACSI ASCQ/ASC/Sense error code to a TOS error code
+	; Input:
+	;  d0.w:ACSI error code
+	; Output:
+	;  d0.l:TOS error code
+	;  Z flag: set if success
+	move.w	d0,d1
+	bne.b	.nok
+	moveq	#0,d0
+	rts
+
+.nok	lea	.errtbl(pc),a0
+.loop	movem.w	(a0)+,d0/d2
+	tst.w	d2
+	beq.b	.end
+	cmp.w	d1,d2
+	bne.b	.loop
+
+.end	ext.l	d0
+	rts
+
+; Error code matching table
+
+.errtbl
+	dc.w	EREADF,blkerr.read
+	dc.w	EWRITF,blkerr.write
+	dc.w	E_CHNG,blkerr.mchange
+	dc.w	EUNDEV,blkerr.nomedium
+	dc.w	ESECNF,blkerr.invaddr
+	dc.w	EWRPRO,blkerr.wprot
+	dc.w	EUNDEV,blkerr.invlun
+	dc.w	ERR,0
+
+; ACSI errors
+
+blkerr.timeout	equ	-1
+blkerr.ok	equ	0
+blkerr.read	equ	$1103
+blkerr.write	equ	$0303
+blkerr.wprot	equ	$2707
+blkerr.opcode	equ	$2005
+blkerr.invaddr	equ	$2105
+blkerr.invarg	equ	$2405
+blkerr.invlun	equ	$2505
+blkerr.mchange	equ	$2806
+blkerr.nomedium	equ	$3a06
 
 ; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm tw=80

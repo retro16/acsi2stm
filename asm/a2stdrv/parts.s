@@ -24,23 +24,25 @@ scan	; Scan devices and partitions, and mount everything
 	; Output:
 	;  Updates internal memory structures
 
-	lea	devmask(pc),a0          ; Clear previous devmask
-	clr.w	(a0)                    ;
+	lea	rdevmsk(pc),a0          ; Clear previous devmask
+	clr.b	(a0)                    ;
 
 	move.w	d7,-(sp)
 	clr.b	d7                      ; Start at first ACSI drive
 
-.scan	bsr.w	blk.tst                 ; Low timeout device test
+.scan	bsr.w	blk.inq                 ; Device test
 	tst.w	d0                      ;
-	bne.b	.next                   ; If timed out, scan next device
+	bne.b	.next                   ; If failed, scan next device
 
-	moveq	#0,d0                   ; Update the detected device mask
-	move.b	d7,d0                   ;
-	rol.b	#3,d0                   ;
-	lea	devmask(pc),a0          ;
-	bset	d0,1(a0)                ;
+	btst	#7,bss+buf+1(pc)        ; Check if removable
+	beq.b	.nremov                 ;
 
-	bsr.w	mount                   ; Mount the drive
+	bsr.w	devid                   ; Update the removable device mask
+	lea	rdevmsk(pc),a0          ;
+	bset	d0,(a0)                 ;
+.nremov
+
+	bsr.w	mount                   ; Mount the device
 
 .next	add.b	#$20,d7
 	bne.b	.scan
@@ -49,14 +51,121 @@ scan	; Scan devices and partitions, and mount everything
 	move.w	(sp)+,d7
 	rts
 
+rescan	; Scan again all removable devices
+	; Remounts only if necessary
+	; Output:
+	;  d1.w: preserved (*not* d1.l)
+
+	lea	bss+scnnext(pc),a0      ; Anti-spam filter
+	move.l	(a0),d0                 ;
+	cmp.l	hz200.w,d0              ;
+	bls.b	.start                  ;
+	rts                             ;
+
+.start	move.l	hz200.l,(a0)            ;
+	add.l	#rescanperiod,(a0)      ;
+
+	movem.w	d1/d5-d7,-(sp)
+
+	clr.b	d7                      ; Start at first id
+
+.check	bsr.w	devid                   ;
+	move.w	d0,d6                   ; d6 = device id (0-7)
+
+	btst	d6,rdevmsk(pc)          ; Check if the device is removable
+	beq.b	.next                   ;
+
+	st	d5                      ; d5 = retry flag
+
+.tst	bsr.w	blk.tst                 ; Check if a medium is inserted
+
+	tst.w	d0                      ; Unit ready
+	beq.b	.tstok                  ;
+
+	cmp.w	#blkerr.mchange,d0      ; Medium changed
+	beq.b	.tstmch                 ;
+
+	cmp.w	#blkerr.nomedium,d0     ; No medium
+	beq.b	.tstnm                  ;
+
+	tst.b	d5                      ; If already retried, consider no medium
+	beq.b	.tstnm                  ;
+
+	sf	d5                      ; Retry test
+	bra.b	.tst                    ;
+
+.tstok	btst	d6,mprmask(pc)          ; Mount if medium was not present
+	bne.b	.mpr                    ;
+	bsr.w	mount                   ;
+	bra.b	.next                   ;
+
+.mpr	bsr.w	anymch                  ; Check if medium change was set before
+	beq.b	.next                   ;
+
+.tstmch	bsr.w	unmount                 ; Remount
+	bsr.w	mount                   ;
+	bra.b	.next
+
+.tstnm	btst	d6,mprmask(pc)          ; Check if media was present before
+	beq.b	.next                   ;
+
+	bsr.w	unmount                 ; It was: unmount
+
+.next	add.b	#$20,d7                 ; Point d7 at next device
+	bne.b	.check                  ;
+	
+	movem.w	(sp)+,d1/d5-d7
+	rts
+
+anymch	; Check pun if any drive has the mch flag set for a given ACSI id
+	; Input:
+	;  d7.b: ACSI id or $ff if failed
+	; Output:
+	;  d0.l: 0 iif no mch flag set
+	;  Z: set iif no mch flag set
+
+	bsr.w	devid
+	bset	#6,d0
+
+	lea	mchmask+4(pc),a1
+
+	move.l	pun_ptr.w,a0            ; Load the regular pun table
+	bsr.b	.chkpun
+	lea	punext(pc),a0
+	bsr.b	.chkpun
+
+	moveq	#0,d0
+	rts
+
+.chkpun	; a0: pun table
+	; a1: pointer after mchmask
+
+	moveq	#15,d1
+	move.w	-(a1),d2
+
+.chk	cmp.b	pun.pun(a0,d1),d0       ; Check if this drive matches the device
+	bne.b	.next                   ;
+
+	btst	d1,d2                   ; Check if the flag is set
+	bne.b	.yes
+
+.next	dbra	d1,.chk
+	rts
+
+.yes	addq.l	#4,sp                   ; Discard chkpun return address
+	moveq	#1,d0                   ; Return "Yes"
+	rts
+
 getpart	; Query the ACSI id and partition offset from pun
 	; Input:
 	;  d1.w: Drive number (C: = 2, D: = 3, ...)
 	; Output:
+	;  a2: preserved
 	;  d0.b: Sector size shift (0 = 512, 1 = 1024, 2 = 2048, ...)
 	;  d1.w: Drive number (kept intact)
 	;  d2.l: Partition offset
 	;  d7.b: ACSI id or $ff if failed
+	;  d7[8]: mprmask
 
 	move.w	d1,d2                   ; d2 = pun offset
 	cmp.w	#16,d2                  ;
@@ -69,12 +178,18 @@ getpart	; Query the ACSI id and partition offset from pun
 	sub.w	#16,d2                  ;
 .punok		                        ; a0 = pointer to the pun table
 
-	move.b	pun.pun(a0,d2),d7       ; Read flags
+	moveq	#0,d0                   ;
+	move.b	pun.pun(a0,d2),d0       ; Read flags
 
-	btst	#7,d7                   ; Bit 7 = Not managed
+	btst	#7,d0                   ; Bit 7 = Not managed
 	bne.b	.nodrv                  ;
 
-	lsl.b	#5,d7                   ; Convert to ACSI id
+	btst	d0,mprmask(pc)          ; Set media present in bit 8
+	sne	d7                      ;
+	lsl.w	#1,d7                   ;
+
+	move.b	d0,d7                   ; Set ACSI id in bits 0..7
+	lsl.b	#5,d7                   ;
 
 	ifgt	maxsecsize-$200
 	move.b	pun.sectorsize(a0,d2),d0; Load sector size shift
@@ -85,37 +200,41 @@ getpart	; Query the ACSI id and partition offset from pun
 
 	rts
 
-.nodrv	move.b	#$ff,d7                 ;
+.nodrv	st	d7                      ; Not managed by us.
 	rts
 
-remount	; Remount all devices
-	move.w	d7,-(sp)
+setmch	; Set media change flag
+	; Input:
+	;  d1.w: drive id
 
-	clr.b	d7                      ; Start at first id
-
-.check	moveq	#0,d0                   ; Check if the device is present
-	move.b	d7,d0                   ;
-	rol.b	#3,d0                   ;
-	lea	devmask(pc),a0          ;
-	btst	d0,1(a0)                ;
-	beq.b	.next                   ;
-
-	bsr.w	mount                   ;
-
-.next	add.b	#$20,d7                 ; Point d7 at next device
-	beq.b	.check                  ;
-	
-	move.w	(sp)+,d7
+	lea	mchmask(pc),a0
+	move.l	(a0),d0
+	bset	d1,d0
+	move.l	d0,(a0)
 	rts
 
-mount	; Mount ACSI device
+clrmch	; Clear media change flag
+	; Input:
+	;  d1.w: drive id
+
+	lea	mchmask(pc),a0
+	move.l	(a0),d0
+	bclr	d1,d0
+	move.l	d0,(a0)
+	rts
+
+unmount	; Unmount an ACSI device
 	; Input:
 	;  d7.b: ACSI id
 
-	; Unmount device
-	move.b	d7,d0                   ; d0 = pun formatted drive id
-	lsr.b	#5,d0                   ;
-	bset	#6,d0                   ;
+	bsr.w	devid                   ; d0 = device id
+
+	lea	mprmask(pc),a0          ; Clear media present flag
+	bclr	d0,(a0)                 ;
+
+	bset	#6,d0                   ; Convert to pun identifier
+
+	lea	(drvbits+4).w,a1        ; a1 = drvbits
 
 	move.l	pun_ptr.w,a0            ; Remove the device from the pun table
 	bsr.w	.unpun                  ;
@@ -123,44 +242,76 @@ mount	; Mount ACSI device
 	lea	punext(pc),a0           ; Remove the device from the ext pun
 	bsr.w	.unpun                  ;
 
-	movem.l	d4-d6,-(sp)             ; Save extra registers
-
-	bsr.w	blk.cap                 ; Get device size
-	tst.l	d0                      ;
-	beq.b	.dummy                  ;
-
-	move.l	d0,d4                   ; d4 = logical drive size
-	moveq	#0,d5                   ; d5 = logical drive offset
-	moveq	#0,d6                   ; d6 = extended partition offset
-
-	bsr.b	mntdev                  ; Detect and mount what's in this device
-	movem.l	(sp)+,d4-d6             ;
-	rts
-
-.dummy	moveq	#-1,d1                  ;
-	moveq	#0,d4                   ;
-	moveq	#-1,d5                  ; No media: create a dummy drive letter
-	bsr.w	setdrv                  ;
+	or.b	#3,3(a1)                ; Restore floppy flags
 
 	rts
 
 .unpun	; Remove from the pun table
 	; Input:
 	;  a0: pun table address
+	;  a1: pointer after drvbits
 	;  d0.b: Drive id in pun format
 	; Output:
 	;  d0.b: unchanged
+	;  a1: pointer at drvbits
 
 	moveq	#15,d1
+	move.w	-(a1),d2                ; d2 = drvbits value
 .uploop
 	cmp.b	pun.pun(a0,d1),d0
 	bne.b	.upnext
 
 	; Drive was mounted on this device: unmount
 	subq.w	#1,pun.puns(a0)
-	sf	pun.pun(a0,d1)
+	st	pun.pun(a0,d1)
+	bclr	d1,d2
 
 .upnext	dbra	d1,.uploop
+	move.w	d2,(a1)                 ; Update drvbits
+	rts
+
+devid	; Get ACSI device id (0-7) based on the "d7.b" format
+	; Input:
+	;  d7.b: ACSI id
+	; Output:
+	;  d0.l: ACSI id (0-7)
+
+	moveq	#0,d0                   ;
+	move.b	d7,d0                   ;
+	rol.b	#3,d0                   ;
+
+	rts
+
+mount	; Mount an ACSI device
+	; Input:
+	;  d7.b: ACSI id
+
+	movem.l	d4-d6,-(sp)             ; Save extra registers
+
+.tst	bsr.w	blk.tst                 ; Test if ready (check for medium)
+	tst.w	d0                      ;
+	beq.b	.tstok                  ;
+
+	cmp.w	#blkerr.mchange,d0      ; If not a medium change: "true" error
+	bne.b	.end                    ; so don't mount
+.tstok
+	; From now on, any error will simply create a device with no partition
+	; This is a very unlikely situation
+
+	bsr.w	devid                   ; Set media present flag
+	lea	mprmask(pc),a0          ;
+	bset	d0,(a0)                 ;
+
+	bsr.w	blk.cap                 ; Get device size
+	tst.l	d0                      ;
+	beq.b	.end                    ;
+
+	move.l	d0,d4                   ; d4 = logical drive size
+	moveq	#0,d5                   ; d5 = logical drive offset
+	moveq	#0,d6                   ; d6 = extended partition offset
+
+	bsr.b	mntdev                  ; Detect and mount what's in this device
+.end	movem.l	(sp)+,d4-d6             ;
 	rts
 
 mntdev	; Mount a block device or a partition
@@ -169,6 +320,7 @@ mntdev	; Mount a block device or a partition
 	;  d5.l: Partition/device offset
 	;  d6.b: Extended partition offset
 	;  d7.b: ACSI id
+
 	move.l	d5,d2                   ; Read boot sector
 	moveq	#1,d0                   ;
 	lea	bss+buf(pc),a0          ; Read into the local buffer
@@ -181,8 +333,9 @@ mntdev	; Mount a block device or a partition
 	bsr.w	isfatfs                 ; Check if it contains a FAT filesystem
 	tst.l	d0                      ;
 	beq.b	.nfat                   ;
+
 	; The device is a FAT partition. Mount it
-	moveq	#-1,d1                  ; Choose the next available drive
+	moveq	#2,d1                   ; Find the first letter starting at C:
 
 	ifgt	maxsecsize-$200
 	move.b	fat.bps+1(a0),d2        ; Read sector size
@@ -339,7 +492,7 @@ mnttos	; Mount all partitions in a TOS partition table.
 
 setdrv	; Associate a partition to a mounted drive letter
 	; Input:
-	;  d1.w: Drive letter or -1 for dynamic allocation
+	;  d1.w: Drive letter to start from
 	;  d2.w: Sector size (only if maxsecsize > 512)
 	;  d4.l: Partition size
 	;  d5.l: Partition start sector
@@ -347,53 +500,35 @@ setdrv	; Associate a partition to a mounted drive letter
 	; Output:
 	;  d1.w: Effective drive letter or -1 if failed
 
-	move.l	pun_ptr.w,a2            ; a2 = pun table
+	lea	drvbits.w,a0            ; a0 = drvbits
+	move.l	(a0),d0                 ;
 
-	tst.w	d1
-	bpl.w	.doit
+	cmp.w	#1,d1                   ; Force mount for floppy
+	bls	.doit                   ;
 
-	move.w	#2,d1                   ; Start at C:
-
-.isfree	btst	#7,pun.pun(a2,d1)       ; Check if the drive letter is free
-	bne.b	.doit                   ;
-
-	addq.w	#1,d1                   ; Check next partition
-	cmp.w	#16,d1                  ; Stop at P:
-	blt.b	.isfree
-
-	; Search in the extended pun table
-	lea	punext(pc),a2           ; Start at Q:
-	moveq	#0,d1                   ;
-
-.isxf	btst	#7,pun.pun(a2,d1)       ; Check if the drive letter is free
-	bne.b	.doit                   ;
-
-	addq.w	#1,d1                   ; Check next partition
-	cmp.w	#10,d1                  ; Stop at Z:
-	blt.b	.isxf
+.nxtdrv	btst	d1,d0                   ; Scan for the next available drive
+	beq.b	.doit                   ;
+	addq.w	#1,d1                   ;
+	cmp.w	#32,d1                  ;
+	bne.b	.nxtdrv                 ;
 
 	bra.w	.fail
 
 .doit	; Mount the partition on the drive set in d1
-	moveq	#1,d0                   ; d0 = drive mask
-	lsl.w	d1,d0                   ;
 
-	; Update drvbits
-	lea	drvbits.w,a0            ;
-	or.l	d0,(a0)                 ;
+	bset	d1,d0                   ; Update drvbits
+	move.l	d0,(a0)                 ;
 
-	; Set media change flag
-	lea	mchmask(pc),a0          ;
-	or.l	d0,(a0)                 ;
+	bsr.w	setmch                  ; Set media change flag
 
-	; Allow media check immediately
-	lea	bss+mchnext(pc),a0      ;
-	move.l	hz200.w,(a0)            ;
+	cmp.w	#15,d1
+	bhi.b	.extpun
+	move.l	pun_ptr.w,a2
+	bra.b	.setpun
+.extpun	lea	punext(pc),a2
 
-	; Update pun
-	move.b	d7,d0                   ; ACSI id
-	rol.b	#3,d0                   ;
-	bset	#6,d0                   ; Removable flag
+.setpun	bsr.w	devid                   ; Update pun
+	bset	#6,d0                   ; Always set removable flag
 	move.b	d0,pun.pun(a2,d1)       ; Set flags
 
 	addq.w	#1,pun.puns(a2)         ; Add one drive

@@ -33,18 +33,18 @@
 
 class Acsi: public AcsiDebug {
 public:
-  // SCSI error code in KEY_ASCQ_ASC format (see SCSI KCQ)
+  // SCSI error code in ASCQ_ASC_KEY format (see SCSI KCQ)
   enum ScsiErr {
     ERR_OK = 0x000000,
-    ERR_READERR = 0x030011,
-    ERR_WRITEERR = 0x030203,
-    ERR_WRITEPROT = 0x070027,
-    ERR_OPCODE = 0x050020,
-    ERR_INVADDR = 0x050021,
-    ERR_INVARG = 0x050024,
-    ERR_INVLUN = 0x050025,
-    ERR_MEDIUMCHANGE = 0x060028,
-    ERR_NOMEDIUM = 0x06003a,
+    ERR_READERR = 0x001103,
+    ERR_WRITEERR = 0x020303,
+    ERR_WRITEPROT = 0x002707,
+    ERR_OPCODE = 0x002005,
+    ERR_INVADDR = 0x002105,
+    ERR_INVARG = 0x002405,
+    ERR_INVLUN = 0x002505,
+    ERR_MEDIUMCHANGE = 0x002806,
+    ERR_NOMEDIUM = 0x003a06,
   };
 
   Acsi(int csPin, int wpPin);
@@ -52,6 +52,9 @@ public:
 
   // Initialize the ACSI bridge
   bool begin(int deviceId);
+
+  // Reset error status
+  void reset();
 
   // Mount all LUNs on the SD card.
   void mountLuns();
@@ -77,12 +80,11 @@ public:
   void commandStatus(ScsiErr err);
 
   // Reopen the SD card and remount LUNs
-  // Returns:
-  //   ERR_OK if the device is operational
+  // Updates lastErr:
   //   ERR_MEDIUMCHANGE if the card was swapped
   //   ERR_NOMEDIUM if the card was removed
-  ScsiErr refresh(int lun);
-  ScsiErr refresh() {
+  void refresh(int lun);
+  void refresh() {
     return refresh(getLun());
   }
 
@@ -90,7 +92,7 @@ public:
   ScsiErr processBlockRead(uint32_t block, int count, BlockDev *dev);
   ScsiErr processBlockWrite(uint32_t block, int count, BlockDev *dev);
 
-  // Check if the SD card was changed since last access
+  // Check if the SD card was potentially changed since last access
   bool hasMediaChanged();
 
   // Update media check time

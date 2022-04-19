@@ -120,6 +120,8 @@ void setup() {
 void loop() {
   setjmp(DmaPort::resetJump);
   DmaPort::waitBusReady();
+  for(int c = 0; c < sdCount; ++c)
+    acsi[c].reset();
 
   for(;;) {
     Watchdog::pause();

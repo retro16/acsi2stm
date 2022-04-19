@@ -23,6 +23,10 @@
 #include "acsi2stm.h"
 #include "drvboot.h"
 #include "a2stdrv.h"
+#include "a2setup.h"
+
+unsigned char *tools_bin;
+unsigned int tools_bin_len;
 
 int badImage() {
   printf(
@@ -56,7 +60,7 @@ int patchFat(FILE *f, long imgSize) {
 
   v = fgetc(f) | fgetc(f) << 8;
 
-  if(v < (drvboot_tools_bin_len+511)/512)
+  if(v < (drvboot_tools_bin_len+tools_bin_len+511)/512)
     // Not enough reserved sectors
     return 0;
 
@@ -78,6 +82,10 @@ int patchFat(FILE *f, long imgSize) {
   // Patch in FAT header
   fseek(f, 2, SEEK_SET);
   fread(&drvboot_tools_bin[2], 0x3e - 0x02, 1, f);
+
+  // Patch in FAT signature (if any)
+  fseek(f, 510, SEEK_SET);
+  fread(&drvboot_tools_bin[510], 2, 1, f);
 
   return 1;
 }
@@ -157,9 +165,21 @@ int patchTos(FILE *f, long imgSize) {
 int main(int argc, char **argv) {
   printf(ACSI2STM_HEADER "\n");
 
+  tools_bin = a2stdrv_tools_bin;
+  tools_bin_len = a2stdrv_tools_bin_len;
+
+  // Edgy option parsing
+  if(argc == 3 && argv[1][0] == '-' && argv[1][1] == 's') {
+    tools_bin = a2setup_tools_bin;
+    tools_bin_len = a2setup_tools_bin_len;
+    ++argv;
+    --argc;
+  }
+
   if(argc != 2) {
-    printf("usage: a2stboot HDIMAGE\n");
+    printf("usage: a2stboot [-s] HDIMAGE\n");
     printf("Patches an Atari ST hard disk partition (HDIMAGE) with the ACSI2STM driver.\n");
+    printf(" -s patches setup tools instead of the driver.\n");
     return 1;
   }
 
@@ -177,7 +197,7 @@ int main(int argc, char **argv) {
   imgSize = ftell(f);
 
   // Check partition size
-  if(imgSize < (drvboot_tools_bin_len + a2stdrv_tools_bin_len + 511) / 512) {
+  if(imgSize < (drvboot_tools_bin_len + tools_bin_len + 511) / 512) {
     // The file is too small to contain the driver !
     return badImage();
   }
@@ -199,10 +219,10 @@ int main(int argc, char **argv) {
     return badImage();
 
   // Patch malloc size and sector count
-  drvboot_tools_bin[allocszOffset] = a2stdrv_tools_bin[4];
-  drvboot_tools_bin[allocszOffset+1] = a2stdrv_tools_bin[5];
-  drvboot_tools_bin[allocszOffset+2] = a2stdrv_tools_bin[6];
-  drvboot_tools_bin[allocszOffset+3] = a2stdrv_tools_bin[7];
+  drvboot_tools_bin[allocszOffset] = tools_bin[4];
+  drvboot_tools_bin[allocszOffset+1] = tools_bin[5];
+  drvboot_tools_bin[allocszOffset+2] = tools_bin[6];
+  drvboot_tools_bin[allocszOffset+3] = tools_bin[7];
 
   // Patch the checksum to make the drive bootable
   drvboot_tools_bin[checksumOffset] = 0;
@@ -225,7 +245,7 @@ int main(int argc, char **argv) {
   }
 
   // Write the driver
-  fwrite(a2stdrv_tools_bin, 1, a2stdrv_tools_bin_len, f);
+  fwrite(tools_bin, 1, tools_bin_len, f);
 
   fclose(f);
 
