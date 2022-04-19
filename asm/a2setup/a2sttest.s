@@ -18,6 +18,8 @@
 ; Unit test
 
 a2sttest
+	cls
+
 	; Command tests
 
 	moveq	#0,d3
@@ -70,6 +72,15 @@ a2sttest
 	lea	a2sttest.rwbuffer(pc),a0;
 	move.l	d0,8(a0)                ;
 
+	print	.ckpat(pc)              ;
+	move.l	#$f00f55aa,d3           ; Pattern expected by the ACSI2STM unit
+	lea	a2sttest.rwbuffer(pc),a0; Switch to the pattern check buffer
+	move.b	#$01,4(a0)              ;
+	bsr.w	a2sttest.tstdma         ;
+
+	lea	a2sttest.rwbuffer(pc),a0; Switch back to the normal buffer
+	move.b	#$00,4(a0)              ;
+
 	lea	.patlst(pc),a3
 .nextlb	
 	move.l	(a3)+,d3
@@ -83,26 +94,19 @@ a2sttest
 	tst.l	d3
 	bne.b	.nextlb
 
-	print	.ckpat(pc)
-
-	move.l	#$f00f55aa,d3
-	lea	a2sttest.rwbuffer(pc),a0
-	move.b	#$01,4(a0)
-	bsr.w	a2sttest.tstdma
-
 	print	.succss(pc)
 
 	bra.w	a2sttest.exit
 
 	; Test descriptions
 .tstrd	dc.b	'Testing in read mode',13,10,0
-.cmdp	dc.b	'Test commmand',13,10,0
+.cmdp	dc.b	'Test command',13,10,0
 .zcmdp	dc.b	'Zero filled command',13,10,0
 .fcmdp	dc.b	'Ones filled command',13,10,0
 .tstwr	dc.b	'Testing in write mode',13,10,0
 .getbuf	dc.b	'Fetch buffer size:',0
-.tstpat	dc.b	'Testing DMA with pattern $',0
 .ckpat	dc.b	'Check DMA with data integrity',13,10,0
+.tstpat	dc.b	'Testing DMA with pattern ',0
 .succss	dc.b	'All tests successful',13,10,0
 	even
 

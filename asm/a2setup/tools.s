@@ -15,39 +15,40 @@
 ; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ; ACSI2STM setup program
-; TOS program version
+; Binary payload loaded by the boot loader
 
 	; Flag to indicate that we don't run from the STM32 flash
 stm32flash	equ	0
 
+	; Global includes
 	incdir	..\
 	incdir	..\inc\
 	include	acsi2stm.i
 	include	tos.i
 	include	atari.i
 
+	; Local includes
 	include	bss.i
 
 	opt	O+
 
-	text
+	org	0
 
-	Super	                        ; Enter supervisor mode
-	lea	stacktop(pc),sp         ; Set local stack
+	dc.b	'A2ST'                  ; Signature
+	dc.l	memend<<8+(bss+$1ff)/$200 ; RAM size and sector count
 
-	bsr.w	main
+	opt	P+
 
-	Pterm0                          ; Exit cleanly
-main
-	include	text.s                  ; Subroutines and code includes
+	include	text.s
 
-	data
+	include	data.s
 
-	include	data.s                  ; Initialized data
+	; Align payload to 16 bytes boundary for DMA transfers
+	align16
 
-	bss
-bss	ds.b	bss...                  ; Allocate BSS from the bss... struct
-	ds.b	1024                    ; Stack size
-stacktop
+bss
+
+memend	equ	bss+bss...
 
 ; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm tw=80
+

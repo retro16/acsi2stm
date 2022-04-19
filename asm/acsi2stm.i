@@ -24,14 +24,14 @@
 ; complex algorithms.
 maxsecsize	equ	16384
 
-; Minimum time between media change queries
+; Minimum time between partition rescan
 ; In 200hz timer units
-mchtimeout	equ	200/2           ; 200/2 = 500ms
+rescanperiod	equ	200/2           ; 200/2 = 500ms
 
 ; Constants
 a2st_version	macro
 	; The following line is patched automatically by build_asm.sh
-	dc.b	'3.0d'			; ACSI2STM VERSION NUMBER
+	dc.b	'3.0e'			; ACSI2STM VERSION NUMBER
 	endm
 
 a2st_header	macro

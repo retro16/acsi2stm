@@ -18,8 +18,8 @@
 
 ; bss: Global uninitialized variables structure
 		rsreset
-mchnext		rs.l	1               ; hz200 value of the next disk query
-sdcount		rs.w	1               ; SD card slot count
+traplen		rs.w	1               ; Parameters offset in a trap stack
+scnnext		rs.l	1               ; hz200 value of the next media scan
 bpb             rs.b	bpb...          ; Bios Parameter Block
 buf...		equ	$200            ; Boot sector buffer size
 buf		rs.b	buf...          ; One sector buffer

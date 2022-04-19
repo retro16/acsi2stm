@@ -21,15 +21,32 @@
 devsel
 	movem.l	d2-d7/a2-a5,-(sp)       ; Save registers
 
-.again	print	.devsel(pc)             ; Ask for the device id
+.again	print	.header(pc)             ; Print the header
+
+	moveq	#0,d7                   ; Scan ACSI ids
+	moveq	#'0',d6                 ;
+.pnext	pchar	' '                     ;
+	move.w	d6,-(sp)                ;
+	gemdos	Cconout,4               ;
+	pchar2	':',' '                 ;
+	bsr.w	blkdev.pname            ;
+	crlf                            ;
+	addq.b	#1,d6                   ;
+	add.b	#$20,d7                 ;
+	bne.b	.pnext                  ;
+
+	print	.devsel(pc)             ; Ask for the device id
 
 .keyagn	gemdos	Cnecin,2                ; Wait for the selection
 
-	cmp.b	#27,d0                  ; Check Esc to quit
+	cmp.b	#$1b,d0                 ; Check Esc to quit
 	bne.b	.nexit                  ;
 	movem.l	(sp)+,d2-d7/a2-a5       ;
 	rts                             ;
 .nexit
+	cmp.b	#$0d,d0                 ; Check Return to refresh
+	beq.w	.again                  ;
+
 	sub.b	#'0',d0                 ; Check that a valid ID was entered
 	cmp.b	#7,d0                   ;
 	bhi.b	.keyagn                 ;
@@ -43,19 +60,20 @@ devsel
 	tst.w	d0                      ;
 	bne.b	.nready                 ;
 
-	; TODO: do an inquiry to check ACSI2STM unit version
-
 	bsr.w	mainmenu                ; Display the main menu for this device
-	bra.b	.again                  ; Go back to the device selection
+	bra.w	.again                  ; Go back to the device selection
 
 .nready	print	.deverr(pc)             ; Display an error
 	bsr.w	presskey                ; Wait for a key
-	bra.b	.again                  ; Try again
+	bra.w	.again                  ; Try again
 
-.devsel	dc.b	$1b,'E'
+.header	dc.b	$1b,'E'
 	a2st_header
-	dc.b	13,10
-	dc.b	'Type the device id of the ACSI2STM (0-7)',13,10
+	dc.b	13,10,0
+
+.devsel	dc.b	13,10
+	dc.b	'Select the device to setup (0-7)',13,10
+	dc.b	'press Return to refresh the list',13,10
 	dc.b	'or press Esc to quit',13,10,0
 
 .deverr	dc.b	7,'Device unavailable',13,10,0

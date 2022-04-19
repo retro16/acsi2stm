@@ -124,6 +124,15 @@ bool Acsi::begin(int deviceId) {
   return true;
 }
 
+void Acsi::reset() {
+  if(card.deviceId < 0)
+    return;
+
+  mediaCheckTime = millis();
+  refresh(0);
+  lastErr = ERR_OK;
+}
+
 void Acsi::mountLuns() {
   int prefixLen = strlen(ACSI_IMAGE_FOLDER "/" ACSI_LUN_IMAGE_PREFIX);
 
@@ -160,7 +169,7 @@ void Acsi::process(uint8_t cmd) {
   }
 
   if(!readCmdBuf(cmd)) {
-    dbgHex("Unknown command\n");
+    dbg("Unknown command\n");
     lastSeek = false;
     commandStatus(ERR_OPCODE);
     return;
@@ -179,55 +188,44 @@ void Acsi::process(uint8_t cmd) {
   // Command preprocessing
   switch(cmdBuf[0]) {
   default:
+    refresh();
+    if(validLun())
+      dev = luns[getLun()];
+
+#if ACSI_DUMMY_BOOT_SECTOR && !ACSI_STRICT
+    if(!strict && mediaId == 0
+     && cmdBuf[0] == 0x08
+     && cmdBuf[1] == 0x00
+     && cmdBuf[2] == 0x00
+     && cmdBuf[3] == 0x00
+     && cmdBuf[4] == 0x01
+     && cmdBuf[5] == 0x00
+    ) {
+      // Boot sector query: inject the dummy payload
+      commandStatus(processDummyBootSector());
+      return;
+    }
+#endif
+    if(lastErr) {
+      commandStatus(lastErr);
+      return;
+    }
     if(!validLun()) {
       dbg("Invalid LUN\n");
       commandStatus(ERR_INVLUN);
       return;
     }
-    // Handle media change
-    if(!dev || hasMediaChanged()) {
-      refresh();
-      dev = luns[getLun()];
-      if(dev) {
-        // Recovered
-        commandStatus(ERR_MEDIUMCHANGE);
-        return;
-      }
-#if ACSI_DUMMY_BOOT_SECTOR && !ACSI_STRICT
-      else if(!strict
-       && cmdBuf[0] == 0x08
-       && cmdBuf[1] == 0x00
-       && cmdBuf[2] == 0x00
-       && cmdBuf[3] == 0x00
-       && cmdBuf[4] == 0x01
-       && cmdBuf[5] == 0x00
-      ) {
-        // Boot sector query: inject the dummy payload
-        commandStatus(processDummyBootSector());
-        return;
-      }
-#endif
-      commandStatus(ERR_NOMEDIUM);
-      return;
-    }
     break;
 
   // Commands that need to be executed even if the card is not available
-  case 0x03: // Request sense
   case 0x12: // Inquiry
-    {
-      if(validLun()) {
-        // Request sense does not always refresh, other commands do
-        if(cmdBuf[0] != 0x03 || !dev || hasMediaChanged()) {
-          if(refresh() == ERR_MEDIUMCHANGE) {
-            commandStatus(ERR_MEDIUMCHANGE);
-            return;
-          }
-          dev = luns[getLun()];
-        }
-      }
-    }
+    // Always refresh
+    refresh();
+    if(validLun())
+      dev = luns[getLun()];
+
     break;
+  case 0x03: // Request sense
   case 0x0c: // Single byte commands
   case 0x0d:
   case 0x0e:
@@ -256,7 +254,7 @@ void Acsi::process(uint8_t cmd) {
       buf[b] = 0;
 
     if(cmdBuf[4] <= 4) {
-      buf[0] = lastErr & 0xFF;
+      buf[0] = (lastErr >> 8) & 0xFF;
       if(lastSeek) {
         buf[0] |= 0x80;
         buf[1] = (lastBlock >> 16) & 0xFF;
@@ -272,10 +270,10 @@ void Acsi::process(uint8_t cmd) {
         buf[5] = (lastBlock >> 8) & 0xFF;
         buf[6] = (lastBlock) & 0xFF;
       }
-      buf[2] = (lastErr >> 16) & 0xFF;
-      buf[3] = (lastErr >> 8) & 0xFF;
+      buf[2] = (lastErr) & 0xFF;
+      buf[3] = (lastErr >> 16) & 0xFF;
       buf[7] = 14;
-      buf[12] = (lastErr) & 0xFF;
+      buf[12] = (lastErr >> 8) & 0xFF;
       buf[19] = (lastBlock >> 16) & 0xFF;
       buf[20] = (lastBlock >> 8) & 0xFF;
       buf[21] = (lastBlock) & 0xFF;
@@ -342,7 +340,10 @@ void Acsi::process(uint8_t cmd) {
     DmaPort::sendDma(buf, cmdBuf[4]);
 
     lastSeek = false;
-    commandStatus(ERR_OK);
+
+    // Do not overwrite lastErr
+    dbg("Success\n");
+    DmaPort::sendIrq(0);
     return;
   case 0x1a: // Mode sense
     {
@@ -366,7 +367,7 @@ void Acsi::process(uint8_t cmd) {
         DmaPort::sendDma(buf, 44);
         break;
       default:
-        dbgHex("Error: unsupported mode sense ", (int)cmdBuf[3], '\n');
+        verboseHex("Error: unsupported mode sense ", (int)cmdBuf[3], '\n');
         commandStatus(ERR_INVARG);
         return;
       }
@@ -379,16 +380,16 @@ void Acsi::process(uint8_t cmd) {
     //  * ACSI2STM command loopback test
 #if ACSI_RTC
     if(memcmp(&cmdBuf[1], "USCurntFW", 9) == 0) {
-      dbg("UltraSatan:");
-      dbg("firmware query\n");
+      verbose("UltraSatan:");
+      verbose("firmware query\n");
       // Fake the firmware
       DmaPort::sendDma((const uint8_t *)("ACSI2STM " ACSI2STM_VERSION "\r\n"), 16);
       commandStatus(ERR_OK);
       return;
     }
     if(memcmp(&cmdBuf[1], "USRdClRTC", 9) == 0) {
-      dbg("UltraSatan:");
-      dbg("clock read\n");
+      verbose("UltraSatan:");
+      verbose("clock read\n");
       tm_t now;
       rtc.getTime(now);
 
@@ -407,13 +408,13 @@ void Acsi::process(uint8_t cmd) {
       return;
     }
     if(memcmp(&cmdBuf[1], "USWrClRTC", 9) == 0) {
-      dbg("UltraSatan:");
-      dbg("clock set\n");
+      verbose("UltraSatan:");
+      verbose("clock set\n");
 
       DmaPort::readDma(buf, 9);
 
       if(buf[0] != 'R' || buf[1] != 'T' || buf[2] != 'C') {
-        dbg("Invalid date\n");
+        verbose("Invalid date\n");
         commandStatus(ERR_INVARG);
         return;
       }
@@ -432,11 +433,25 @@ void Acsi::process(uint8_t cmd) {
     }
 #endif
     if(memcmp(&cmdBuf[1], "A2STFmtSd", 9) == 0) {
-      // TODO: check read-only flag
-      dbg("ACSI2STM format SD\n");
+#if ACSI_READONLY
+#if ACSI_READONLY == 2
+      if(strict)
+        commandStatus(ERR_WRITEPROT);
+      else
+        commandStatus(ERR_OK);
+#else
+      commandStatus(ERR_WRITEPROT);
+#endif
+#else
+      if(!card.writable) {
+        commandStatus(ERR_WRITEPROT);
+        return;
+      }
+
+      verbose("ACSI2STM format SD\n");
       ExFatFormatter exFatFormatter;
       FatFormatter fatFormatter;
-      dbg("Format started\n");
+      verbose("Format started\n");
 
       // Start formatting
       // Return now so the ST can poll with inquiry
@@ -448,16 +463,31 @@ void Acsi::process(uint8_t cmd) {
         fatFormatter.format(&card.card, buf);
       Watchdog::resume();
 
-      dbg("Format finished\n");
+      verbose("Format finished\n");
       mediaId = 0;
+#endif
       return;
     }
     if(memcmp(&cmdBuf[1], "A2STCIm", 7) == 0) {
-      // TODO: check read-only flag
-      dbg("ACSI2STM create image\n");
+#if ACSI_READONLY
+#if ACSI_READONLY == 2
+      if(strict)
+        commandStatus(ERR_WRITEPROT);
+      else
+        commandStatus(ERR_OK);
+#else
+      commandStatus(ERR_WRITEPROT);
+#endif
+#else
+      if(!card.writable) {
+        commandStatus(ERR_WRITEPROT);
+        return;
+      }
+
+      verbose("ACSI2STM create image\n");
 
       if(!card.fsOpen) {
-        dbg("No filesystem\n");
+        verbose("No filesystem\n");
         commandStatus(ERR_WRITEERR);
         return;
       }
@@ -469,21 +499,19 @@ void Acsi::process(uint8_t cmd) {
           fs.mkdir(ACSI_IMAGE_FOLDER);
           dir = fs.open(ACSI_IMAGE_FOLDER);
           if(!dir) {
-            dbg("Cannot create directory\n");
+            verbose("Cannot create directory\n");
             commandStatus(ERR_WRITEERR);
             return;
           }
         } else {
-          dbg(ACSI_IMAGE_FOLDER " is not a directory\n");
+          verbose(ACSI_IMAGE_FOLDER " is not a directory\n");
           commandStatus(ERR_WRITEERR);
           return;
         }
       }
 
-      if(fs.exists(ACSI_IMAGE_FOLDER "/" ACSI_LUN_IMAGE_PREFIX "0" ACSI_LUN_IMAGE_EXT)) {
-        dbg("Image already exists: remove it\n");
+      if(fs.exists(ACSI_IMAGE_FOLDER "/" ACSI_LUN_IMAGE_PREFIX "0" ACSI_LUN_IMAGE_EXT))
         fs.remove(ACSI_IMAGE_FOLDER "/" ACSI_LUN_IMAGE_PREFIX "0" ACSI_LUN_IMAGE_EXT);
-      }
 
       // Read image size in multiples of 64k
       uint32_t imgSize = (uint32_t)cmdBuf[8] << 24 | (uint32_t)cmdBuf[9] << 16;
@@ -494,11 +522,9 @@ void Acsi::process(uint8_t cmd) {
         return;
       }
 
-      dbg("Image size:", imgSize, '\n');
-
       FsFile f = fs.open(ACSI_IMAGE_FOLDER "/" ACSI_LUN_IMAGE_PREFIX "0" ACSI_LUN_IMAGE_EXT, O_CREAT|O_RDWR);
       if(!f) {
-        dbg("Cannot create image\n");
+        verbose("Cannot create image\n");
         commandStatus(ERR_WRITEERR);
         return;
       }
@@ -515,14 +541,14 @@ void Acsi::process(uint8_t cmd) {
         if(f.write(buf, bufSize)) {
           fsize += bufSize;
         } else {
-          dbg("Cannot write image\n");
+          verbose("Cannot write image\n");
           return;
         }
       }
       if(fsize < imgSize) {
         Watchdog::feed();
         if(!f.write(buf, imgSize - fsize)) {
-          dbg("Cannot write image\n");
+          verbose("Cannot write image\n");
           return;
         }
       }
@@ -530,33 +556,28 @@ void Acsi::process(uint8_t cmd) {
       f.close();
 
       mediaId = 0;
+#endif
       return;
     }
     if(memcmp(&cmdBuf[1], "A2STCmdTs", 9) == 0) {
-      dbg("ACSI2STM command test\n");
+      verbose("ACSI2STM command test\n");
       commandStatus(ERR_OK);
       return;
     }
     if(memcmp(&cmdBuf[1], "\0\0\0\0\0\0\0\0\0", 9) == 0) {
-      dbg("ACSI2STM zero command test\n");
+      verbose("ACSI2STM zero command test\n");
       commandStatus(ERR_OK);
       return;
     }
     if(memcmp(&cmdBuf[1], "\xff\xff\xff\xff\xff\xff\xff\xff\xff", 9) == 0) {
-      dbg("ACSI2STM 0xff command test\n");
+      verbose("ACSI2STM 0xff command test\n");
       commandStatus(ERR_OK);
       return;
     }
-    dbg("Unknown extended command\n");
+    dbg("Unknown command\n");
     commandStatus(ERR_OPCODE);
     return;
   case 0x25: // Read capacity
-    lastErr = refresh();
-    if(lastErr != ERR_OK) {
-      commandStatus(lastErr);
-      return;
-    }
-
     // Send the number of blocks of the SD card
     {
       uint32_t last = dev->blocks - 1;
@@ -604,7 +625,7 @@ void Acsi::process(uint8_t cmd) {
 #if !ACSI_STRICT
         if(!strict && cmdBuf[2] == 1) {
           if((offset & 0b11) || (length & 0b11)) {
-            dbg("Invalid buffer length\n");
+            verbose("Invalid buffer length\n");
             commandStatus(ERR_INVARG);
             return;
           }
@@ -612,7 +633,7 @@ void Acsi::process(uint8_t cmd) {
         else
 #endif
         if(cmdBuf[2] != 0) {
-          dbg("Invalid buffer id\n");
+          verbose("Invalid buffer id\n");
           commandStatus(ERR_INVARG);
           return;
         }
@@ -649,7 +670,7 @@ void Acsi::process(uint8_t cmd) {
       case 0x04: // Code execution
         dbg("Execute buffer\n");
         if(strict) {
-          dbg("Disabled in strict mode\n");
+          verbose("Disabled in strict mode\n");
           commandStatus(ERR_INVARG);
           return;
         }
@@ -668,8 +689,6 @@ void Acsi::process(uint8_t cmd) {
           // if the code crashes, at least the ACSI bus will be released.
           commandStatus(ERR_OK);
 
-          dbg("Executing remote buffer:\n");
-
           // Execute the buffer
           ((void (*)())buf)();
 
@@ -677,12 +696,12 @@ void Acsi::process(uint8_t cmd) {
           Watchdog::reboot();
         }
 
-        dbgHex("Exec buffer CRC error\n");
+        verbose("Exec buffer CRC error\n");
         commandStatus(ERR_WRITEERR);
         return;
 #endif
       }
-      dbgHex("Invalid write buffer mode ", cmdBuf[1], '\n');
+      verboseHex("Invalid buffer mode ", cmdBuf[1], '\n');
       commandStatus(ERR_INVARG);
       return;
     }
@@ -695,7 +714,7 @@ void Acsi::process(uint8_t cmd) {
 #if !ACSI_STRICT
         if(!strict && cmdBuf[2] == 1) {
           if((offset & 0b11) || (length & 0b11)) {
-            dbg("Invalid buffer length\n");
+            verbose("Invalid buffer length\n");
             commandStatus(ERR_INVARG);
             return;
           }
@@ -703,7 +722,7 @@ void Acsi::process(uint8_t cmd) {
         else
 #endif
         if(cmdBuf[2] != 0) {
-          dbg("Invalid buffer id\n");
+          verbose("Invalid buffer id\n");
           commandStatus(ERR_INVARG);
           return;
         }
@@ -734,11 +753,11 @@ void Acsi::process(uint8_t cmd) {
         commandStatus(ERR_OK);
         return;
       }
-      dbgHex("Invalid read buffer mode ", cmdBuf[1], '\n');
+      verboseHex("Invalid read buffer mode ", cmdBuf[1], '\n');
       commandStatus(ERR_INVARG);
       return;
     }
-#if !ACSI_STRICT
+#if !ACSI_STRICT && ACSI_BOOT_OVERLAY
   case 0x0c:
     DmaPort::sendDma(a2setup_boot_bin, a2setup_boot_bin_len);
     commandStatus(ERR_OK);
@@ -815,27 +834,28 @@ void Acsi::commandStatus(ScsiErr err) {
   }
 }
 
-Acsi::ScsiErr Acsi::refresh(int lun) {
-  dbg("Refreshing ", card.deviceId, ',', lun, ":");
+void Acsi::refresh(int lun) {
+  if(!hasMediaChanged())
+    return;
+
+  dbg("Refreshing ", card.deviceId, ',', lun, ':');
   mediaChecked();
 
   if(card.reset()) {
     uint32_t realId = card.mediaId();
     mountLuns();
     Watchdog::feed();
-    if(realId != mediaId) {
-      mediaId = realId;
-      if(luns[lun]) {
-        dbg("New SD card\n");
-        return ERR_MEDIUMCHANGE;
-      } else {
-        dbg("New SD with no image\n");
-        return ERR_NOMEDIUM;
-      }
+    mediaId = realId;
+    if(luns[lun]) {
+      dbg("New SD card\n");
+      lastErr = ERR_MEDIUMCHANGE;
+    } else {
+      dbg("New SD with no image\n");
+      lastErr = ERR_NOMEDIUM;
     }
 
     dbg("Device ready\n");
-    return ERR_OK;
+    return;
   }
   Watchdog::feed();
 
@@ -846,7 +866,7 @@ Acsi::ScsiErr Acsi::refresh(int lun) {
   for(int l = 0; l < maxLun; ++l)
     luns[l] = nullptr;
 
-  return ERR_NOMEDIUM;
+  lastErr = ERR_NOMEDIUM;
 }
 
 Acsi::ScsiErr Acsi::processBlockRead(uint32_t block, int count, BlockDev *dev) {
@@ -858,7 +878,7 @@ Acsi::ScsiErr Acsi::processBlockRead(uint32_t block, int count, BlockDev *dev) {
   }
 
   if(!dev->readStart(block)) {
-    dbg("Read start error\n");
+    dbg("Read error\n");
     return ERR_READERR;
   }
 
@@ -909,9 +929,13 @@ Acsi::ScsiErr Acsi::processBlockWrite(uint32_t block, int count, BlockDev *dev) 
   }
 
   if(!dev->writeStart(block)) {
-    dbg("Write start error\n");
+    dbg("Write error\n");
     return ERR_WRITEERR;
   }
+
+  if(!block)
+    // Refresh media if altering the boot sector
+    mediaId = 0;
 
   for(int s = 0; s < count;) {
     Watchdog::feed();
@@ -921,7 +945,7 @@ Acsi::ScsiErr Acsi::processBlockWrite(uint32_t block, int count, BlockDev *dev) 
 
     DmaPort::readDma(buf, ACSI_BLOCKSIZE * burst);
 
-#if ACSI_BOOT_OVERLAY && !ACSI_STRICT
+#if !ACSI_STRICT && ACSI_BOOT_OVERLAY
     if(!strict && block == 0 && s == 0)
       fixOverlayWrite(dev);
 #endif
@@ -942,18 +966,20 @@ Acsi::ScsiErr Acsi::processBlockWrite(uint32_t block, int count, BlockDev *dev) 
 }
 
 bool Acsi::hasMediaChanged() {
-  if(millis() - mediaCheckTime < mediaCheckPeriod)
+  if(millis() < mediaCheckTime)
     return false;
 
   uint32_t cachedId = mediaId;
   uint32_t realId = card.mediaId();
   verboseHex("Check media: cached id=", cachedId, " real id=", realId, '\n');
 
-  return cachedId != realId;
+  mediaChecked();
+
+  return cachedId != realId || !realId;
 }
 
 void Acsi::mediaChecked() {
-  mediaCheckTime = millis();
+  mediaCheckTime = millis() + mediaCheckPeriod;
 }
 
 void Acsi::blocksToString(uint32_t blocks, char *target) {
@@ -1020,7 +1046,7 @@ Acsi::ScsiErr Acsi::processBootOverlay(BlockDev *dev) {
   dbg("Overlay boot sector on ", card.deviceId, ',', getLun(), '\n');
 
   if(!dev->readStart(0)) {
-    dbg("Read start error\n");
+    dbg("Read error\n");
     return ERR_READERR;
   }
 
@@ -1056,7 +1082,7 @@ void Acsi::fixOverlayWrite(BlockDev *dev) {
   // Check that we don't rewrite the overlay by accident !
   if(memcmp(&buf[bootOrg], overlay_boot_bin, overlay_boot_bin_len) == 0) {
     if(dev->readStart(0)) {
-      Acsi::verbose("Rewriting overlay ! Merging FAT and MBR\n");
+      verbose("Merging FAT and MBR\n");
 
       // Save the new FAT header and partition table
       uint8_t fatHeader[0x58];
@@ -1073,7 +1099,7 @@ void Acsi::fixOverlayWrite(BlockDev *dev) {
           if(computeChecksum(buf) != 0x1234) {
             if(buf[510] == 0x55 && buf[511] == 0xaa) {
               // Try to patch in the checksum at offset 438 (risky, but whatever ...)
-              Acsi::dbg("WARNING: Patching MS-DOS boot sector.\n");
+              dbg("Patching MS-DOS boot sector\n");
               patchBootSector(buf, 438);
             } else {
               patchBootSector(buf, 510);

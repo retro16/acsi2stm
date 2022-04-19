@@ -17,6 +17,9 @@
 ; ACSI2STM setup program
 ; Binary payload loaded by the STM32 firmware with the 0x0c ACSI command
 
+	; Flag to indicate that we run from the STM32 flash
+stm32flash	equ	1
+
 	; Global includes
 	incdir	..\
 	incdir	..\inc\
@@ -29,7 +32,6 @@
 
 	opt	O+
 
-	; Set
 	org	0
 
 	dc.b	'A2ST'                  ; Signature

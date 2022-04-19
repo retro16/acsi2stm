@@ -170,6 +170,7 @@ puint	; Print a long unsigned number as decimal
 	; Input:
 	;  d0.l: Number to display
 	;  d1.w: Minimum digit count
+	;  d1[16]: Set to fill with spaces
 	
 	puint_in
 
@@ -188,10 +189,14 @@ puint	; Print a long unsigned number as decimal
 
 	bra.b	.nxtdig
 
-.zfill	; Leading zeroes
-	subq.w	#1,d4
+.zfill	; Leading zeroes/spaces
+	moveq	#'0',d2
+	btst	#16,d2
+	beq.b	.fill
+	moveq	#' ',d2
+.fill	subq.w	#1,d4
 	bmi.b	.print
-	move.w	#'0',-(sp)
+	move.w	d2,-(sp)
 	bra.b	.zfill
 
 .print	; Print digits on the stack (in reverse order)

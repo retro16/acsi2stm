@@ -14,40 +14,11 @@
 ; You should have received a copy of the GNU General Public License
 ; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-; ACSI2STM setup program
-; TOS program version
+; ACSI2STM integrated driver
+; Drvmap handler
 
-	; Flag to indicate that we don't run from the STM32 flash
-stm32flash	equ	0
-
-	incdir	..\
-	incdir	..\inc\
-	include	acsi2stm.i
-	include	tos.i
-	include	atari.i
-
-	include	bss.i
-
-	opt	O+
-
-	text
-
-	Super	                        ; Enter supervisor mode
-	lea	stacktop(pc),sp         ; Set local stack
-
-	bsr.w	main
-
-	Pterm0                          ; Exit cleanly
-main
-	include	text.s                  ; Subroutines and code includes
-
-	data
-
-	include	data.s                  ; Initialized data
-
-	bss
-bss	ds.b	bss...                  ; Allocate BSS from the bss... struct
-	ds.b	1024                    ; Stack size
-stacktop
+drvmap_handler
+	bsr.w	rescan
+	hkchain	bios
 
 ; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm tw=80

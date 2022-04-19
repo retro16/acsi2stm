@@ -19,15 +19,23 @@ drvinit	; Driver initialization
 	pea	text.init(pc)
 	gemdos	Cconws,6
 
-; XXX START	
-	lea	bss+buf(pc),a0          ; Set the clock
-	bsr.w	synctime                ;
-	beq.b	.timsetX                ;
-	pea	text.notime(pc)         ;
-	gemdos	Cconws,6                ;
-.timsetX
-; XXX END
-
+ move.l #$cafebabe,d0
+	; Compute trap parameter offset
+	; This is CPU dependent
+	lea	bios.vector.w,a1        ; a1 = bios vector
+	move.l	(a1),d2                 ; Store current vector
+	move.l	sp,d1                   ; d1 = SP before trap
+	lea	.trapck(pc),a0          ; Compute test vector
+	move.l	a0,(a1)                 ; Trap #1 will jump to trapchk
+	trap	#13                     ; d0 = SP after trap
+	move.l	d2,(a1)                 ; Restore trap vector
+	sub.l	d0,d1                   ; Compute offset
+	lea	bss(pc),a0              ;
+	move.w	d1,traplen(a0)          ; Save trap length
+	bra.b	.trapend
+.trapck	move.l	sp,d0                   ; Used to compute trap stack frame size
+	rte
+.trapend
 	; Initialize the pun_info structure
 	lea	pun(pc),a0              ; a0 = local pun table
 
@@ -83,11 +91,9 @@ drvinit	; Driver initialization
 	rts
 .bufend
 
-	endif
+	endc
 
-	hkinst	getbpb                  ; Let's thrash that poor system
-	hkinst	rwabs                   ; Install hooks
-	hkinst	mediach                 ;
+	hkinst	bios                    ; Let's thrash that poor system
 
 	lea	bss+buf(pc),a0          ; Set the clock
 	bsr.w	synctime                ;
@@ -127,8 +133,6 @@ drvinit	; Driver initialization
 	rts
 
 ; Hook declarations
-	hook	getbpb
-	hook	rwabs
-	hook	mediach
+	hook	bios
 
 ; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm tw=80

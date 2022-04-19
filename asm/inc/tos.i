@@ -60,7 +60,7 @@ pchar	macro	; Print a character
 	endm
 
 pchar2	macro	; Print 2 characters
-	move.l	#(\1)!((\2)<<16),-(sp)
+	move.l	#(\2)!((\1)<<16),-(sp)
 	gemdos	Cconout,4
 	gemdos	Cconout,4
 	endm
@@ -144,6 +144,7 @@ xbios	macro
 	syscall	14,\1,\2
 	endm
 
+Setcolor=7
 Floprd=8
 Flopwr=9
 Flopfmt=10

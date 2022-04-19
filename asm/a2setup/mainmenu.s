@@ -20,20 +20,14 @@
 mainmenu
 	enter
 
-	lea	bss+buf(pc),a0
-	bsr.w	blkdev.inq
-	tst.w	d0
+	print	.device(pc)
+	bsr.w	blkdev.pname
 	retne
-
-.prtdev	print	.device(pc)
-	lea	bss+buf+8(pc),a0
-	clr.b	24(a0)
-	print	(a0)
 
 	print	.menu(pc)
 .retry	gemdos	Cnecin,2
 
-	cmp	#$1b,d0                 ; ESC key to return
+	cmp.b	#$1b,d0                 ; ESC key to return
 	reteq                           ;
 
 	and.b	#$df,d0                 ; Turn everything upper case
@@ -41,29 +35,33 @@ mainmenu
 	cmp.b	#'T',d0
 	beq.w	a2sttest
 
+	cmp.b	#'C',d0
+	beq.w	timeset
+
 	cmp.b	#'S',d0
 	beq.w	formatsd
 
 	cmp.b	#'I',d0
 	beq.w	creatimg
 
-	cmp.b	#'C',d0
-	beq.w	timeset
+	cmp.b	#'P',d0
+	beq.w	parttool
 
 	bell
 
 	bra.b	.retry
 
 .device	dc.b	$1b,'E'
-	dc.b	'Selected device:',0
+	dc.b	'Selected device: ',0
 
 .menu	dc.b	13,10,13,10             ; Main menu text
 	dc.b	'Main menu:',13,10
 	dc.b	13,10
 	dc.b	'  T: Test the ACSI2STM device',13,10
+	dc.b	'  C: Real-time clock setup',13,10
 	dc.b	'  S: Format the SD card (FAT32/ExFAT)',13,10
 	dc.b	'  I: Create an image on the SD card',13,10
-	dc.b	'  C: Real-time clock setup',13,10
+	dc.b	'  P: Partition/format tool',13,10
 	dc.b	13,10
 	dc.b	'Esc: Back to device selection',13,10
 	dc.b	13,10,0
