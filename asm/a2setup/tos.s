@@ -33,13 +33,16 @@ stm32flash	equ	0
 	text
 
 	Super	                        ; Enter supervisor mode
-	lea	stacktop(pc),sp         ; Set local stack
+	lea	stacktop,sp             ; Set local stack
 
 	bsr.w	main
 
 	Pterm0                          ; Exit cleanly
 main
 	include	text.s                  ; Subroutines and code includes
+
+driver
+	incbin	..\a2stdrv\a2stdrv.bin
 
 	data
 

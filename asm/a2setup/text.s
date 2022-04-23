@@ -17,6 +17,8 @@
 ; ACSI2STM setup program
 ; Text section content
 
+	include	tui.i
+
 	include	devsel.s
 	include	mainmenu.s
 	include	blkdev.s
@@ -24,8 +26,10 @@
 	include	creatimg.s
 	include	a2sttest.s
 	include	timeset.s
-	include	parttool.s
 	include	parts.s
+	include	parttool.s
+	include	partedit.s
+	include	partfmt.s
 	include	acsicmd.s
 	include	tui.s
 	include	rtc.s

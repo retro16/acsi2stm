@@ -21,11 +21,8 @@ areyousure
 	; Output:
 	;  d0.l: 0 if answered Y, 1 if answered N
 	;  Z: set if answered Y, clear otherwise
-	ask	.msg(pc)
-
-	move.w	d0,-(sp)
-	bsr.b	crlf
-	move.w	(sp)+,d0
+	asksil	.msg(pc)
+	bsr.w	curson
 
 	and.b	#$df,d0
 	cmp.b	#'Y',d0
@@ -33,12 +30,18 @@ areyousure
 	cmp.b	#'N',d0
 	beq.b	.no
 	bra.b	areyousure
-.yes	moveq	#0,d0
+.yes	pchar	'Y'
+	bsr.b	crlf
+	bsr.w	cursoff
+	moveq	#0,d0
 	rts
-.no	moveq	#1,d0
+.no	pchar	'N'
+	bsr.b	crlf
+	bsr.w	cursoff
+	moveq	#1,d0
 	rts
 
-.msg	dc.b	'Are you sure ? (Y/N) ',0
+.msg	dc.b	'Are you sure ? (Y/N) ',$1b,'e',0
 .crlf	dc.b	13,10,0
 	even
 
@@ -174,7 +177,7 @@ puint	; Print a long unsigned number as decimal
 	
 	puint_in
 
-	move.w	d1,d4
+	move.l	d1,d4
 
 .notnul	; Compute digits and push them on the stack
 	clr.w	-(sp)
@@ -191,7 +194,7 @@ puint	; Print a long unsigned number as decimal
 
 .zfill	; Leading zeroes/spaces
 	moveq	#'0',d2
-	btst	#16,d2
+	btst	#16,d4
 	beq.b	.fill
 	moveq	#' ',d2
 .fill	subq.w	#1,d4
@@ -205,6 +208,41 @@ puint	; Print a long unsigned number as decimal
 	bne.b	.print
 
 .end	puint_out
+	rts
+
+random	; Compute a random 32 bits value
+	xbios	Random,2
+	swap	d0
+	move.l	hz200.w,d1
+	eor.l	d1,d0
+	rts
+
+log2	; Compute log2 of a value
+	; Input:
+	;  d0.l: Input value
+	; Output:
+	;  d1.l: log2
+	;  All other registeres unaltered except CCR
+
+	moveq	#31,d1
+.loop	btst	d1,d0
+	dbne	d1,.loop
+	rts
+
+tsr	; Top shift right
+	; Right shifts a value by a number of bits with rounding to the topmost
+	; value.
+	; Input:
+	;  d0.l: value to shift
+	;  d1: shift bit count (modulo 64)
+	; Output:
+	;  d0.l: shifted value
+
+	moveq	#0,d2
+	bset	d1,d2
+	subq.l	#1,d2
+	add.l	d2,d0
+	lsr.l	d1,d0
 	rts
 
 divby10	; Divide by 10
@@ -287,6 +325,18 @@ cursoff	; Hide cursor
 .cursof	dc.b	$1b,'f',0
 	even
 
+kbflush	; Flush keyboard buffer
+	movem.l	d0-d2/a0-a2,-(sp)
+
+.more	gemdos	Cconis,2
+	tst.w	d0
+	beq.b	.ok
+	gemdos	Cnecin,2
+	bra.b	.more
+
+.ok	movem.l	(sp)+,d0-d2/a0-a2
+	rts
+
 readint	; Read an unsigned number from the console
 	; Input:
 	;  d0.l: Maximum value
@@ -296,7 +346,8 @@ readint	; Read an unsigned number from the console
 
 	movem.l	d3-d5,-(sp)
 
-	bsr.w	curson
+	curson
+	kbflush
 
 	moveq	#0,d4                   ; d4 = output digit
 	move.l	d0,d5                   ; d5 = Maximum value
@@ -307,6 +358,9 @@ readint	; Read an unsigned number from the console
 	beq.b	.zero                   ;
 
 	cmp.b	#$08,d0                 ; Backspace
+	beq.b	.bs                     ;
+
+	cmp.b	#$7f,d0                 ; Also backspace (VT100)
 	beq.b	.bs                     ;
 
 	cmp.b	#$0d,d0                 ; Return
@@ -348,9 +402,8 @@ readint	; Read an unsigned number from the console
 .done	tst.l	d4
 	bne.b	.move
 	pchar	'0'
-.move	bsr.w	crlf
-	move.l	d4,d0
-.ret	bsr.w	cursoff
+.move	move.l	d4,d0
+.ret	cursoff
 	movem.l	(sp)+,d3-d5
 	rts
 
@@ -358,9 +411,10 @@ readint	; Read an unsigned number from the console
 	bra.b	.done
 
 .bs	tst.l	d4                      ; If 0,
-	beq.b	.rddigi                 ; nothing to do
+	beq.w	.rddigi                 ; nothing to do
 
-	print	.erase(pc)              ; Backspace
+	backspc
+
 	move.l	d4,d0
 	bsr.w	divby10
 	move.l	d1,d4
@@ -368,4 +422,214 @@ readint	; Read an unsigned number from the console
 
 .erase	dc.b	8,' ',8,0
 
+; Terminal handling
+
+tui.crlf
+	movem.l	d0-d2/a0-a2,-(sp)       ; Save registers
+	move.w	28(sp),d0
+.loop	crlf
+	dbra	d0,.loop
+	bra.b	tui..termexit
+
+tui.termctrl
+	; Terminal control function
+	; Used by terminal control macros
+	; Input:
+	;  4(sp).w: Function to call
+	; Preserves all registers except CCR
+	
+	movem.l	d0-d2/a0-a2,-(sp)       ; Save registers
+
+	move.l	tui.curterm(pc),a0      ; Load terminal control codes table
+	move.w	28(sp),d0
+	move.w	(a0,d0),d0
+	pea	(a0,d0)
+	gemdos	Cconws,6
+tui..termexit
+	movem.l	(sp)+,d0-d2/a0-a2
+
+	move.l	(sp),2(sp)
+	addq	#2,sp
+	rts
+
+tui.curterm	; Current terminal control codes base address
+	dc.l	0
+
+tui.vt52
+	dc.w	vt52.termini-tui.vt52
+	dc.w	vt52.cls-tui.vt52
+	dc.w	vt52.savepos-tui.vt52
+	dc.w	vt52.loadpos-tui.vt52
+	dc.w	vt52.curson-tui.vt52
+	dc.w	vt52.cursoff-tui.vt52
+	dc.w	vt52.clrtail-tui.vt52
+	dc.w	vt52.clrbot-tui.vt52
+	dc.w	vt52.crlf-tui.vt52
+	dc.w	vt52.hlon-tui.vt52
+	dc.w	vt52.hloff-tui.vt52
+	dc.w	vt52.backspc-tui.vt52
+	dc.w	vt52.clrline-tui.vt52
+
+vt52.termini
+	dc.b	$1b,'f'                 ; Hide cursor
+	dc.b	$1b,'E'                 ; Clear screen
+	dc.b	$1b,'q'                 ; Disable highlight
+	dc.b	$1b,'j'                 ; Save cursor position
+	dc.b	0
+vt52.cls
+	dc.b	$1b,'E',0
+vt52.savepos
+	dc.b	$1b,'j',0
+vt52.loadpos
+	dc.b	$1b,'k',$1b,'j',0       ; Load then save again cursor position
+vt52.curson
+	dc.b	$1b,'e',0
+vt52.cursoff
+	dc.b	$1b,'f',0
+vt52.clrtail
+	dc.b	$1b,'K',0
+vt52.clrbot
+	dc.b	$1b,'J',0
+vt52.crlf
+	dc.b	$0d,$0a,0
+vt52.hlon
+	dc.b	$1b,'p',0
+vt52.hloff
+	dc.b	$1b,'q',0
+vt52.backspc
+	dc.b	$8,' ',$8,0
+vt52.clrline
+	dc.b	$0d,$1b,'K',0
+
+	even
+
+tui.vt100
+	dc.w	vt100.termini-tui.vt100
+	dc.w	vt100.cls-tui.vt100
+	dc.w	vt100.savepos-tui.vt100
+	dc.w	vt100.loadpos-tui.vt100
+	dc.w	vt100.curson-tui.vt100
+	dc.w	vt100.cursoff-tui.vt100
+	dc.w	vt100.clrtail-tui.vt100
+	dc.w	vt100.clrbot-tui.vt100
+	dc.w	vt100.crlf-tui.vt100
+	dc.w	vt100.hlon-tui.vt100
+	dc.w	vt100.hloff-tui.vt100
+	dc.w	vt100.backspc-tui.vt100
+	dc.w	vt100.clrline-tui.vt100
+
+vt100.termini
+	dc.b	$1b,'[2J',$1b,'[H'      ; Clear screen
+	dc.b	$1b,'[?25l'             ; Cursor off
+	dc.b	$1b,'[m'                ; Highlight off
+	dc.b	0
+vt100.cls
+	dc.b	$1b,'[2J',$1b,'[H',0
+vt100.savepos
+	dc.b	$1b,'7',0
+vt100.loadpos
+	dc.b	$1b,'8',$1b,'7',0       ; Load then save again cursor position
+vt100.curson
+	dc.b	$1b,'[?25h',0
+vt100.cursoff
+	dc.b	$1b,'[?25l',0
+vt100.clrtail
+	dc.b	$1b,'[K',0
+vt100.clrbot
+	dc.b	$1b,'[J',0
+vt100.crlf
+	dc.b	$0d,$0a,0
+vt100.hlon
+	dc.b	$1b,'[7m',0
+vt100.hloff
+	dc.b	$1b,'[m',0
+vt100.backspc
+	dc.b	$8,' ',$8,0
+vt100.clrline
+	dc.b	$0d,$1b,'[K',0
+
+	even
+
+; Menu handling subroutines
+
+menu.wait
+	; Wait for a menu event
+	; In case of device event, restart
+	; In case of device error, exit
+	; In case of key pressed, rts
+
+	bsr.w	blkdev.waitkey
+
+	cmp.w	#blkerr.mchange,d1      ; Restart if medium was changed
+	rsteq	                        ;
+
+	cmp.w	#blkerr.nomedium,d1     ; Restart if no medium
+	rsteq	                        ;
+
+	tst.w	d1                      ; If error: exit to devsel
+	exitne	                        ;
+
+	tst.w	d0                      ; If no key pressed, wait again
+	beq.b	menu.wait
+
+	rts
+
+menu.chkdev
+	; Check that the device is working
+	; Exit on error/timeout
+	; rts if success, no medium or medium changed
+
+	bsr.w	blkdev.tst
+
+	cmp.w	#blkerr.mchange,d0      ; rts if medium was changed
+	rtseq	                        ;
+
+	cmp.w	#blkerr.nomedium,d0     ; rts if no medium
+	rtseq	                        ;
+
+	tst.w	d0                      ; exit if error
+	exitne	                        ;
+
+	rts
+
+menu.waitmed
+	; Wait for a menu event, exit if no medium
+	; Exit on error/timeout
+	; Exit if no medium or medium changed
+	; In case of key pressed, rts
+
+	bsr.w	blkdev.waitkey
+
+	cmp.w	#blkerr.mchange,d1      ; Restart if medium was changed
+	exiteq	                        ;
+
+	cmp.w	#blkerr.nomedium,d1     ; Restart if no medium
+	exiteq	                        ;
+
+	tst.w	d1                      ; If error: exit to devsel
+	exitne	                        ;
+
+	tst.w	d0                      ; If no key pressed, wait again
+	beq.b	menu.waitmed
+
+	rts
+
+menu.chkmed
+	; Check that the medium is ready
+	; Exit on error/timeout
+	; Exit if no medium
+	; rts if success or medium changed
+
+	bsr.w	blkdev.tst
+
+	cmp.w	#blkerr.mchange,d0      ; rts if medium was changed
+	rtseq	                        ;
+
+	cmp.w	#blkerr.nomedium,d0     ; exit if no medium
+	exiteq	                        ;
+
+	tst.w	d0                      ; exit if error
+	exitne	                        ;
+
+	rts
 ; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm tw=80

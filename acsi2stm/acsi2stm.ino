@@ -49,25 +49,27 @@ static int idOffset = 0;
 void senseIdOffset() {
   // Check if PA13 is set to VCC
   pinMode(PA13, INPUT_PULLDOWN);
-  pinMode(PA14, INPUT_PULLUP);
+  pinMode(PA14, INPUT);
   delay(1);
   if(digitalRead(PA13)) {
-    pinMode(PA13, INPUT);
     idOffset = 1;
-    return;
+    goto end;
   }
+  pinMode(PA13, INPUT);
+  pinMode(PA14, INPUT_PULLUP);
+  delay(1);
   if(!digitalRead(PA14)) {
-    pinMode(PA14, INPUT);
     idOffset = 3;
-    return;
+    goto end;
   }
-  pinMode(PA14, OUTPUT);
-  digitalWrite(PA14, 1);
-  if(digitalRead(PA13)) {
-    pinMode(PA14, OUTPUT);
+  pinMode(PA13, OUTPUT);
+  digitalWrite(PA13, 0);
+  if(!digitalRead(PA14)) {
     idOffset = 2;
-    return;
   }
+end:
+  pinMode(PA13, INPUT_PULLUP);
+  pinMode(PA14, INPUT_PULLUP);
 }
 #endif
 

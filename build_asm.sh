@@ -31,7 +31,7 @@ mkdir -p "$builddir"
 buildbin() {
   if [ -e "$srcdir/$1/bin.s" ]; then
     echo "Compile $1 BIN program"
-    vasmm68k_mot -devpac -ldots -showopt -Fbin -L "$builddir/$1.bin.lst" -o "$srcdir/$1/$1.bin" "$srcdir/$1/bin.s" || exit $?
+    vasmm68k_mot -maxerrors=20 -devpac -ldots -showopt -Fbin -L "$builddir/$1.bin.lst" -o "$srcdir/$1/$1.bin" "$srcdir/$1/bin.s" || exit $?
     [ -e "$srcdir/$1/$1.bin" ] || exit $?
   fi
 }
@@ -39,7 +39,7 @@ buildbin() {
 buildasm() {
   if [ -e "$srcdir/$1/boot.s" ]; then
     echo "Compile $1 boot program"
-    vasmm68k_mot -devpac -ldots -showopt -Fbin -L "$builddir/$1.boot.lst" -o "$builddir/$1.boot.bin" "$srcdir/$1/boot.s" || exit $?
+    vasmm68k_mot -maxerrors=20 -devpac -ldots -showopt -Fbin -L "$builddir/$1.boot.lst" -o "$builddir/$1.boot.bin" "$srcdir/$1/boot.s" || exit $?
     [ -e "$builddir/$1.boot.bin" ] || exit $?
 
     echo "Generate Arduino source code from the binary blob"
@@ -50,7 +50,7 @@ buildasm() {
 
   if [ -e "$srcdir/$1/tools.s" ]; then
     echo "Compile $1 tools payload"
-    vasmm68k_mot -devpac -ldots -showopt -Fbin -L "$builddir/$1.tools.lst" -o "$builddir/$1.tools.bin" "$srcdir/$1/tools.s" || exit $?
+    vasmm68k_mot -maxerrors=20 -devpac -ldots -showopt -Fbin -L "$builddir/$1.tools.lst" -o "$builddir/$1.tools.bin" "$srcdir/$1/tools.s" || exit $?
     [ -e "$builddir/$1.tools.bin" ] || exit $?
 
     echo "Generate source code from the binary blob"
@@ -62,7 +62,7 @@ buildasm() {
   if [ -e "$srcdir/$1/tos.s" ]; then
     echo "Compile $1 TOS program"
     [ -e "$tosdir" ] || mkdir "$tosdir"
-    vasmm68k_mot -devpac -monst -ldots -showopt -Ftos -L "$builddir/$1.lst" -o "$tosdir/$1.tos" "$srcdir/$1/tos.s" || exit $?
+    vasmm68k_mot -maxerrors=20 -devpac -monst -ldots -showopt -Ftos -L "$builddir/$1.lst" -o "$tosdir/$1.tos" "$srcdir/$1/tos.s" || exit $?
     [ -e "$tosdir/$1.tos" ] || exit $?
   fi
 }
@@ -80,4 +80,4 @@ done
 # Clean up
 
 cd ..
-rm -r "$builddir"
+#rm -r "$builddir"

@@ -41,6 +41,9 @@ stm32flash	equ	0
 
 	include	text.s
 
+driver
+	incbin	..\a2stdrv\a2stdrv.bin
+
 	include	data.s
 
 	; Align payload to 16 bytes boundary for DMA transfers

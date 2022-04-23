@@ -231,6 +231,96 @@ Download [Jookie's UltraSatan clock tools](http://joo.kie.sk/wp-content/uploads/
 your C:\AUTO folder so the clock is correctly set on boot. Use US_SETCL.PRG to set the clock.
 
 
+Changing operation modes with jumpers
+-------------------------------------
+
+The STM32 blue pill has 2 jumpers. You can access to different operation modes
+just by switching these jumpers to different places.
+
+**WARNING:** Do not attempt any other combination than what is explained here.
+You might damage your product.
+
+Normal mode, full featured. ACSI id 0 to 4
+
+     _______________________________
+    |                     _         |
+    |   [==] o        /\ | |       -|--
+    |   [==] o       /  \| |       -|--
+    |                \  /| |       -|--
+    |     (o)         \/ |_|       -|--
+    |_______________________________|
+
+
+ACSI id 1 to 5, full featured
+
+     _______________________________
+    |                     _         |
+    |    o o o        /\ | |       -|--
+    |   [==] o       /  \| |       -|--
+    |                \  /| |       -|||| <- Jumper here
+    |     (o)         \/ |_|       -||||
+    |_______________________________|
+
+
+ACSI id 2 to 6, full featured
+
+     _______________________________
+    |                     _         |
+    |    o o o        /\ | |       -|--
+    |   [==] o       /  \| |       -|||| <- Jumper here
+    |                \  /| |       -||||
+    |     (o)         \/ |_|       -|--
+    |_______________________________|
+
+
+ACSI id 3 to 7, full featured
+
+     _______________________________
+    |                     _         |
+    |    o o o        /\ | |       -|||| <- Jumper here
+    |   [==] o       /  \| |       -||||
+    |                \  /| |       -|--
+    |     (o)         \/ |_|       -|--
+    |_______________________________|
+
+
+Strict mode, ACSI id 0 to 4
+
+     _______________________________
+    |                     _         |
+    |   [==] o        /\ | |       -|--
+    |    o [==]      /  \| |       -|--
+    |                \  /| |       -|--
+    |     (o)         \/ |_|       -|--
+    |_______________________________|
+
+
+Strict mode, ACSI id 1 to 5
+
+     _______________________________
+    |                     _         |
+    |    o o o        /\ | |       -|--
+    |    o [==]      /  \| |       -|--
+    |                \  /| |       -|||| <- Jumper here
+    |     (o)         \/ |_|       -||||
+    |_______________________________|
+
+
+The ACSI id selection jumper on the right works the same as in full featured mode
+
+
+Firmware programming mode
+
+     _______________________________
+    |                     _         |
+    |    o [==]       /\ | |       -|--
+    |   [==] o       /  \| |       -|--
+    |                \  /| |       -|--
+    |     (o)         \/ |_|       -|--
+    |_______________________________|
+
+
+
 Strict mode
 -----------
 
@@ -243,6 +333,7 @@ The following features are disabled in strict mode:
 
  * Dummy boot sector if no SD card is present: displays a "No SD card" message on boot if no SD card is inserted.
  * Integrated driver.
+ * Test pattern checking.
  * Remote payload execution: Ability to upload and run STM32 code from the Atari ST. This feature is not used.
 
 

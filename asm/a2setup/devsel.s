@@ -19,37 +19,73 @@
 ; Main entry point code
 
 devsel
-	movem.l	d2-d7/a2-a5,-(sp)       ; Save registers
+	setterm	vt52
 
-.again	print	.header(pc)             ; Print the header
+	ifne	stm32flash
+	gemdos	Cauxis,2                ; Set output to VT100 if running from
+	tst.w	d0                      ; the serial port
+	beq.b	.screen                 ;
+	setterm	vt100                   ;
+.screen
+	leal	driver,a0               ; Read driver using 1byte command
+	moveq	#$d,d1                  ;
+	bsr.w	blkdev.1byte            ;
+	endc                            ;
 
-	moveq	#0,d7                   ; Scan ACSI ids
-	moveq	#'0',d6                 ;
-.pnext	pchar	' '                     ;
-	move.w	d6,-(sp)                ;
-	gemdos	Cconout,4               ;
-	pchar2	':',' '                 ;
-	bsr.w	blkdev.pname            ;
-	crlf                            ;
-	addq.b	#1,d6                   ;
+	enter
+
+	termini
+	print	.header(pc)             ; Print the header
+	savepos
+	print	.devslt(pc)             ; Print device selection text
+	loadpos
+
+	moveq	#0,d7                   ; Reset to device 0
+	lea	.devid(pc),a0           ;
+	move.b	#'0',(a0)               ;
+
+	moveq	#0,d5                   ; Scan interval: start fast
+
+.scan	print	.dev(pc)                ; Scan device
+	bsr.w	blkdev.pname            ; Print device name
+	clrtail	                        ; Clear to end of line
+
+	move.l	hz200.w,d3              ; d3 = device scan timeout
+	add.l	d5,d3
+
+	lea	.devid(pc),a0           ; Select next device
+	addq.b	#1,(a0)                 ;
 	add.b	#$20,d7                 ;
-	bne.b	.pnext                  ;
+	bne.b	.kwait                  ;
 
-	print	.devsel(pc)             ; Ask for the device id
+	moveq	#30,d5                  ; Increase scan period for refreshes
 
-.keyagn	gemdos	Cnecin,2                ; Wait for the selection
+.scan0	lea	.devid(pc),a0           ; Reset to device 0
+	move.b	#'0',(a0)               ;
+	loadpos	                        ; Reset device display line
+
+.kwait	gemdos	Cconis,2                ; Check for a key
+	tst.w	d0                      ;
+	bne.b	.keyprs                 ;
+
+	cmp.l	hz200.w,d3              ; Check for scan timeout
+	blt.b	.scan                   ;
+
+	bra.b	.kwait                  ; Loop until key pressed
+
+.keyprs	gemdos	Cnecin,2                ; Wait for the selection
 
 	cmp.b	#$1b,d0                 ; Check Esc to quit
 	bne.b	.nexit                  ;
-	movem.l	(sp)+,d2-d7/a2-a5       ;
-	rts                             ;
+	ifd	main                    ; If started from TOS
+	return	                        ; return to TOS
+	elseif                          ;
+	reboot                          ; else reboot to exit
+	endc                            ;
 .nexit
-	cmp.b	#$0d,d0                 ; Check Return to refresh
-	beq.w	.again                  ;
-
 	sub.b	#'0',d0                 ; Check that a valid ID was entered
 	cmp.b	#7,d0                   ;
-	bhi.b	.keyagn                 ;
+	bhi.b	.kwait                  ;
 
 	lsl.b	#5,d0                   ; d7 = ACSI id in the correct format
 	move.b	d0,d7                   ;
@@ -57,26 +93,33 @@ devsel
 .tst	bsr.w	blkdev.tst              ; Test the device
 	cmp.w	#blkerr.mchange,d0      ;
 	beq.b	.tst                    ;
+	cmp.w	#blkerr.nomedium,d0     ;
+	beq.b	.menu                   ;
 	tst.w	d0                      ;
 	bne.b	.nready                 ;
 
+.menu	lea	bss+cont(pc),a3         ; Use global descriptors
+	lea	bss+pt(pc),a4           ;
 	bsr.w	mainmenu                ; Display the main menu for this device
-	bra.w	.again                  ; Go back to the device selection
+	restart	                        ; Go back to the device selection
 
-.nready	print	.deverr(pc)             ; Display an error
-	bsr.w	presskey                ; Wait for a key
-	bra.w	.again                  ; Try again
+.nready	bell	                        ; Ding !
+	moveq	#0,d5                   ; Scan fast again
+	moveq	#0,d7                   ; Restart scan at ACSI id 0
+	bra.w	.scan0                  ; Try again
 
-.header	dc.b	$1b,'E'
-	a2st_header
-	dc.b	13,10,0
+.header	a2st_header
+	dc.b	0
 
-.devsel	dc.b	13,10
+.devslt	dc.b	10,10,10,10,10,10,10,10 ; Keep blank lines for device names
+
+	dc.b	10,10
 	dc.b	'Select the device to setup (0-7)',13,10
-	dc.b	'press Return to refresh the list',13,10
-	dc.b	'or press Esc to quit',13,10,0
+	dc.b	'or press Esc to quit',0
 
-.deverr	dc.b	7,'Device unavailable',13,10,0
+.dev	dc.b	13,10,' '
+.devid	dc.b	'0: ',0
+
 	even
 
 ; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm tw=80

@@ -18,9 +18,14 @@
 ; Real-time clock setup
 
 timeset
-	print	.menu(pc)
+	enter
 
-.refrsh	print	.time(pc)
+	cls
+	print	.menu1(pc)
+	savepos
+	print	.menu2(pc)
+
+.refrsh	loadpos
 	bsr.w	timeset.print
 
 	move.l	hz200.w,d0
@@ -35,23 +40,22 @@ timeset
 	gemdos	Cnecin,2
 
 	cmp.b	#$1b,d0
-	rsteq
+	exiteq
 
 	cmp.b	#$0d,d0
 	bsreq.w	timeset.set
 
-	bra.b	timeset
+	restart
 
-.menu	dc.b	$1b,'E'
-	dc.b	'Time settings',13,10
-	dc.b	13,10
-	dc.b	$1b,'j',13,10           ; Save cursor position for time display
-	dc.b	13,10
+.menu1	dc.b	'Time settings',13,10
+	dc.b	10
+	dc.b	'     Time:',0
+.menu2	dc.b	13,10
+	dc.b	10
 	dc.b	'Return: set time',13,10
 	dc.b	'Esc: main menu',13,10
-	dc.b	$1b,'k',0               ; Go back to time display line
+	dc.b	0
 
-.time	dc.b	13,'     Time:',0
 
 	even
 
@@ -106,6 +110,7 @@ timeset.print
 	even
 
 timeset.set
+	cls
 	print	.settim(pc)
 	movem.l	d3-d4/a3,-(sp)
 
@@ -156,16 +161,18 @@ timeset.set
 	movem.l	(sp)+,d3-d4/a3
 	rts
 
-.ask	print	(a3)
+.ask	crlf
+.askagn	clrline
+	print	(a3)
 	lea	bss+buf(pc),a0
 	move.l	d4,d0
 	bsr.w	readint
 
 	sub.l	d3,d0
-	blt.b	.ask
+	blt.b	.askagn
 	rts
 
-.settim	dc.b	$1b,'E','Set time:',13,10,13,10,0
+.settim	dc.b	'Set time:',13,10,0
 .year	dc.b	'Year:',0
 .month	dc.b	'Month:',0
 .day	dc.b	'Day:',0

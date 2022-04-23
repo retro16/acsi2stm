@@ -182,8 +182,6 @@ void Acsi::process(uint8_t cmd) {
 #endif
 
   BlockDev *dev = nullptr;
-  if(validLun())
-    dev = luns[getLun()];
 
   // Command preprocessing
   switch(cmdBuf[0]) {
@@ -193,7 +191,7 @@ void Acsi::process(uint8_t cmd) {
       dev = luns[getLun()];
 
 #if ACSI_DUMMY_BOOT_SECTOR && !ACSI_STRICT
-    if(!strict && mediaId == 0
+    if(!strict && !dev
      && cmdBuf[0] == 0x08
      && cmdBuf[1] == 0x00
      && cmdBuf[2] == 0x00
@@ -206,13 +204,15 @@ void Acsi::process(uint8_t cmd) {
       return;
     }
 #endif
-    if(lastErr) {
-      commandStatus(lastErr);
-      return;
+    if(!dev && !lastErr) {
+      lastErr = ERR_NOMEDIUM;
     }
     if(!validLun()) {
       dbg("Invalid LUN\n");
-      commandStatus(ERR_INVLUN);
+      lastErr = ERR_INVLUN;
+    }
+    if(lastErr) {
+      commandStatus(lastErr);
       return;
     }
     break;
@@ -226,13 +226,16 @@ void Acsi::process(uint8_t cmd) {
 
     break;
   case 0x03: // Request sense
-  case 0x0c: // Single byte commands
+  case 0x3b: // Write buffer
+  case 0x3c: // Read buffer
+    // Never refresh, just set the device
+    if(validLun())
+      dev = luns[getLun()];
+  case 0x0c: // Single byte commands have no LUN
   case 0x0d:
   case 0x0e:
   case 0x0f:
   case 0x20: // UltraSatan / ACSI2STM commands have no LUN
-  case 0x3b: // Write buffer
-  case 0x3c: // Read buffer
     break;
   }
 

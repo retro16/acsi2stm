@@ -40,11 +40,19 @@ align16	macro
 	endif
 	endm
 
+reboot	macro
+	move.l	4.w,a0
+	jmp	(a0)
+	endm
+
 ; Create a stack frame and save current PC in it
 ; Use the restart macro to go back to this point
 ; Use the return macro to unwind stack and do a rts
 ; Alters a0 and a6.
 enter	macro
+	ifnc	'','\1'
+	moveq	#\1,d0
+	endc
 	link	a6,#-4
 	lea	._enter_\@(pc),a0
 	move.l	a0,(sp)
@@ -54,6 +62,9 @@ enter	macro
 ; Unwind stack and jump back to the matching enter call
 ; Alters a0.
 restart	macro
+	ifnc	'','\1'
+	moveq	#\1,d0
+	endc
 	lea	-4(a6),sp
 	move.l	(sp),a0
 	jmp	(a0)
@@ -62,14 +73,14 @@ restart	macro
 ; Restart if equal
 rsteq	macro
 	bne.b	.rst\@
-	restart
+	restart	\1
 .rst\@
 	endm
 
 ; Restart if not equal
 rstne	macro
 	beq.b	.rst\@
-	restart
+	restart	\1
 .rst\@
 	endm
 
@@ -77,20 +88,20 @@ rstne	macro
 ; Alters a6
 exit	macro
 	unlk	a6
-	restart
+	restart	\1
 	endm
 
 ; Exit if equal
 exiteq	macro
 	bne.b	.exit\@
-	exit
+	exit	\1
 .exit\@
 	endm
 
 ; Exit if not equal
 exitne	macro
 	beq.b	.exit\@
-	exit
+	exit	\1
 .exit\@
 	endm
 
@@ -136,26 +147,46 @@ bsrne	macro
 
 rtseq	macro
 	bne.b	.rts\@
+	ifnc	'','\1'
+	moveq	#\1,d0
+	endc
 	rts
 .rts\@
 	endm
 
 rtsne	macro
 	beq.b	.rts\@
+	ifnc	'','\1'
+	moveq	#\1,d0
+	endc
 	rts
 .rts\@
 	endm
 
 rteeq	macro
 	bne.b	.rte\@
+	ifnc	'','\1'
+	moveq	#\1,d0
+	endc
 	rte
 .rte\@
 	endm
 
 rtene	macro
 	beq.b	.rte\@
+	ifnc	'','\1'
+	moveq	#\1,d0
+	endc
 	rte
 .rte\@
+	endm
+
+leal	macro	; lea, long version. Example: leal abcd,a0 will lea abcd(pc)
+.leal\@	
+	lea	.leal\@(pc),\2
+	opt	O-
+	add.l	#(\1)-.leal\@,\2
+	opt	O+
 	endm
 
 ; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm tw=80

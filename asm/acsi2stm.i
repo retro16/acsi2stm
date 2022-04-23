@@ -28,10 +28,22 @@ maxsecsize	equ	16384
 ; In 200hz timer units
 rescanperiod	equ	200/2           ; 200/2 = 500ms
 
+; Enable Shift+S at boot for setup
+enablesetup	equ	1
+
+; Enable serial port setup if receiving a character over serial during boot
+enableserial	equ	1
+
+; Maximum number of partitions in the partitioning tool
+maxparts	equ	4
+
+; Number of displayed partitions in the partitioning tool
+partlines	equ	4
+
 ; Constants
 a2st_version	macro
 	; The following line is patched automatically by build_asm.sh
-	dc.b	'3.0e'			; ACSI2STM VERSION NUMBER
+	dc.b	'3.0f'			; ACSI2STM VERSION NUMBER
 	endm
 
 a2st_header	macro

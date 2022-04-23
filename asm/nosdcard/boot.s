@@ -43,15 +43,28 @@ nosd
 	move.l	hz200.w,d3              ;
 	add.l	#400,d3                 ;
 
-.wait	gemdos	Cconis,2                ; Check if a key is pressed
+.wait	
+	ifne	enablesetup
+	ifne	enableserial
+	gemdos	Cauxis,2                ; Check for data on the serial port
+	tst.b	d0                      ;
+	bne.w	serial
+	endc
+	endc
+
+	gemdos	Cconis,2                ; Check if a key is pressed
 	tst.b	d0                      ;
 	beq.b	.nokey                  ;
 
 	gemdos	Cnecin,2                ;
+
+	ifne	enablesetup
 	cmp.b	#'S',d0                 ; If Shift+S was pressed
 	beq.w	setup                   ; Run setup
 
 	bra.b	.quit                   ; Else quit right now
+
+	endc
 
 .nokey	cmp.l	hz200.w,d3              ; Loop for 1 second
 	bpl.b	.wait                   ;
@@ -65,10 +78,32 @@ msg.nosd
  	dc.b	'SD'                    ; "SD0", patched to match the SD id
 acsiid	dc.b	'0: '
 	dc.b	'No SD card',13,10      ; "No SD card" message
+	ifd	enablesetup
 	dc.b	'Shift+S to run setup'	;
 	dc.b	13,10
-	dc.b	13,10,0
+	endc
+	dc.b	10,0
 	even
+
+	ifne	enablesetup
+	ifne	enableserial
+serial	
+	moveq	#1,d3                   ; Remap conout to serial
+	bsr.b	.dup                    ;
+	moveq	#0,d3                   ; Remap conin to serial
+	bsr.b	.dup                    ;
+
+	bra.b	setup
+.dup	
+	move.w	#2,-(sp)
+	gemdos	Fdup,4
+	move.w	d0,-(sp)
+	move.w	d3,-(sp)
+	gemdos	Fforce,6
+	rts
+
+	endc
+	endc
 
 setup	; Load setup from the STM32 firmware using the single byte command 0x0c
 	; Any kind of error triggers a full reset

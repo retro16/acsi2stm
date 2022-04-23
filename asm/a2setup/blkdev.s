@@ -163,7 +163,7 @@ blkdev.inq
 	;  a0: target buffer
 	;  d7.b: Device id
 	; Output:
-	;  d0.w: ASC/Key or -1 if timeout
+	;  d0.b: 0 if successful or -1 if timeout
 	;  (a0) will contain the result
 	lea	bss+buf(pc),a0          ; Send inquiry
 	move.l	a0,d1                   ;
@@ -171,15 +171,6 @@ blkdev.inq
 	moveq	#1,d0                   ;
 	bsr.w	acsicmd                 ;
 
-	tst.b	d0                      ; Check if the command succeeded
-	beq.b	.ok                     ;
-
-	lea	bss+buf(pc),a0          ; Retry inquiry
-	move.l	a0,d1                   ;
-	lea	blkdev.inq.c(pc),a0     ;
-	moveq	#1,d0                   ;
-	bsr.w	acsicmd                 ;
-.ok
 	rts
 
 blkdev.tsta2st
@@ -306,7 +297,7 @@ blkdev.1byte
 	sf	flock.w                 ; Unlock floppy drive
 
 	tst.b	d0                      ; If DMA failed,
-	bne.b	.fail                   ; free RAM and continue
+	bne.b	.fail                   ; return error
 
 	cmp.l	#'A2ST',(a0)            ; Check signature
 	bne.b	.fail                   ;
@@ -317,6 +308,50 @@ blkdev.1byte
 	rts
 
 	endc
+
+blkdev.waitkey
+	; Wait for a key or an ACSI test unit ready error
+	; Polls the ACSI device periodically to check for media
+	; Calls Cconis as fast as possible to check for keyboard
+	; Once either of these changes state, the function returns
+	; Input:
+	;  d7.b: ACSI id
+	; Output:
+	;  d0.w: Last Cconis result
+	;  d1.l: Last blkdev.tst result
+
+	movem.l	d3-d6,-(sp)
+
+	moveq	#0,d5                   ; d5 = last Cconis result
+
+	bsr.w	blkdev.tst              ; Compute expected blkdev.tst return
+	move.w	d0,d4                   ; d4 = expected blkdev.tst result
+
+.rescan	move.l	hz200.w,d3              ; Set refresh period
+	add.l	#20,d3                  ;
+
+	bsr.w	blkdev.tst              ; Scan the device
+	move.l	d0,d6                   ; d6 = last blkdev.tst result
+	cmp.w	d4,d6                   ; Check if the result is expected
+	bne.b	.end                    ;
+
+	addq.w	#1,d0                   ; If tst timed out, return immediately
+	beq.b	.end                    ;
+
+.wait	gemdos	Cconis,2                ; Check key pressed
+	move.w	d0,d5                   ; Save last value
+	bne.b	.end                    ; If a key was pressed, exit
+
+	cmp.l	hz200.w,d3              ; Check for refresh timeout
+	blt.b	.rescan                 ;
+
+	bra.b	.wait                   ; Loop keyboard check
+
+.end	move.l	d5,d0                   ; Return last values in normal registers
+	move.l	d6,d1                   ;
+
+	movem.l	(sp)+,d3-d6
+	rts
 
 blkdev.tst.c	; Test unit ready
 	dc.b	4

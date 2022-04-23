@@ -42,8 +42,17 @@
 drvaloc	equ	boot-4
 
 boot	pea	msg.loading(pc)
-	gemdos	Cconws
-	gemdos	Cconis,8
+
+	ifne	enablesetup
+	gemdos	Cconws,6
+
+	ifne	enableserial
+	gemdos	Cauxis,2                ; Check for data on the serial port
+	tst.b	d0                      ;
+	bne.b	.serial
+	endc
+
+	gemdos	Cconis,2
 	tst.b	d0
 	beq.b	.drv
 
@@ -51,14 +60,35 @@ boot	pea	msg.loading(pc)
 	cmp.b	#'S',d0                 ;
 	bne.b	.drv                    ;
 
-	moveq	#-1,d0                  ; Load and run configuration tool
+.setup	moveq	#3,d0                   ; Load and run configuration tool
+	swap	d0                      ;
 	moveq	#$c,d1                  ;
-	bsr.b	load                    ;
+	bra.b	load                    ;
 
-	move.l	4.w,a0                  ; Reset instead of trying to clean up
-	jmp	(a0)                    ;
+	ifne	enableserial
+.serial	
+	moveq	#1,d3                   ; Remap conout to serial
+	bsr.b	.dup                    ;
+	moveq	#0,d3                   ; Remap conin to serial
+	bsr.b	.dup                    ;
 
-.drv	move.l	drvaloc(pc),d0
+	bra.b	.setup
+.dup	
+	move.w	#2,-(sp)
+	gemdos	Fdup,4
+	move.w	d0,-(sp)
+	move.w	d3,-(sp)
+	gemdos	Fforce,6
+	rts
+.drv	
+	endc
+	elseif
+
+	gemdos	Cconws,6
+
+	endc
+
+	move.l	drvaloc(pc),d0
 	lsr.l	#8,d0
 	moveq	#$d,d1
 	; Fall through the ACSI loader
@@ -73,13 +103,17 @@ load	; Specialized single byte ACSI loader
 	gemdos	Malloc,6                ;
 
 	tst.l	d0                      ; Check that malloc worked
-	beq.w	.memerr                 ;
+	beq.w	fail                    ;
 
 	move.l	d0,a2                   ; Save program address
 
 	st	flock.w                 ; Lock floppy drive
 
+	move.l	a3,-(sp)                ; a3 = DMA port
+	lea	dma.w,a3
+
 	lea	dmactrl.w,a1
+
 	move.w	#$190,(a1)              ; Reset DMA
 	move.w	#$90,(a1)               ; Read mode, set DMA length
 
@@ -90,51 +124,43 @@ load	; Specialized single byte ACSI loader
 	lsr.w	#8,d0                   ;
 	move.b	d0,dmahigh.w            ; Set DMA address high
 
-	move.l	#$00ff0088,dma.w        ; Read 255 blocks. Switch to command.
+	move.l	#$00ff0088,(a3)         ; Read 255 blocks. Switch to command.
 
 	move.b	d7,d0                   ; Build command: ACSI id | command
 	or.b	d1,d0                   ;
 	swap	d0                      ; Command in data register, then DMA.
-	move.l	d0,dma.w                ; Send command $d and start DMA
+	move.l	d0,(a3)                 ; Send command $d and start DMA
 
 	; Wait until DMA ack (IRQ pulse)
-	move.l	#20,d0                  ; 100ms timeout
-	add.l	hz200.w,d0              ;
-.await	cmp.l	hz200.w,d0              ; Test timeout
-	bmi.b	.fail                   ;
-	btst.b	#5,gpip.w               ; Test command acknowledge
+.await	btst.b	#5,gpip.w               ; Test command acknowledge
 	bne.b	.await                  ;
 
 	move.w	#$008a,(a1)             ; Acknowledge status byte
-	move.w	dma.w,d0                ;
+	move.w	(a3),d0                 ;
 
 	sf	flock.w                 ; Unlock floppy drive
 
 	tst.b	d0                      ; If DMA failed,
-	bne.b	.fail                   ; free RAM and continue
+	bne.b	fail                    ; free RAM and continue
 
 	cmp.l	#'A2ST',(a2)            ; Check signature
-	bne.b	.fail                   ;
+	bne.b	fail                    ;
 
+	move.l	(sp)+,a3
 	jmp	8(a2)                   ; Call the code
 
-.fail	sf	flock.w                 ; Unlock floppy drive
-	move.l	a2,-(sp)                ; Free RAM
-	gemdos	Mfree,6                 ;
-.memerr	pea	msg.fail(pc)            ; Print that an error happened
-	gemdos	Cconws,6                ;
-	rts
+fail	reboot
 
 	; Data
 
-	even
 msg.loading
 	a2st_header
+
+	ifd	enablesetup
 	dc.b	'Shift+S for setup'
 	dc.b	13,10,0
-msg.fail
-	dc.b	'Error'
-	dc.b	7,13,10,0
+	endc
+
 	even
 
 ; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm tw=80
