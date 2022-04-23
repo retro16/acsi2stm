@@ -19,7 +19,6 @@ drvinit	; Driver initialization
 	pea	text.init(pc)
 	gemdos	Cconws,6
 
- move.l #$cafebabe,d0
 	; Compute trap parameter offset
 	; This is CPU dependent
 	lea	bios.vector.w,a1        ; a1 = bios vector
@@ -108,19 +107,17 @@ drvinit	; Driver initialization
 
 	; Set boot drive
 
-	moveq	#2,d1
-	bsr.w	getpart
-	cmp.b	#$ff,d7
-	beq.b	.nobdrv
+	btst	#2,(drvbits+3).w        ; Check if C is mounted
+	beq.b	.nobdrv                 ;
 
 	move.w	d1,bootdev.w            ; Write boot drive to C:
 
 	move.w	d1,-(sp)                ; Set current drive to C:
-	gemdos	Dsetdrv                 ;
+	gemdos	Dsetdrv,4               ;
 
-	move.w	'\'*$100,-(sp)          ; Set current path to \
+	move.w	#'\'<<8,-(sp)           ; Set current path to \
 	pea	(sp)                    ;
-	gemdos	Dsetpath,12             ;
+	gemdos	Dsetpath,8              ;
 
 .nobdrv
 	; Display partitions

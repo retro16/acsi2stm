@@ -18,10 +18,12 @@
 ; Uninitilalized data structure
 
 		rsreset
+lasterr		rs.w	1               ; Last error in main menu
+cont		rs.b	part...         ; Current container
+pt		rs.b	pt...           ; Partition table
 buf...		equ	16384
 buf		rs.b	buf...
-boot		rs.b	512
-bootable	rs.w	1
+pfmt		rs.b	pfmt...
 bss...		rs.b	0
 
 ; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm tw=80

@@ -18,6 +18,8 @@
 ; Disk image creation
 
 creatimg
+	cls
+
 	bsr.w	blkdev.tsta2st          ; Check if the image can be created
 	cmp.w	#3,d0                   ;
 	blt.b	.no                     ;
@@ -26,7 +28,7 @@ creatimg
 	print	.owrite(pc)             ; Overwrite the current image
 	bsr.w	areyousure              ;
 	beq.b	.getsz                  ;
-.rstart	restart                         ;
+	restart                         ;
 
 .new	print	.newimg(pc)             ; Create a new image on the SD card
 
@@ -59,7 +61,7 @@ creatimg
 
 .cannot	dc.b	7,'Cannot create the image',13,10,0
 
-.wait	dc.b	'Creating the image ...',13,10
+.wait	dc.b	13,10,'Creating the image ...',13,10
 	dc.b	'This can take a very long time',13,10,0
 
 	even

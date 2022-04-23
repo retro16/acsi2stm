@@ -147,7 +147,7 @@ public:
   SdDev card;
   uint32_t mediaId;
   uint32_t mediaCheckTime;
-  static const uint32_t mediaCheckPeriod = 2000;
+  static const uint32_t mediaCheckPeriod = 200;
 
 #if ACSI_RTC
   static RTClock rtc;

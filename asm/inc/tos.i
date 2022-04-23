@@ -73,14 +73,6 @@ escape	macro	; Print an escape code
 	pchar2	$1b,\1
 	endm
 
-cls	macro	; Clear the screen
-	escape	'E'
-	endm
-
-crlf	macro	; Print a carriage return
-	pchar2	$0d,$0a
-	endm
-
 ask	macro	; Ask: print a message, wait for a key and print its character
 	pea	\1
 	gemdos	Cconws
@@ -97,17 +89,20 @@ asksil	macro	; Ask silently: print a message and wait for a key
 ; GEMDOS calls
 Cconin=1
 Cconout=2
+Cauxout=4
 Crawcin=7
 Cnecin=8
 Cconws=9
 Cconrs=10
 Cconis=11
 Dsetdrv=14
+Cauxis=18
 Dgetdrv=25
 Super=32
 Tsetdate=43
 Tsettime=45
 Fgetdta=47
+Sversion=48
 Ptermres=49
 Dcreate=57
 Ddelete=58
@@ -117,6 +112,8 @@ Fclose=62
 Fread=63
 Fwrite=64
 Fdelete=64
+Fdup=69
+Fforce=70
 Dgetpath=71
 Malloc=72
 Mfree=73
@@ -148,9 +145,11 @@ Setcolor=7
 Floprd=8
 Flopwr=9
 Flopfmt=10
+Random=17
 
 ; System variables
 flock=$43e                              ; Floppy semaphore
+vbclock=$462                            ; vblank counter
 bootdev=$446                            ; Boot device
 hz200=$4ba                              ; 200Hz timer
 nflops=$4a6                             ; Number of mounted floppies

@@ -20,15 +20,34 @@
 mainmenu
 	enter
 
-	print	.device(pc)
-	bsr.w	blkdev.pname
-	retne
+	cls
+	print	.devsld(pc)             ; Print selected device
+	savepos                         ;
 
-	print	.menu(pc)
-.retry	gemdos	Cnecin,2
+	print	.menu(pc)               ;
+
+	lea	bss+lasterr(pc),a0      ; Clear last error
+	clr.w	(a0)                    ;
+
+.refrsh	loadpos	                        ; Print device name
+	bsr.w	blkdev.pname            ;
+	exitne	                        ; Exit immediately in case of error
+
+.wait	bsr.w	blkdev.waitkey          ; Wait for a key or a device event
+
+	cmp.w	#blkerr.mchange,d1      ; Check media change
+	beq.b	.refrsh                 ;
+
+	lea	bss+lasterr(pc),a0      ; If error value changed
+	cmp.w	(a0),d1                 ;
+	beq.b	.nrfrsh                 ;
+	move.w	d1,(a0)                 ; Store new value
+	bra.b	.refrsh                 ; Refresh display
+.nrfrsh
+	gemdos	Cnecin,2
 
 	cmp.b	#$1b,d0                 ; ESC key to return
-	reteq                           ;
+	exiteq                          ;
 
 	and.b	#$df,d0                 ; Turn everything upper case
 
@@ -47,24 +66,20 @@ mainmenu
 	cmp.b	#'P',d0
 	beq.w	parttool
 
-	bell
+	bra.b	.wait
 
-	bra.b	.retry
-
-.device	dc.b	$1b,'E'
-	dc.b	'Selected device: ',0
-
-.menu	dc.b	13,10,13,10             ; Main menu text
+.devsld	dc.b	'Selected device: ',0
+.menu	dc.b	13,10,10
 	dc.b	'Main menu:',13,10
-	dc.b	13,10
+	dc.b	10
 	dc.b	'  T: Test the ACSI2STM device',13,10
 	dc.b	'  C: Real-time clock setup',13,10
-	dc.b	'  S: Format the SD card (FAT32/ExFAT)',13,10
+	dc.b	'  S: Format the SD for PC (FAT32/ExFAT)',13,10
 	dc.b	'  I: Create an image on the SD card',13,10
 	dc.b	'  P: Partition/format tool',13,10
-	dc.b	13,10
+	dc.b	10
 	dc.b	'Esc: Back to device selection',13,10
-	dc.b	13,10,0
+	dc.b	0
 	even
 
 ; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm tw=80

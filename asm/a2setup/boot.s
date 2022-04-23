@@ -48,6 +48,9 @@ stm32flash	equ	1
 
 bss
 
-memend	equ	bss+bss...
+driver		equ	bss+bss...
+driver...	equ	16384           ; Reserve enough space for a big driver
+
+memend		equ	driver+driver...
 
 ; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm tw=80

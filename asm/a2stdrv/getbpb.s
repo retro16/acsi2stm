@@ -142,8 +142,8 @@ getbpb_handler
 	cmp.w	#'NC',6(a0)             ;
 	beq.b	.fat16                  ;
 
-.nicd	cmp.w	#4084,d1                ; A FAT with more than 4084 clusters
-	ble.b	.fat12                  ; is FAT16.
+.nicd	cmp.w	#4086,d1                ; A FAT with more than 4086 clusters
+	bls.b	.fat12                  ; is FAT16.
 .fat16	move.w	#1,(a1)+                ;
 	bra.b	.bpbok                  ;
 .fat12	clr.w	(a1)+                   ; bpb.bflags

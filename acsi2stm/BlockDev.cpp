@@ -70,6 +70,7 @@ void BlockDev::modeSense4(uint8_t *outBuf) {
 void BlockDev::updateBootable() {
   bootable = false;
 
+  // Read the boot sector
   if(!readStart(0) || !readData(Acsi::buf, 1) || !readStop())
     return;
 

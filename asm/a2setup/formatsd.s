@@ -18,6 +18,7 @@
 ; Format the SD card
 
 formatsd
+	cls
 	print	.formatsd(pc)
 	bsr.w	areyousure
 	rstne
