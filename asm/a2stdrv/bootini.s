@@ -15,21 +15,9 @@
 ; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ; ACSI2STM integrated driver
-; TOS executable version
+; Wrapper for boot loaded driver. Checks if already installed.
 
-	incdir	..\
-	incdir	..\inc\
-	include	acsi2stm.i
-	include	tos.i
-	include	atari.i
-	include	structs.i
-	include	hook.i
-
-	text
-text
-	Super
-
-	; Check if the driver is already installed
+bootini	; Check if the driver is already installed
 .nxtvec	move.l	bios.vector.w,a0
 	cmp.l	#'XBRA',-12(a0)
 	bne.b	.notins
@@ -37,47 +25,13 @@ text
 	cmp.l	#'A2ST',-8(a0)
 	bne.b	.na2st
 
-	print	alrdins(pc)             ; Already installed: print a message
-	gemdos	Cconin,2                ;
-	Pterm0                          ; then exit
+	pea	0(pc)                   ; Already installed: free memory
+	gemdos	Mfree,6                 ;
+	rts                             ; then exit
 
 .na2st	move.l	-4(a0),a0
 	bra.b	.nxtvec
 
-.notins	bsr.w	drvinit
-
-	clr.w	-(sp)                   ; Stay resident
-	move.l	#pd...+end-text,-(sp)   ;
-	gemdos	Ptermres                ;
-
-	include	init.s
-	even
-	include	parts.s
-	even
-	include	prtpart.s
-	even
-	include	print.s
-	even
-	include	blkdev.s
-	even
-	include	acsicmd.s
-	even
-	include	rtc.s
-	even
-	include	rodata.s
-	even
-
-	data
-
-	include	data.s
-
-alrdins	dc.b	7,13,10,'Driver already installed',13,10
-	dc.b	'Press a key to exit to desktop',13,10,0
-
-	bss
-	include	bss.s
-bss	ds.b	bss...
-end
+.notins	; Fall through the rest of the code
 
 ; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm tw=80
-

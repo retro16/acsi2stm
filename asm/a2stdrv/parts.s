@@ -65,7 +65,7 @@ rescan	; Scan again all removable devices
 .start	move.l	hz200.l,(a0)            ;
 	add.l	#rescanperiod,(a0)      ;
 
-	movem.w	d1/d5-d7,-(sp)
+	movem.l	d1/d5-d7,-(sp)
 
 	clr.b	d7                      ; Start at first id
 
@@ -114,7 +114,7 @@ rescan	; Scan again all removable devices
 .next	add.b	#$20,d7                 ; Point d7 at next device
 	bne.b	.check                  ;
 	
-	movem.w	(sp)+,d1/d5-d7
+	movem.l	(sp)+,d1/d5-d7
 	rts
 
 anymch	; Check pun if any drive has the mch flag set for a given ACSI id
@@ -323,6 +323,7 @@ mntdev	; Mount a block device or a partition
 
 	move.l	d5,d2                   ; Read boot sector
 	moveq	#1,d0                   ;
+ lea $C0DEC0DE,a0
 	lea	bss+buf(pc),a0          ; Read into the local buffer
 	move.l	a0,d1                   ;
 	bsr.w	blk.rd                  ;
@@ -621,7 +622,7 @@ ismbr	; Tries to detect if this is a valid MBR partition table
 	rol.w	#8,d1                   ;
 
 	cmp.l	d1,d4                   ; Cannot start outside the device
-	ble.b	.no                     ; XXX not sure if ble is correct
+	bls.b	.no                     ;
 
 .ckpsiz	move.l	mpart.size(a1),d0       ; Read partition size
 	beq.b	.no                     ; Cannot be 0 for a defined part
@@ -631,8 +632,8 @@ ismbr	; Tries to detect if this is a valid MBR partition table
 
 	add.l	d0,d1                   ; d1 = start+size
 
-	cmp.l	d1,d4                   ; Cannot end outside the device
-	blt.b	.no                     ; XXX not sure if blt is correct
+	cmp.l	d4,d1                   ; Cannot end outside the device
+	bhi.b	.no                     ;
 
 .nxpart	lea	mpart...(a1),a1         ; Next partition
 	dbra	d2,.ckpart              ;
@@ -744,8 +745,8 @@ isfatfs	; Detects whether this is a valid FAT boot sector
 	swap	d1                      ;
 	rol.w	#8,d1                   ; d1 = fat.hsects
 .nsecok
-	cmp.l	d1,d4                   ; Check that the filesystem does not
-	blt.b	.no                     ; go beyond the size of its container XXX is blt correct ?
+	cmp.l	d4,d1                   ; Check that the filesystem does not
+	bhi.b	.no                     ; go beyond the size of its container
 
 	move.l	d1,d0                   ; Return the real size of the filesystem
 

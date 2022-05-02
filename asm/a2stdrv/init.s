@@ -107,7 +107,9 @@ drvinit	; Driver initialization
 
 	; Set boot drive
 
-	btst	#2,(drvbits+3).w        ; Check if C is mounted
+	moveq	#2,d1                   ; Drive C
+
+	btst	d1,(drvbits+3).w        ; Check if C is mounted
 	beq.b	.nobdrv                 ;
 
 	move.w	d1,bootdev.w            ; Write boot drive to C:

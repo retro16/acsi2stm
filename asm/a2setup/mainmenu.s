@@ -63,22 +63,26 @@ mainmenu
 	cmp.b	#'I',d0
 	beq.w	creatimg
 
+	cmp.b	#'Q',d0
+	beq.w	quickset
+
 	cmp.b	#'P',d0
 	beq.w	parttool
 
 	bra.b	.wait
 
-.devsld	dc.b	'Selected device: ',0
+.devsld	dc.b	'Selected device:',0
 .menu	dc.b	13,10,10
 	dc.b	'Main menu:',13,10
 	dc.b	10
-	dc.b	'  T: Test the ACSI2STM device',13,10
-	dc.b	'  C: Real-time clock setup',13,10
-	dc.b	'  S: Format the SD for PC (FAT32/ExFAT)',13,10
-	dc.b	'  I: Create an image on the SD card',13,10
-	dc.b	'  P: Partition/format tool',13,10
+	dc.b	'  T:Test ACSI2STM',13,10
+	dc.b	'  C:Clock setup',13,10
+	dc.b	'  S:Format SD for PC',13,10
+	dc.b	'  I:Create image',13,10
+	dc.b	'  Q:Quick setup',13,10
+	dc.b	'  P:Partition/format tool',13,10
 	dc.b	10
-	dc.b	'Esc: Back to device selection',13,10
+	dc.b	'Esc:Back',13,10
 	dc.b	0
 	even
 

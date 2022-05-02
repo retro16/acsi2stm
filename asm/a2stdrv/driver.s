@@ -30,6 +30,8 @@
 	include	hook.i
 
 boot
+	include	bootini.s
+	even
 	include	init.s
 	even
 	include	parts.s

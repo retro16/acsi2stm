@@ -138,7 +138,7 @@ pt...		equ	part...*maxparts; Partition table size
 ; Partition format parameters structure
 		rsreset
 		rs.w	1
-pfmt.oldtos	rs.b	1               ; $ff if old TOS, 0 if new TOS
+		rs.b	1
 pfmt.fat12	rs.b	1               ; $ff if FAT12, 0 if FAT16
 pfmt.ssize	rs.w	1               ; Logical sector size in log2 sectors
 pfmt.csize	rs.w	1               ; Logical sectors per cluster in log2

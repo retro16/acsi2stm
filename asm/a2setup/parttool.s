@@ -82,7 +82,7 @@ parttool
 	cmp.b	#'F',d0
 	beq.w	parttool.format
 
-	cmp.b	#'S',d0
+	cmp.b	#'P',d0
 	beq.w	parttool.save
 
 	cmp.b	#'U',d0
@@ -102,10 +102,11 @@ parttool
 	bra.w	.again
 
 .menu	dc.b	'  Q:Quick partition  F:Format whole disk',13,10
+	dc.b	'  N:Create new MBR',13,10
 	dc.b	'1-4:Edit part 1 to 4 E:Edit partition',13,10
 	dc.b	'  I:Install driver   K:Kill boot sector',13,10
-	dc.b	'  S:Save changes     N:Create new MBR',13,10
-	dc.b	'Esc:Main menu        U:Undo changes'
+	dc.b	'  P:Save pending     U:Undo changes',13,10
+	dc.b	'Esc:Back'
 	dc.b	0
 	even
 
@@ -121,7 +122,7 @@ parttool.exit
 
 	restart
 
-.sure	dc.b	'Exit and revert pending changes',13,10,0
+.sure	dc.b	'Exit and revert',13,10,0
 	even
 
 parttool.refrsh
@@ -227,6 +228,7 @@ parttool.edit
 	tst.w	d0                      ; If partition == 0
 	rsteq	                        ; none selected: back to menu
 
+	subq.w	#1,d0                   ; Pass partition as zero-based 
 	bra.w	partedit
 
 .askprt	dc.b	'Partition to edit:',0
@@ -337,10 +339,10 @@ parttool.install
 .nodrv	dc.b	'Driver not loaded',13,10,0
 .unkfmt	dc.b	'Unknown boot format',13,10,0
 .toosmall
-	dc.b	'Not enough space to install',13,10,0
+	dc.b	'Not enough space',13,10,0
 
 .warn	dc.b	'Previous boot sector cannot be recovered',13,10
-	dc.b	'All changes will be saved immediately',13,10,0
+	dc.b	'All changes will be saved',13,10,0
 	even
 
 parttool.quick
@@ -357,6 +359,10 @@ parttool.quick
 	move.w	d0,-(sp)                ; Store for later
 
 	crlf
+	bsr.w	areyousure
+	rstne
+
+	crlf
 	bsr.w	parts.newpt             ; Reset everything
 
 	move.l	part.size(a3),d0        ;
@@ -366,32 +372,27 @@ parttool.quick
 	move.l	d1,d0                   ;
 .comput	bsr.w	parttool.sec2mb         ;
 	divu.w	(sp),d0                 ;
-	subq.l	#1,d0                   ;
 
 	move.l	#511,d1                 ; 511MB is the max for a ST anyway
 	cmp.l	d1,d0                   ;
 	bls.b	.small                  ;
 	move.l	d1,d0                   ;
 .small
+	bsr.w	parttool.mb2sec         ;
 	move.l	d0,-(sp)                ; Use maximum value if 0 is entered
+	rsteq	                        ; Stop if 0
 
-	tst.l	d0                      ;
-	beq.b	.usemax                 ; Use maximum size if 0
-	move.l	d0,(sp)                 ; Store for later
-.usemax
 	; Allocate partitions
-	movem.l	d3-d6/a3-a4,-(sp)       ; 24(sp).l:size, 28(sp).w:count
+	movem.l	d3-d6/a3-a5,-(sp)       ; 24(sp).l:size, 28(sp).w:count
 
-	moveq	#1,d3                   ; d3 = partition index
-	move.l	24(sp),d4               ; d4 = partition size
-	move.w	28(sp),d5               ; d5 = partition count (1 based)
-	move.w	#32,d6                  ; d6 = current offset
+	moveq	#0,d3                   ; d3 = partition index
+	move.l	28(sp),d4               ; d4 = partition size
+	move.w	32(sp),d5               ; d5 = partition count
+	moveq	#32,d6                  ; d6 = current offset
+	sub.l	d6,d4                   ; (suboptimal) make room for reserved
 	lea	(a4),a3                 ; a3 = partition to allocate
 
-.alloc	cmp.w	d5,d3
-	bgt.b	.exit
-
-	move.l	d6,part.start(a3)
+.alloc	move.l	d6,part.start(a3)       ; Declare partition
 	move.l	d6,part.first(a3)
 	move.l	d4,part.size(a3)
 	move.l	d6,-(sp)
@@ -401,20 +402,26 @@ parttool.quick
 	move.l	(sp)+,d6
 
 	flagset	ok                      ; Start and size are valid
-	move.l	#' 06'<<8,part.type(a3) ; Partition as FAT16
-	bsr.w	parts.sensebs
 
-	add.l	d4,d6
+	lea	(a3),a5                 ; Format partition
+	bsr.w	partfmt.auto            ; using default values
 
-	lea	part...(a3),a3
-	addq.w	#1,d3
-	bra.b	.alloc
+	bsr.w	parts.settype           ; Set MBR type:01 for FAT12,06 for FAT16
+
+	add.l	d4,d6                   ; Skip to next partition
+	lea	part...(a3),a3          ;
+	addq.w	#1,d3                   ;
+
+	cmp.w	d5,d3                   ;
+	blt.b	.alloc                  ;
+
 .exit
-	movem.l	(sp)+,d3-d6/a3-a4
+	movem.l	(sp)+,d3-d6/a3-a5
 
-	restart
+	bra.w	parttool.save
 
-.quick	dc.b	'Quick partitioning',13,10
+.quick	dc.b	'Warning: disk will be formatted',13,10
+	dc.b	'Esc to cancel',13,10,10
 	dc.b	'How many partitions:',0
 	even
 
@@ -453,7 +460,10 @@ parttool.ptable
 	flagtst	pt                      ; Don't print a partition table
 	bne.b	.ptok                   ; if there isn't any
 
+	savepos
 	print	.nopt(pc)
+	loadpos
+
 	rts
 .nopt	dc.b	13,10,'No partition table',0
 	even

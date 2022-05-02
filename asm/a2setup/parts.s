@@ -603,6 +603,21 @@ parts.newpt
 
 	rts
 
+parts.settype
+	; Set partition MBR type based on its filesystem
+	; Input:
+	;  a3: Descriptor address
+
+	bsr.w	parts.sensebs           ; Sense partition content
+
+	cmp.l	#'F16'<<8,(a3)          ; Set partition type
+	beq.b	.f16                    ;
+
+	move.l	#' 01'<<8,part.type(a3) ; Partition is FAT12
+	rts
+
+.f16	move.l	#' 06'<<8,part.type(a3) ; Partition is FAT16
+	rts
 
 parts.patchboot
 	; Patch the boot sector checksum to make it match flags_boot
@@ -751,11 +766,11 @@ parts.b2t
 .digit	add.b	#'0',d1
 	cmp.b	#'9',d1
 	bls.b	.dok
-	add.b	#'A'-'9'+1,d1
+	addq.b	#'A'-'9'-1,d1
 .dok	move.b	d1,(a0)+
 	rts
 
-parts.t2b ; XXX FIXME
+parts.t2b
 	; Convert a hexadecimal ASCII partition type string
 	; to a MBR partition type
 	; In case of doubt, outputs 0
@@ -788,7 +803,7 @@ parts.t2b ; XXX FIXME
 	cmp.b	#'F',d1                 ;
 	bhi.b	.parse                  ;
 
-	sub.b	#'A'+10,d1              ; Convert to binary
+	sub.b	#'A'-10,d1              ; Convert to binary
 	bra.b	.add                    ;
 
 parts.cksum

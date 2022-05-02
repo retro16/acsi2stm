@@ -4,28 +4,39 @@ Creating your own ACSI2STM hardware
 Hardware needed
 ---------------
 
- * A STM32F103C8T6 or compatible board. You can find them for a few dollars online. The "blue pill" works out of the box and the
-   older "black pill" requires minor modifications.
+ * A STM32F103C8T6 or compatible board. You can find them for a few dollars
+   online. The "blue pill" works out of the box and the older "black pill"
+   requires minor modifications.
  * A USB-serial dongle for programming the STM32 chip, with a 3.3V USART.
- * One or more SD card port(s) for your STM32. You can also solder wires on a SD to microSD adapter.
+ * One or more SD card port(s) for your STM32. You can also solder wires on a SD
+   to microSD adapter.
  * One or more SD card(s).
  * A male DB19 port (you can modify a DB25 port to fit) with a ribbon cable.
- * (recommended) A protoboard PCB to solder all the components and wires together.
- * Do *NOT* connect USB data lines on the STM32. Use the +5V or +3.3V pin to power it if you are unsure.
+ * (recommended) A protoboard PCB to solder all the components and wires
+   together.
+ * Do *NOT* connect USB data lines on the STM32. Use the +5V or +3.3V pin to
+   power it if you are unsure.
+
+You can use the PCB design provided in the PCB folder. See
+[build_pcb.md](build_pcb.md) for more information.
 
 **Notes**
 
-Some people reported problems with STM32 clones. I have many variants of the blue pill STM32, all of them work exactly the same.
-Variants I had and that worked: round and rectangle reset buttons, some chips marked STM32F / 103 and other marked STM32 / F103.
-If anyone has concrete proof of misbehaving clones and information on how to spot them, feel free to contact me or create an issue
+Some people reported problems with STM32 clones. I have many variants of the
+blue pill STM32, all of them work exactly the same. Variants I had and that
+worked: round and rectangle reset buttons, some chips marked STM32F / 103 and
+other marked STM32 / F103. If anyone has concrete proof of misbehaving clones
+and information on how to spot them, feel free to contact me or create an issue
 on GitHub to let people know about that.
 
-Since 2.40, the internal DMA was fixed to avoid relying on timing, but check the actual DMA flags. This has fixed many issues on
-some newer clones I bought more recently.
+Since 2.40, the internal DMA was fixed to avoid relying on timing, but check the
+actual DMA flags. This has fixed many issues on some newer clones I bought more
+recently.
 
-Please provide feedback if you are trying to make this work with the new STM32F4x1 "black pill" boards. The best configuration is
-to have a working blue pill so results can be compared by switching the boards. Porting efforts will be high, the F4xx has a
-totally different way of handling DMA.
+Please provide feedback if you are trying to make this work with the new
+STM32F4x1 "black pill" boards. The best configuration is to have a working blue
+pill so results can be compared by switching the boards. Porting efforts will be
+high, the F4xx has a totally different way of handling DMA.
 
 
 Building the ACSI connector
@@ -66,13 +77,18 @@ Use this table to match pins on the ACSI port and the STM32:
 
 **Notes**:
 
- * GND is soldered together on the ST side. You can use a single wire for ground.
- * Reset is not needed as the STM32 resets itself if it stays in an inconsistent state for more than 2.5 seconds.
- * Keep the wires short. I had strange behavior with cables longer than 10cm (4 inches).
+ * GND is soldered together on the ST side. You can use a single wire for
+   ground.
+ * Reset is not needed as the STM32 resets itself if it stays in an inconsistent
+   state for more than 2.5 seconds.
+ * Keep the wires short. I had strange behavior with cables longer than 10cm (4
+   inches).
  * The read/write pin is not needed.
- * You can build a DB19 out of a DB25 by cutting 6 pins on one side and part of the external shielding. Male DB25 are easy to find
-   because they were used for parallel port cables or serial port sockets.
- * You will have to power the STM32 separately (if you use USB, don't use a cable with data lines connected).
+ * You can build a DB19 out of a DB25 by cutting 6 pins on one side and part of
+   the external shielding. Male DB25 are easy to find because they were used for
+   parallel port cables or serial port sockets.
+ * You will have to power the STM32 separately (if you use USB, don't use a
+   cable with data lines connected).
 
 
 Connecting the SD cards
@@ -107,9 +123,11 @@ Use this table to match pins on the SD card port and the STM32:
 | 08  | (nc)  | RSV |
 | 09  | (nc)  | RSV |
 
-If you want to use multiple SD cards, connect all SD card pins to the same STM32 pins except CS (SD pin 1).
+If you want to use multiple SD cards, connect all SD card pins to the same STM32
+pins except CS (SD pin 1).
 
-Here is the table that indicates the STM32 pin for each CS pin of the different SD cards:
+Here is the table that indicates the STM32 pin for each CS pin of the different
+SD cards:
 
 | ACSI ID | STM32 | Connect to |
 |--------:|:------|------------|
@@ -121,22 +139,30 @@ Here is the table that indicates the STM32 pin for each CS pin of the different 
 
 Leave unused CS pins unconnected.
 
-**WARNING**: Pinout changed in v2.0: PA0 was added, PBx were removed and unused SD card CS pins *must not* be grounded anymore.
+**WARNING**: Pinout changed in v2.0: PA0 was added, PBx were removed and unused
+SD card CS pins *must not* be grounded anymore.
 
 **Notes**:
 
- * If you need to hot swap your SD card, you need to put a 20k-100k pull-up resistor between +3.3V and PA6. A single resistor is
-   enough if you have multiple SD card slots.
- * The ACSI2STM module **will** respond to all ACSI IDs, whether a SD card is inserted or not. Change ACSI_SD_CARDS and
-   ACSI_FIRST_ID in acsi2stm/acsi2stm.h to change ACSI IDs, or see the table below to disable IDs by connecting pins to +3.3V.
+ * If you need to hot swap your SD card, you need to put a 20k-100k pull-up
+   resistor between +3.3V and PA6. A single resistor is enough if you have
+   multiple SD card slots.
+ * The ACSI2STM module **will** respond to all ACSI IDs, whether a SD card is
+   inserted or not. Change ACSI_SD_CARDS and ACSI_FIRST_ID in
+   acsi2stm/acsi2stm.h to change ACSI IDs, or see the table below to disable IDs
+   by connecting pins to +3.3V.
  * The SD card had 2 GND pins. Connecting only one is enough.
- * You should put decoupling capacitors of about 100nF and 10uF (in parallel) between VDD and VSS, as close as possible from the
-   SD card pins. If you use a pre-built SD slot module it should be properly decoupled already.
- * If you need other ACSI IDs, you can change the sdCs array in the source code. See "Compile-time options" below.
+ * You should put decoupling capacitors of about 100nF and 10uF (in parallel)
+   between VDD and VSS, as close as possible from the SD card pins. If you use a
+   pre-built SD slot module it should be properly decoupled already.
+ * If you need other ACSI IDs, you can change the sdCs array in the source code.
+   See "Compile-time options" below.
  * CS pins must be on GPIO port A (PA pins).
- * Some microSD slot boards for Arduino have logic level adapters to allow using SD cards on 5V Arduino boards. This will reduce
-   speed and compatibility. Connect SD card pins directly to the STM32 pins.
- * microSD to SD adapters are a quick, cheap way to obtain a microSD reader. Simply solder on the SD adapter pads.
+ * Some microSD slot boards for Arduino have logic level adapters to allow using
+   SD cards on 5V Arduino boards. This will reduce speed and compatibility.
+   Connect SD card pins directly to the STM32 pins.
+ * microSD to SD adapters are a quick, cheap way to obtain a microSD reader.
+   Simply solder on the SD adapter pads.
 
 Some pins can be used to configure each SD card slot:
 
@@ -148,33 +174,42 @@ Some pins can be used to configure each SD card slot:
 |       3 | PB4   | SD 3 write lock  | +3.3V              |
 |       4 | PB5   | SD 4 write lock  | +3.3V              |
 
-When the pin is connected to GND, the SD card will be read-only. When the pin is left floating, the SD card will be writable. You
-can connect this pin to the physical write lock switch if you have a full size SD card reader with this ability. This logic can be
-inverted or disabled using the ACSI_SD_WRITE_LOCK define in acsi2stm/acsi2stm.h.
+When the pin is connected to GND, the SD card will be read-only. When the pin is
+left floating, the SD card will be writable. You can connect this pin to the
+physical write lock switch if you have a full size SD card reader with this
+ability. This logic can be inverted or disabled using the ACSI_SD_WRITE_LOCK
+define in acsi2stm/acsi2stm.h.
 
-When the pin is connected to +3.3V, the SD card is completely disabled (the ACSI ID is freed for other devices).
+When the pin is connected to +3.3V, the SD card is completely disabled (the ACSI
+ID is freed for other devices).
 
 
 Battery-powered real-time clock
 -------------------------------
 
-To use the RTC feature, you need to connect a lithium battery to the VB pin of the STM32. Using a CR2032 with a standard battery
-holder is recommended.
+To use the RTC feature, you need to connect a lithium battery to the VB pin of
+the STM32. Using a CR2032 with a standard battery holder is recommended.
 
 
 Using on an old "Black pill" STM32F103 board
 --------------------------------------------
 
-If you have these cheap "STM32 minimum development boards" from eBay, Amazon, Banggood or other chinese sellers, chances are that
-you have either a "blue pill" or a "black pill" board. "blue" or "black" refers to the color of the PCB.
+If you have these cheap "STM32 minimum development boards" from eBay, Amazon,
+Banggood or other chinese sellers, chances are that you have either a "blue
+pill" or a "black pill" board. "blue" or "black" refers to the color of the PCB.
 
-**WARNING**: There are newer STM32F4xx boards also called "black pill". These newer boards are currently not tested. This section
-refers to older STM32F103C8T6 black pill boards.
+**WARNING**: There are newer STM32F4xx boards also called "black pill". These
+newer boards are currently not tested. This section refers to older
+STM32F103C8T6 black pill boards.
 
-The problem with black pill designs is that the onboard LED is wired on PB12 instead of PC13, messing with data signals.
+The problem with black pill designs is that the onboard LED is wired on PB12
+instead of PC13, messing with data signals.
 
-You will have to desolder the onboard LED (or its current-limiting resistor right under).
+You will have to desolder the onboard LED (or its current-limiting resistor
+right under).
 
-If you want an activity LED, put an external one with a 1k resistor in series on PC13.
+If you want an activity LED, put an external one with a 1k resistor in series on
+PC13.
 
-Other boards such as red pills were not tested and may require further adjustments.
+Other boards such as red pills were not tested and may require further
+adjustments.

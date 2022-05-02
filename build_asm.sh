@@ -80,4 +80,6 @@ done
 # Clean up
 
 cd ..
-#rm -r "$builddir"
+if ! [ "$KEEP_BUILD" ]; then
+  rm -r "$builddir"
+fi

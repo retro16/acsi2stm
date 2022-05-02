@@ -46,17 +46,16 @@ load	print	msg.loading(pc)
 	move.l	d0,-(sp)                ; Allocate memory
 	gemdos	Malloc,6                ;
 
-	tst.l	d0                      ; Check that malloc worked
-	beq.b	memfail                 ;
-
 	lea	allocsz(pc),a0          ;
+	move.l	(a0),d2                 ; Keep original value for later
 	move.l	d0,(a0)                 ; Save address into alloc size
+	beq.b	memfail                 ; Check that we didn't have a NULL ptr
 
 	move.l	d0,d1                   ; Set DMA target
-	beq.b	fail                    ; Check that we didn't have a NULL ptr
 
 	moveq	#0,d0                   ;
-	move.b	allocsz+3(pc),d0        ; Sector count
+	move.b	d2,d0                   ; Set sector count
+
 	lea	acsi.read(pc),a0        ; Read the driver
 	bsr.b	acsicmd                 ;
 

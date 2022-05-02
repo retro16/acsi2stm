@@ -37,4 +37,6 @@ cp acsi2stm.ino.bin ../acsi2stm-$VERSION.ino.bin
 # Clean up build
 
 cd ..
-rm -rf "$builddir"
+if ! [ "$KEEP_BUILD" ]; then
+  rm -r "$builddir"
+fi

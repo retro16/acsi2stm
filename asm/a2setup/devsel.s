@@ -114,8 +114,8 @@ devsel
 .devslt	dc.b	10,10,10,10,10,10,10,10 ; Keep blank lines for device names
 
 	dc.b	10,10
-	dc.b	'Select the device to setup (0-7)',13,10
-	dc.b	'or press Esc to quit',0
+	dc.b	'Select device (0-7)',13,10
+	dc.b	'Esc to quit',0
 
 .dev	dc.b	13,10,' '
 .devid	dc.b	'0: ',0
