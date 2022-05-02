@@ -30,6 +30,7 @@
 	include	parttool.s
 	include	partedit.s
 	include	partfmt.s
+	include	quickset.s
 	include	acsicmd.s
 	include	tui.s
 	include	rtc.s

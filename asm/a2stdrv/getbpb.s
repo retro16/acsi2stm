@@ -32,27 +32,19 @@ getbpb_handler
 	hkchain	bios                    ;
 
 .mountd	btst	#8,d7                   ; Check media present flag
-	bne.b	.mok                    ;
+	beq.b	.err                    ;
 
-	moveq	#0,d0                   ; No media: return NULL !
-	move.w	(sp)+,d7                ;
-	rte                             ;
-
-.mok	bsr.w	clrmch                  ; Clear media change
-
-	move.w	d1,-(sp)                ; Keep d1 intact
+	bsr.w	clrmch                  ; Clear media change
 
 	lea	bss+buf(pc),a0          ; Read partition header
 	move.l	a0,d1                   ;
 	moveq	#1,d0                   ;
 	bsr.w	blk.rd                  ;
 
-	move.w	(sp)+,d1                ; Restore d1
-
 	tst.b	d0                      ; Check for error
 	beq.b	.nerr                   ;
 
-	moveq	#0,d0                   ; Error: no BPB
+.err	moveq	#0,d0                   ; Error: no BPB
 	move.w	(sp)+,d7                ;
 	rte
 

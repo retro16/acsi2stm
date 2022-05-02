@@ -25,33 +25,7 @@ partfmt
 	;  d7.b: ACSI id
 
 	bsr.w	parttool.save1st        ; Changes must be saved to disk
-
-	lea	bss+pfmt(pc),a0         ; Clear structure
-	clrblk	(a0),pfmt...            ;
-
-	move.l	part.size(a5),pfmt.psect(a0)   ; Set partition size
-	move.l	part.first(a5),pfmt.offset(a0) ; Set partition offset
-
-	gemdos	Sversion,2              ; Get GEMDOS version
-	lea	bss+pfmt(pc),a0         ;
-	cmp.w	#$1300,d0               ; Old TOS if TOS 1.02 or lower
-	sls	pfmt.oldtos(a0)         ;
-
-	move.l	part.last(a5),d0        ; Compute content size of the partition
-	move.l	part.first(a5),d1       ;
-	move.l	d1,pfmt.offset(a0)      ; Set partition offset
-	sub.l	d1,d0                   ;
-	addq.l	#1,d0                   ;
-	move.l	d0,pfmt.psect(a0)       ; Set partition size
-
-	clr.b	pfmt.label(a0)          ; Reset label
-
-	move.l	a0,-(sp)
-	bsr.w	random                  ; Set a random serial number
-	move.l	(sp)+,a0
-	move.l	d0,pfmt.serial(a0)      ;
-
-	bsr.w	partfmt.optim           ; Compute sensible defaults
+	bsr.w	partfmt.init            ; Initialize pfmt with best defaults
 
 	enter
 
@@ -82,9 +56,6 @@ partfmt
 	cmp.b	#'M',d0
 	beq.w	partfmt.maxize
 
-	cmp.b	#'V',d0
-	beq.w	partfmt.swtos
-
 	cmp.b	#'S',d0
 	beq.w	partfmt.setss
 
@@ -103,6 +74,9 @@ partfmt
 	cmp.b	#'R',d0
 	beq.w	partfmt.setrsv
 
+	cmp.b	#'X',d0
+	beq.w	partfmt.setcc
+
 	bra.b	.again
 
 .header	dc.b	'Parameters:',13,10
@@ -113,6 +87,65 @@ partfmt
 	dc.b	'  O:Optimize  M:Maximize size',13,10
 	dc.b	'  F:Format',13,10
 	dc.b	'Esc:Back',13,10,10,0
+	even
+
+partfmt.auto
+	; Format a partition automatically
+	; Input:
+	;  a5: partition to format
+	bsr.b	partfmt.init
+	bra.w	partfmt.dofmt
+
+partfmt.init
+	; Initialize the pfmt data structure
+	; Input:
+	;  a5: partition to format
+
+	lea	bss+pfmt(pc),a0         ; Clear structure
+	clrblk	(a0),pfmt...            ;
+
+	lea	bss+pfmt(pc),a0
+
+	move.l	part.last(a5),d0        ; Compute content size of the partition
+	move.l	part.first(a5),d1       ;
+
+	move.l	d1,pfmt.offset(a0)      ; Set partition offset
+	sub.l	d1,d0                   ;
+	addq.l	#1,d0                   ;
+	move.l	d0,pfmt.psect(a0)       ; Set partition size
+
+	bsr.w	partfmt.gensn           ; Set a random serial number
+	lea	bss+pfmt(pc),a0
+	bra.w	partfmt.optim           ; Compute sensible defaults
+
+partfmt.setcc
+	; Set cluster count
+
+	move.l	#32767,d0               ; Maximum value for TOS
+	bsr.w	readint
+
+	tst.l	d0
+	rsteq
+
+	lea	bss+pfmt(pc),a0         ; Set cluster count
+	move.l	d0,pfmt.dclust(a0)      ;
+
+	bsr.w	partfmt.head            ; Refresh header size
+	bsr.w	partfmt.tsect           ; Refresh sector count
+
+	move.w	pfmt.ssize(a0),d1
+	move.l	pfmt.tsect(a0),d0
+	lsl.l	d1,d0
+
+	cmp.l	pfmt.psect(a0),d0
+	bls.b	.ok
+
+	print	.oversz(pc)
+	bsr.w	presskey
+
+.ok	restart
+
+.oversz	dc.b	13,10,7,'Warning: FS bigger than partition',13,10,0
 	even
 
 partfmt.newlbl
@@ -136,17 +169,23 @@ partfmt.newlbl
 partfmt.newsn
 	; New serial number
 
+	bsr.b	partfmt.gensn
+	restart
+
+partfmt.gensn
+	; Generate a serial number
+
 	bsr.w	random                  ; Set a random serial number
 	lea	bss+pfmt+pfmt.serial(pc),a0 ;
 	move.l	d0,(a0)                 ;
 
-	restart
+	rts
 
 partfmt.setss
 	; Set sector size
 
-	moveq	#64,d0                  ; Maximum value:8192
-	lsl.l	#7,d0                   ;
+	moveq	#64,d0                  ; Maximum value:16384
+	lsl.l	#8,d0                   ;
 	bsr.w	readint
 
 	move.l	#511,d1                 ; Minimum value: 512
@@ -197,7 +236,7 @@ partfmt.setroot
 partfmt.setcs
 	; Set cluster size
 
-	moveq	#16,d0                  ; Maximum value:16
+	moveq	#32,d0                  ; Maximum value:32
 	bsr.w	readint
 
 	moveq	#0,d1                   ; Minimum value: 1
@@ -209,18 +248,15 @@ partfmt.setcs
 	lea	bss+pfmt+pfmt.csize(pc),a0 ;
 	move.w	d1,(a0)                 ; Set ssize
 
-	bra.b	partfmt.maxize          ; Maximize size and check values
-
-partfmt.swtos
-	; Switch TOS version compat
-
-	tst.b	pfmt.oldtos(a0)
-	seq	pfmt.oldtos(a0)
-	
 	; Fall through partfmt.maxize
 partfmt.maxize
 	; Maximize cluster count to fit partition
 
+	bsr.w	partfmt.max
+	restart
+
+partfmt.max
+	; Maximize cluster count to fit partition
 	lea	bss+pfmt(pc),a0
 	bsr.w	partfmt.totalcl
 
@@ -235,13 +271,8 @@ partfmt.fixprm
 	sls	pfmt.fat12(a0)          ;
 	bls.b	.fat12                  ;
 
-	move.w	#65517,d1               ; Compute maximum number of clusters
-	tst.b	pfmt.oldtos(a0)         ; depending on TOS version
-	beq.b	.newtos                 ;
-	move.w	#32767,d1               ;
-.newtos
-
-	cmp.l	d1,d0                   ; Cap to maximum number of clusters
+	move.w	#32767,d1               ; Cap to maximum number of clusters
+	cmp.l	d1,d0                   ;
 .compar	bls.b	.ok                     ; for FAT16 partition
 	move.l	d1,d0                   ;
 	bra.b	.ok                     ;
@@ -251,9 +282,10 @@ partfmt.fixprm
 	move.l	#4083,d0                ;
 
 .ok	move.l	d0,pfmt.dclust(a0)      ; Refresh cluster count
+	bsr.w	partfmt.head            ; Refresh header
 	bsr.w	partfmt.tsect           ; Refresh sector count
 
-	restart
+	rts
 
 partfmt.format
 	; Do the actual format operation
@@ -261,6 +293,10 @@ partfmt.format
 	bsr.w	areyousure
 	rstne
 
+	bsr.b	partfmt.dofmt
+	exit
+
+partfmt.dofmt
 	clrblk	bss+buf(pc),512         ; Clear boot sector
 
 	flagset	fs,(a5)                 ; Mark as a valid filesystem
@@ -325,7 +361,9 @@ partfmt.format
 
 	addq.l	#4,a2                   ; Skip fat.hsects (already written)
 
-	clr.w	(a2)+                   ; fat.drnum + reserved byte
+	move.b	#$80,(a2)+              ; fat.drnum
+
+	clr.b	(a2)+                   ; reserved byte
 
 	move.b	#$29,(a2)+              ; fat.ebsig
 
@@ -365,27 +403,37 @@ partfmt.format
 
 .fats	bsr.w	partfmt.genfat
 	moveq	#0,d3
-	bsr.w	partfmt.bufwr
+	bsr.b	partfmt.bufwr
 
 	clrblk	bss+buf(pc),512         ; Empty FAT sectors
 
 	move.l	bss+pfmt+pfmt.fatsz(pc),d3 ;
 	bsr.b	.l2p                    ;
 	subq.w	#2,d3                   ; Empty physical sectors for FAT
+	bmi.b	.nfat
 
+	bsr.b	partfmt.bufwr
+.nfat
 	dbra	d5,.fats
 
 	; Write root directory
 
+	bsr.w	partfmt.genlabl         ; Generate label entry
+	moveq	#0,d3                   ;
+	bsr.b	partfmt.bufwr           ; Write disk label if any
+
+	clrblk	bss+buf(pc),512         ; Empty root sectors
+
 	move.l	bss+pfmt+pfmt.root(pc),d3 ;
 	bsr.b	.l2p                    ;
-	subq.w	#1,d3                   ; Physical sectors for root directory
+	subq.w	#2,d3                   ; Physical sectors for root directory
+	bmi.b	.nroot
 
-	bsr.w	partfmt.bufwr           ; Write empty root directory
-
+	bsr.b	partfmt.bufwr           ; Write empty root directory
+.nroot
 	movem.l	(sp)+,d3-d5             ; Restore registers
 
-	exit
+	rts
 
 .l2p	; Convert logical to physical sectors
 	; Input:
@@ -395,45 +443,6 @@ partfmt.format
 	;  d3.l: Physical sector count
 	move.w	bss+pfmt+pfmt.ssize(pc),d1
 	lsl.l	d1,d3
-	rts
-
-partfmt.cpylabl
-	; Copy a disk label
-	; Pads with spaces
-	; Input:
-	;  a0: source
-	;  a2: target
-
-	moveq	#10,d0
-
-.cpy	move.b	(a0)+,(a2)+
-	dbeq	d0,.cpy
-
-	subq.w	#1,d0
-	bmi.b	.done
-
-.fill	move.b	#$20,(a2)+
-	dbra	d0,.fill
-
-.done	rts
-
-partfmt.genfat
-	; Generate an empty fat sector
-	; Input:
-	;  pfmt.fat12
-	; Output:
-	;  bss+buf(pc): Sector data
-
-	clrblk	bss+buf(pc),512
-
-	lea	bss+buf(pc),a0
-	move.b	bss+pfmt+pfmt.fat12(pc),d0
-	bne.b	.fat12
-
-	move.l	#$f8ffffff,(a0)+
-	rts
-
-.fat12	move.l	#$f8ffff00,(a0)+
 	rts
 
 partfmt.bufwr
@@ -458,6 +467,71 @@ partfmt.bufwr
 
 	dbra	d3,partfmt.bufwr        ; Loop
 
+	rts
+
+partfmt.cpylabl
+	; Copy a disk label
+	; Pads with spaces
+	; Input:
+	;  a0: source
+	;  a2: target
+	; Output:
+	;  a2: 11(a2)
+
+	moveq	#10,d0
+
+.cpy	move.b	(a0)+,(a2)+
+	dbeq	d0,.cpy
+
+	bne.b	.nnul
+	move.b	#$20,-1(a2)
+
+.nnul	subq.w	#1,d0
+	bmi.b	.done
+
+.fill	move.b	#$20,(a2)+
+	dbra	d0,.fill
+
+.done	rts
+
+partfmt.genlabl
+	; Generate a disk label if any
+	; Input:
+	;  pfmt.label
+	; Output:
+	;  bss+buf(pc): Sector data
+
+	clrblk	bss+buf(pc),512
+
+	moveq	#' ',d0
+	cmp.b	bss+pfmt+pfmt.label(pc),d0
+	rtseq	                        ; Return if empty label
+
+	lea	bss+buf(pc),a2
+	lea	bss+pfmt+pfmt.label(pc),a0
+	bsr.b	partfmt.cpylabl         ; Copy label name
+
+	move.b	#$08,(a2)               ; Label entry
+
+	rts
+
+partfmt.genfat
+	; Generate an empty fat sector
+	; Input:
+	;  pfmt.fat12
+	; Output:
+	;  bss+buf(pc): Sector data
+
+	clrblk	bss+buf(pc),512
+
+	lea	bss+buf(pc),a0
+	move.b	bss+pfmt+pfmt.fat12(pc),d0
+	bne.b	.fat12
+
+	move.l	#$f8ffffff,(a0)+
+	rts
+
+.fat12	move.l	#$f8ffff00,(a0)+
 	rts
 
 partfmt.wrlong
@@ -495,10 +569,11 @@ partfmt.optim
 	bra.b	.rootok
 .fat12r	move.l	#64,pfmt.root(a0)       ; 64 root entries for FAT12
 .rootok
-	clr.w	pfmt.ssize(a0)          ; Always use 512 bytes sectors
+	clr.w	pfmt.ssize(a0)          ; Start with 512 bytes sectors
+
 	move.b	#16,pfmt.res+3(a0)      ; Reserve 16 sectors for driver
 
-	clr.w	pfmt.csize(a0)
+	move.w	#1,pfmt.csize(a0)       ; Start with 2 sectors per cluster
 
 .comput	bsr.w	partfmt.totalcl         ; Compute total cluster count to fit
 	bsr.w	partfmt.tsect           ; Compute logical sector count
@@ -508,21 +583,19 @@ partfmt.optim
 	tst.b	pfmt.fat12(a0)
 	bne.b	.fat12
 
-	move.l	#65517,d1               ; Compute maximum number of clusters
-	tst.b	pfmt.oldtos(a0)         ; depending on TOS version
-	beq.b	.newtos                 ;
-	move.w	#32767,d1               ;
-.newtos
-
-	cmp.l	d1,d0
+	cmp.l	#32767,d0               ; Check maximum number of clusters
 .compar	bls.b	.ok
-	addq.b	#1,pfmt.csize+1(a0)
-	bra.b	.comput
+
+	cmp.b	#4,pfmt.ssize+1(a0)     ; Limit to 8192 bytes sectors
+	beq.b	.ok                     ;
+
+	addq.b	#1,pfmt.ssize+1(a0)     ; Increase sector size
+	bra.b	.comput                 ;
 
 .fat12	cmp.w	#4083,d0
 	bra.b	.compar
 .ok
-	rts
+	bra.w	partfmt.max             ; Maximize size with current sector size
 
 partfmt.fatsz
 	; Computes FAT size
@@ -606,7 +679,7 @@ partfmt.tsect
 	;  d0.l: filesystem size in logical sectors
 
 	move.l	pfmt.dclust(a0),d0      ; Compute data size
-	move.l	pfmt.csize(a0),d1       ;
+	move.w	pfmt.csize(a0),d1       ;
 	lsl.l	d1,d0                   ;
 
 	add.l	pfmt.head(a0),d0        ; Add header size
@@ -630,7 +703,7 @@ partfmt.totalcl
 
 	bsr.w	partfmt.approx          ; Approximate cluster count
 
-	cmp.l	#65517+1024,d0          ; Quick sanity check
+	cmp.l	#32768+1024,d0          ; Quick sanity check
 	bhi.b	.end                    ;
 
 	move.w	d3,-(sp)                ;
@@ -724,15 +797,7 @@ partfmt.pfmt
 	;  a0: data structure
 
 	move.l	a3,-(sp)
-	lea	2(a0),a3
-
-	print	.tos(pc)
-	tst.b	(a3)+
-	bne.b	.old
-	print	.newtos(pc)
-	bra.b	.tosok
-.old	print	.oldtos(pc)
-.tosok
+	lea	pfmt.fat12(a0),a3
 
 	print	.fmt(pc)
 	tst.b	(a3)+
@@ -790,9 +855,6 @@ partfmt.pfmt
 	crlf
 	rts
 
-.tos	dc.b	'TOS vers[V]:',0
-.oldtos	dc.b	'<=1.02',13,10,0
-.newtos	dc.b	'>=1.04',13,10,0
 .fmt	dc.b	'FAT type   :FAT1',0
 .fmt.12	dc.b	'2',13,10,0
 .fmt.16	dc.b	'6',13,10,0
@@ -801,7 +863,7 @@ partfmt.pfmt
 .res	dc.b	'Reserved[R]:',0
 .fatsz	dc.b	'FAT size   :',0
 .root	dc.b	'Root dir[D]:',0
-.dclust	dc.b	'Clusters   :',0
+.dclust	dc.b	'Clusters[X]:',0
 .serial	dc.b	'  Serial[N]:',0
 .label	dc.b	'   Label[L]:',0
 	even

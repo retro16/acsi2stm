@@ -31,7 +31,7 @@ rwabs_in	macro
 	ifgt	maxsecsize-$200
 	movem.l	d3-d6/a3-a5,-(sp)
 	else
-	movem.l	d3-d6/a5,-(sp)
+	movem.l	d3-d6/a4-a5,-(sp)
 	endif
 	move.l	a2,a5                   ; a5 = parameters address
 	endm
@@ -40,7 +40,7 @@ rwabs_out	macro
 	ifgt	maxsecsize-$200
 	movem.l	(sp)+,d3-d6/a3-a5
 	else
-	movem.l	(sp)+,d3-d6/a5
+	movem.l	(sp)+,d3-d6/a4-a5
 	endif
 	endm
 
@@ -92,10 +92,6 @@ rwabs_handler
 	move.l	d2,a4                   ; a4 = Partition offset
 
 	ifgt	maxsecsize-$200         ; If big sectors
-
-	move.l	#$ff*512,d1             ; a3 = address increment
-	lsl.l	d0,d1                   ;
-	move.l	d1,a3                   ;
 
 	move.b	d0,d6                   ;
 	swap	d6                      ; d6[16..23] = Sector size shift
@@ -154,7 +150,8 @@ rwabs_handler
 	bra.b	.endop                  ;
 .read	bsr.w	blk.rd                  ; Call read
 .endop
-.onerr	bsr.w	acsierr                 ; Get error code in TOS format
+.onerr	bsr.w	acsierr                 ; Get error code in TOS format ; XXX $aabc
+
 	beq.b	.nerr                   ;
 
 	cmp.w	#E_CHNG,d0              ; Check for media change
@@ -165,11 +162,7 @@ rwabs_handler
 	sf	d6                      ; Clear retry flag
 	bra.w	.retry                  ; Try again
 .nerr
-	ifgt	maxsecsize-$200
-	add.l	a3,d4                   ; Move buffer address
-	else
 	add.l	#$ff*512,d4             ; Move buffer address $ff sectors
-	endif
 
 	add.l	#$ff,d5                 ; Move sector number
 	sub.l	#$ff,d3                 ; Subtract transfer size to sector count

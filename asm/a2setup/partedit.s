@@ -43,6 +43,14 @@ partedit
 	moveq	#1,d1                   ;
 	bsr.w	puint                   ;
 
+	cmp.l	#'MBR'<<8,(a3)
+	beq.b	.mbrok
+	print	.nombr(pc)
+	bsr.w	presskey
+	exit
+.nombr	dc.b	13,10,'Error: No MBR',13,10,0
+.mbrok
+
 	print	.menu(pc)
 	loadpos
 
@@ -63,6 +71,12 @@ partedit
 	beq.w	partedit.delete
 
 	and.b	#$df,d0                 ; Case insensitive checks
+
+	cmp.b	#'P',d0
+	beq.w	parttool.save
+
+	cmp.b	#'D',d0
+	beq.w	partedit.delete
 	
 	cmp.b	#'N',d0
 	beq.w	partedit.new
@@ -95,11 +109,12 @@ partedit
 .part	dc.b	'Edit partition ',0
 .menu	dc.b	13,10,10
 		;1234567890123456789|12345678901234567890
-	dc.b	'  N:New partition   Del:Delete partition',13,10
+	dc.b	'  N:New partition     D:Delete partition',13,10
 	dc.b	'  F:Format',13,10
 	dc.b	'  S:Set first sector  L:Set last sector',13,10
 	dc.b	'  T:Set type          R:Resize',13,10
-	dc.b	'Esc:Back              U:Undo changes'
+	dc.b	'  P:Save pending      U:Undo changes',13,10
+	dc.b	'Esc:Back'
 	dc.b	0
 	even
 

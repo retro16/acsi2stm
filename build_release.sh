@@ -29,7 +29,7 @@ mkdir "$builddir"
 
 echo "Copy all the stuff in the release directory"
 
-cp -r "acsi2stm-$VERSION.ino.bin" *.tos *.exe README.md doc LICENSE "$builddir"
+cp -r "acsi2stm-$VERSION.ino.bin" *.tos *.exe README.md doc pcb LICENSE "$builddir"
 
 echo "... and the legal stuff"
 
@@ -67,4 +67,6 @@ zip -r "$zipfile" *
 echo "Clean up build directories ..."
 
 cd ..
-rm -rf "$builddir"
+if ! [ "$KEEP_BUILD" ]; then
+  rm -r "$builddir"
+fi

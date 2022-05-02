@@ -21,6 +21,7 @@ areyousure
 	; Output:
 	;  d0.l: 0 if answered Y, 1 if answered N
 	;  Z: set if answered Y, clear otherwise
+	clrline
 	asksil	.msg(pc)
 	bsr.w	curson
 
