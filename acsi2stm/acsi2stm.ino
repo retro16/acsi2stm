@@ -17,7 +17,6 @@
 
 #include "acsi2stm.h"
 #include "DmaPort.h"
-#include "Watchdog.h"
 #include "Acsi.h"
 #include <libmaple/gpio.h>
 
@@ -105,8 +104,6 @@ void setup() {
   delay(200);
 #endif
 
-  Watchdog::begin();
-
   // Initialize the ACSI bridges
   for(int c = 0; c < sdCount; ++c)
     if(acsi[c].begin(
@@ -126,11 +123,9 @@ void loop() {
     acsi[c].reset();
 
   for(;;) {
-    Watchdog::pause();
     Acsi::ledOff();
     uint8_t cmd = DmaPort::waitCommand();
     Acsi::ledOn();
-    Watchdog::resume();
     int deviceId = DmaPort::cmdDeviceId(cmd);
 
 #if ! ACSI_VERBOSE

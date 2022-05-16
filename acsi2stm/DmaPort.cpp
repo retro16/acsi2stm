@@ -240,19 +240,16 @@ happened.
 #include "acsi2stm.h"
 #include "Acsi.h"
 #include "DmaPort.h"
-#include "Watchdog.h"
 #include <libmaple/dma.h>
 
 // Timer
 #define DMA_TIMER TIMER1_BASE
-#define CS_TIMER TIMER4_BASE
 #define RESET_TIMER TIMER2_BASE
+#define TIMEOUT_TIMER TIMER3_BASE
+#define CS_TIMER TIMER4_BASE
 
 // OK
 void DmaPort::waitBusReady() {
-  // Disable watchdog because waiting for the bus can take forever.
-  Watchdog::pause();
-
   // Setup hardware
 
   setupGpio();
@@ -261,10 +258,13 @@ void DmaPort::waitBusReady() {
 
   Acsi::dbg("Waiting for the ACSI bus ...\n");
 
+  // The bus must output high signals for 100ms to be considered up.
+  // Pins are discharged using the pulldown to make sure the high is strong.
   for(int debounce = 0; debounce < 20; ++debounce) {
     delay(5);
 
     // Pull the bus low for a very brief moment
+    // Just enough to discharge the bus if not powered
     // No need to pull it low permanently
     pinMode(CS, INPUT_PULLDOWN);
     pinMode(A1, INPUT_PULLDOWN);
@@ -287,7 +287,10 @@ void DmaPort::waitBusReady() {
 
 void DmaPort::checkReset() {
 #if ACSI_HAS_RESET
-  if(!RESET_TIMER->CCR1)
+  if(!RESET_TIMER->CCR1 || TIMEOUT_TIMER->CNT < 65535 - PORT_TIMEOUT)
+    quickReset();
+#else
+  if(TIMEOUT_TIMER->CNT < 65535 - PORT_TIMEOUT)
     quickReset();
 #endif
 }
@@ -310,7 +313,7 @@ uint8_t DmaPort::readCommand() {
 uint8_t DmaPort::waitCommand() {
   int cmd;
   do {
-    checkReset();
+    resetTimeout();
   } while(!checkCommand());
   return readCommand();
 }
@@ -324,6 +327,8 @@ void DmaPort::readIrq(uint8_t *bytes, int count) {
 }
 
 uint8_t DmaPort::readIrq() {
+  resetTimeout();
+
   Acsi::verbose("[<");
 
   // Signal that we are ready to read
@@ -345,7 +350,7 @@ uint8_t DmaPort::readIrq() {
 }
 
 void DmaPort::sendIrq(uint8_t byte) {
-  checkReset();
+  resetTimeout();
 
   Acsi::verboseHex("[>", byte);
 
@@ -368,9 +373,9 @@ void DmaPort::sendIrq(uint8_t byte) {
 }
 
 void DmaPort::readDma(uint8_t *bytes, int count) {
-  Acsi::verbose("DMA read ");
+  resetTimeout();
 
-  checkReset();
+  Acsi::verbose("DMA read ");
 
   // Disable systick that introduces jitter.
   systick_disable();
@@ -448,7 +453,7 @@ void DmaPort::sendDma(const uint8_t *bytes, int count) {
   Acsi::verbose("DMA send ");
   Acsi::verboseDump(&bytes[0], count);
 
-  checkReset();
+  resetTimeout();
 
   // Disable systick that introduces jitter.
   systick_disable();
@@ -489,6 +494,7 @@ void DmaPort::sendDma(const uint8_t *bytes, int count) {
     ACSI_SEND_BYTE(14);
     ACSI_SEND_BYTE(15);
     bytes += 16;
+    resetTimeout();
   }
 #undef ACSI_SEND_BYTE
 #endif
@@ -500,6 +506,7 @@ void DmaPort::sendDma(const uint8_t *bytes, int count) {
       checkReset();
     ++i;
     ++bytes;
+    resetTimeout();
   }
 
   releaseRq();
@@ -514,8 +521,8 @@ void DmaPort::sendDma(const uint8_t *bytes, int count) {
 }
 
 void DmaPort::setupGpio() {
-  GPIOB->regs->CRH = 0x44444444; // Set PORTB[8:15] to input
-  GPIOA->regs->CRH = 0x84444BB4; // Set ACK, IRQ and DRQ as inputs
+  releaseRq();
+  releaseDataBus();
   GPIOA->regs->ODR |= RST_MASK | DRQ_MASK; // Set DRQ as pullup when active
 }
 
@@ -542,6 +549,28 @@ void DmaPort::setupResetTimer() {
   RESET_TIMER->EGR |= TIMER_EGR_UG;
   RESET_TIMER->CR1 |= TIMER_CR1_CEN;
 #endif
+
+  // Reset values so CCR1 and CCMR1 can be written to.
+  TIMEOUT_TIMER->CCER = 0;
+  TIMEOUT_TIMER->CCMR1 = 0;
+
+  // 1ms period.
+  TIMEOUT_TIMER->PSC = 36000;
+
+  TIMEOUT_TIMER->ARR = 65535;
+  TIMEOUT_TIMER->CNT = 65535 - PORT_TIMEOUT;
+
+  // Update and enable the timer
+  RESET_TIMER->EGR |= TIMER_EGR_UG;
+  TIMEOUT_TIMER->CR1 |= TIMER_CR1_CEN;
+}
+
+void DmaPort::resetTimeout() {
+  // Give 500ms to react
+  TIMEOUT_TIMER->CNT = 65535 - PORT_TIMEOUT;
+
+  // Just check if the reset line was already pulled
+  checkReset();
 }
 
 void DmaPort::setupCsTimer() {
@@ -627,6 +656,9 @@ void DmaPort::setupDrqTimer() {
 }
 
 void DmaPort::quickReset() {
+  // Restore systick
+  systick_enable();
+
   // Release all pins to neutral
   setupGpio();
 
@@ -675,7 +707,6 @@ void DmaPort::waitIdle() {
 }
 
 void DmaPort::armA1() {
-  checkReset();
   waitCsUp();
   CS_TIMER->CNT = 0;
   CS_TIMER->CR1 = (CS_TIMER->CR1 & ~TIMER_CR1_OPM) | TIMER_CR1_CEN;
@@ -683,7 +714,6 @@ void DmaPort::armA1() {
 }
 
 void DmaPort::armCs() {
-  checkReset();
   waitCsUp();
   CS_TIMER->CNT = 0;
   CS_TIMER->CR1 |= TIMER_CR1_OPM | TIMER_CR1_CEN;
@@ -745,6 +775,7 @@ void DmaPort::waitCsUp() {
     return;
 
   // Poll in a more controlled fashion
+  resetTimeout();
   for(int i = 0; i < 5; ++i) {
     delayMicroseconds(1);
     checkReset();
