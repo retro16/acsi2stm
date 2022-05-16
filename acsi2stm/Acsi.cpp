@@ -17,6 +17,7 @@
 
 #include "Acsi.h"
 #include "DmaPort.h"
+#include <libmaple/iwdg.h>
 
 #if !ACSI_STRICT
 
@@ -460,11 +461,9 @@ void Acsi::process(uint8_t cmd) {
       // Return now so the ST can poll with inquiry
       commandStatus(ERR_OK);
 
-      Watchdog::pause();
       card.blocks > 67108864 ?
         exFatFormatter.format(&card.card, buf):
         fatFormatter.format(&card.card, buf);
-      Watchdog::resume();
 
       verbose("Format finished\n");
       mediaId = 0;
@@ -540,7 +539,6 @@ void Acsi::process(uint8_t cmd) {
       f.seekEnd();
       bzero(buf, bufSize);
       while(fsize < imgSize - bufSize) {
-        Watchdog::feed();
         if(f.write(buf, bufSize)) {
           fsize += bufSize;
         } else {
@@ -549,7 +547,6 @@ void Acsi::process(uint8_t cmd) {
         }
       }
       if(fsize < imgSize) {
-        Watchdog::feed();
         if(!f.write(buf, imgSize - fsize)) {
           verbose("Cannot write image\n");
           return;
@@ -696,7 +693,7 @@ void Acsi::process(uint8_t cmd) {
           ((void (*)())buf)();
 
           // Too dangerous to go on: simply reboot
-          Watchdog::reboot();
+          reboot();
         }
 
         verbose("Exec buffer CRC error\n");
@@ -847,7 +844,6 @@ void Acsi::refresh(int lun) {
   if(card.reset()) {
     uint32_t realId = card.mediaId();
     mountLuns();
-    Watchdog::feed();
     mediaId = realId;
     if(luns[lun]) {
       dbg("New SD card\n");
@@ -860,7 +856,6 @@ void Acsi::refresh(int lun) {
     dbg("Device ready\n");
     return;
   }
-  Watchdog::feed();
 
   dbg("No SD card\n");
   mediaId = 0;
@@ -886,7 +881,6 @@ Acsi::ScsiErr Acsi::processBlockRead(uint32_t block, int count, BlockDev *dev) {
   }
 
   for(int s = 0; s < count;) {
-    Watchdog::feed();
     int burst = ACSI_BLOCKS;
     if(burst > count - s)
       burst = count - s;
@@ -941,7 +935,6 @@ Acsi::ScsiErr Acsi::processBlockWrite(uint32_t block, int count, BlockDev *dev) 
     mediaId = 0;
 
   for(int s = 0; s < count;) {
-    Watchdog::feed();
     int burst = ACSI_BLOCKS;
     if(burst > count - s)
       burst = count - s;
@@ -1025,6 +1018,12 @@ int Acsi::computeChecksum(uint8_t *block) {
   return checksum & 0xffff;
 }
 
+void Acsi::reboot() {
+  iwdg_init(IWDG_PRE_4, 1);
+  iwdg_feed();
+  for(;;);
+}
+
 #if ACSI_DUMMY_BOOT_SECTOR && !ACSI_STRICT
 Acsi::ScsiErr Acsi::processDummyBootSector() {
   verbose("Sending nosdcard boot sector\n");
@@ -1052,8 +1051,6 @@ Acsi::ScsiErr Acsi::processBootOverlay(BlockDev *dev) {
     dbg("Read error\n");
     return ERR_READERR;
   }
-
-  Watchdog::feed();
 
   if(!dev->readData(buf, 1)) {
     dbg("Read error\n");

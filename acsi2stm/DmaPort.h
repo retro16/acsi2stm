@@ -21,6 +21,7 @@
 #include <setjmp.h>
 
 struct DmaPort {
+  static const unsigned int PORT_TIMEOUT = 100; // Timeout in ms
   static const int A1 = PB6; // Must be on port B
   static const int CS = PB7; // Must be on port B
 
@@ -37,11 +38,6 @@ struct DmaPort {
   // WARNING: this function is longjmp'ed to when RST is detected.
   // Call it only directly in the loop() function and nowhere else.
   static void waitBusReady();
-
-  // Check if the RST line was pulled.
-  // Long jumps to waitBusReady if RST was pulled.
-  // Call this in all active wait loops.
-  static void checkReset();
 
   // Return true if a new command is available
   static bool checkCommand();
@@ -86,10 +82,18 @@ struct DmaPort {
   static jmp_buf resetJump;
 
 protected:
+  // Reset timeout timer
+  static void resetTimeout();
+
+  // Check if the RST line was pulled or if there is a timeout.
+  // Long jumps to waitBusReady if RST was pulled.
+  // Call this in all active wait loops.
+  static void checkReset();
+
   // Setup GPIO pins in a neutral state
   static void setupGpio();
 
-  // Setup the reset detecting timer
+  // Setup the reset detecting and timeout timers
   static void setupResetTimer();
 
   // Setup CS_TIMER and its DMA channels

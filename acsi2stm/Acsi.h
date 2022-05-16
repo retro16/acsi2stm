@@ -22,7 +22,6 @@
 #include <SdFat.h>
 #include "acsi2stm.h"
 #include "AcsiDebug.h"
-#include "Watchdog.h"
 #include "BlockDev.h"
 #if ACSI_RTC
 #include <RTClock.h>
@@ -104,6 +103,9 @@ public:
 
   // Compute the 16 bits checksum of a block.
   static int computeChecksum(uint8_t *block);
+
+  // Reboot the STM32
+  static void reboot();
 
 #if ACSI_DUMMY_BOOT_SECTOR && !ACSI_STRICT
   // Send the dummy boot sector to the Atari.

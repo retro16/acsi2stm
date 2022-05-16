@@ -86,8 +86,6 @@ bool SdDev::reset() {
   int rate;
 
   for(rate = 0; rate < sizeof(sdRates)/sizeof(sdRates[0]); ++rate) {
-    Watchdog::feed();
-
     if(!card.begin(SdSpiConfig(csPin, SHARED_SPI, sdRates[rate], &SPI)))
       // Don't retry at slower speed because begin()
       // already works at low speed.
