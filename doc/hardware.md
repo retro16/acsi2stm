@@ -1,6 +1,7 @@
 Creating your own ACSI2STM hardware
 ===================================
 
+
 Hardware needed
 ---------------
 
@@ -19,24 +20,6 @@ Hardware needed
 
 You can use the PCB design provided in the PCB folder. See
 [build_pcb.md](build_pcb.md) for more information.
-
-**Notes**
-
-Some people reported problems with STM32 clones. I have many variants of the
-blue pill STM32, all of them work exactly the same. Variants I had and that
-worked: round and rectangle reset buttons, some chips marked STM32F / 103 and
-other marked STM32 / F103. If anyone has concrete proof of misbehaving clones
-and information on how to spot them, feel free to contact me or create an issue
-on GitHub to let people know about that.
-
-Since 2.40, the internal DMA was fixed to avoid relying on timing, but check the
-actual DMA flags. This has fixed many issues on some newer clones I bought more
-recently.
-
-Please provide feedback if you are trying to make this work with the new
-STM32F4x1 "black pill" boards. The best configuration is to have a working blue
-pill so results can be compared by switching the boards. Porting efforts will be
-high, the F4xx has a totally different way of handling DMA.
 
 
 Building the ACSI connector
@@ -213,3 +196,33 @@ PC13.
 
 Other boards such as red pills were not tested and may require further
 adjustments.
+
+
+Required changes for older ACSI2STM hardware
+============================================
+
+If you have a unit built for 1.x or 2.x firmware, you need to make changes.
+
+
+Changes required for 2.xx units
+-------------------------------
+
+### Add a reset line
+
+You need to connect the ACSI pin 12 (RST) to PA15. It is optional, but stability
+will be greatly improved by doing that.
+
+### Fix SD cards appearing read-only
+
+Solder PB0, PB1, PB3, PB4 and/or PB5 to GND to make SD cards permanently
+read-write. See the table mentioning these pins above for more details.
+
+Alternatively, you can rebuild a firmware with ACSI_SD_WRITE_LOCK set to 0.
+
+
+Changes required for 1.xx units
+-------------------------------
+
+ * Do all changes for 2.xx units
+ * Swap PA8 and PA12
+
