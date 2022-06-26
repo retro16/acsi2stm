@@ -22,7 +22,7 @@
 
 // acsi2stm global configuration
 
-#define ACSI2STM_VERSION "3.0h"
+#define ACSI2STM_VERSION "3.00"
 
 // Set to 1 to enable debug output on the serial port
 #define ACSI_DEBUG 0
@@ -82,7 +82,7 @@
 // If set to 0: the pin is completely ignored, the SD card is always writable
 // If set to 1: the pin is floating when read-write, tied to GND when read-only
 // If set to 2: the pin is tied to GND when read-write, floating when read-only
-#define ACSI_SD_WRITE_LOCK 0
+#define ACSI_SD_WRITE_LOCK 2
 
 // Data buffer size in 512 bytes blocks
 #define ACSI_BLOCKS 8

@@ -37,6 +37,9 @@ PCB Features and options
 Some parts are optional and some jumpers require soldering depending on what you
 want or need to do.
 
+The section below helps you decide what features and what components you will
+need to build the PCB.
+
 
 SD card slots
 -------------
@@ -46,16 +49,16 @@ SD card slots
 There are 4 SD card slots. Only the first one is mandatory, others can be
 enabled or disabled with solder blobs (JP switches).
 
-JP1 joins the SD lock switch sensor for the first SD card reader on its left.
-Put a solder blob on it to enable SD lock switch. If omitted, the SD card will
-always be read-only if ACSI_SD_WRITE_LOCK is set to 2 or read-write if
-ACSI_SD_WRITE_LOCK is set to 1 or 0.
+JP0 joins the SD lock switch sensor for the SD0 card reader. Put a solder blob
+on it to enable SD lock switch. If omitted, the SD card will always be read-only
+if ACSI_SD_WRITE_LOCK is set to 2 or read-write if ACSI_SD_WRITE_LOCK is set to
+1 or 0.
 
-JP2 to JP4 configure slots 2 to 4, respectively. If set in the top position,
+JP1 to JP3 configure slots SD1 to SD3, respectively. If set in the top position,
 the slot is completely disabled. This way, you can build a PCB with less SD
-slots. The bottom position serves the same purpose as JP1.
+slots. The bottom position serves the same purpose as JP0.
 
-**Warning**:Never solder the 3 pads of a same JP element together, this will
+**Warning**: Never solder the 3 pads of a same JP element together, this will
 create a short.
 
 
@@ -65,7 +68,7 @@ Using a premade MicroSD reader instead of SD slots
 If soldering SMD parts is a problem, you can fit a premade MicroSD reader PCB.
 Fit the PCB in the top-left corner and solder on the 6 GND...CS pins.
 
-If you use this solution, you can use only 1 slot. Omit C4, C5 and R1.
+If you use this solution, you are limited to only 1 slot. Omit C4, C5 and R1.
 
 
 RTC battery
@@ -104,8 +107,8 @@ PC floppy adapter
 Since the floppy port would be covered by the adapter anyway, the PCB relays the
 floppy disk pins to a standard 34-pin PC floppy connector.
 
-To build pins that will reach the floppy connector, see the dedicated section
-below.
+To build the special long pins that will reach the floppy connector, see the
+section "Building floppy connector pins" below.
 
 ### FD density selection (J3)
 
@@ -116,22 +119,7 @@ in that case you don't need any jumper.
 
 If you don't know what to do, put a jumper in the DD position.
 
-### Drive A selector (S1)
-
-![Toggle switch](images/toggle_switch.jpg)
-
-This switch is used to enable drive A.
-You can use a switch, a jumper or directly solder a small wire.
-
-**Warning**: To use A drive, you need to disconnect the internal floppy drive if
-your ST is equipped with one.
-
-In top position, both floppy drives will be connected to the cable. In bottom
-position, only drive B will be connected to the ribbon cable.
-
-Omit S1 if unsure.
-
-### Drive swap switch (S2)
+### Drive swap switch (S1)
 
 Use S2 to indicate which kind of ribbon cable you use: twisted if you connect
 the top row, straight if you connect the bottom row.
@@ -139,7 +127,60 @@ the top row, straight if you connect the bottom row.
 If you connect 2 floppies to the ribbon cable (with a twisted cable or by
 setting drive jumpers), this switch will swap the 2 drives.
 
-If unsure, connect in twisted mode.
+You can use either 2 jumpers or a suitable toggle switch:
+
+![Toggle switch](images/toggle_switch.jpg)
+
+If unsure, connect in twisted mode with 2 jumpers.
+
+
+Optional / alternative components
+---------------------------------
+
+The PCB offers multiple choices for different form factors of the same
+components. For example, it offers both surface mount and through hole options
+for resistors and capacitors.
+
+All components are optional, but the unit will perform worse: lower stability
+and higher electromagnetic interferences.
+
+### C1 and C2
+
+If C2 is 100uF or more, omit C1.
+
+If C1 is low ESR, you can probably omit C2. 10uF is recommended though.
+
+### C3
+
+C3 is there to keep the clock when changing the battery. It can be entirely
+ommited if you think this feature is useless.
+
+If you choose through hole components, put a 100uF capacitor in C3_TH and omit
+C3. If you choose surface mount, put a 100uF capacitor in C3 and omit C3_TH.
+
+If you want a longer retention time, put a bigger capacitor.
+
+### C4 and C5
+
+It is highly recommended to use surface mount for C4 and C5, both 100nF. If you
+choose surface mount, you can omit C4_TH completely.
+
+C4 is required for SD0 and SD2 slots. C5 is required for SD1 and SD3 slots.
+
+If you don't want to use surface mount, put a 100nF capacitor in C4_TH and omit
+both C4 and C5. Performances and noise will be worse, it might have a negative
+effect on stability.
+
+### R1
+
+R1 is a pull-up resistor for the MISO line. It can be anywhere between 10k and
+100k.
+
+If you choose surface mount, populate R1 and omit R1_TH.
+
+If you choose through hole, populate R1_TH and omit R1.
+
+If you omit both R1 and R1_TH, you will have issues when hot swapping SD cards.
 
 
 Building floppy connector pins
@@ -171,19 +212,151 @@ You will need
 Building the pin
 ----------------
 
-* Insert the round pin in a vice.
-* Insert the square pin inside the round pin.
-* Make sure the square pin goes through the whole length of the round pin.
+ * Insert the round pin in a vice.
+ * Insert the square pin inside the round pin.
+ * Make sure the square pin goes through the whole length of the round pin.
 
 ![Square pin inside a round pin](images/pin_alignment.jpg)
 
-* Solder the 2 pins together on the top part. Don't leave excess solder.
-  Make sure that pin alignment is still correct after soldering.
+ * Solder the 2 pins together on the top part. Don't leave excess solder.
+   Make sure that pin alignment is still correct after soldering.
 
 ![Soldering pins together](images/pin_soldering.jpg)
 
-* Cut the plastic part of the square pin. If a small bit of plastic remains it's
-  not a problem.
+ * Cut the plastic part of the square pin. If a small bit of plastic remains
+   it's not a problem.
 
 ![Cutting header plastic](images/cut_plastic.jpg)
+
+ * Make the big side sharp and pointy by cutting its tip at a 45° angle.
+
+![Make pointy](images/pin_angle_cut.jpg)
+
+ * You should obtain a pin that looks like this
+
+![Finished pin](images/pin_finished.jpg)
+
+
+PCB assembly tutorial
+=====================
+
+The tutorial will explain how to build a full-featured PCB with surface mount
+components. See the previous sections to understand alternatives to that setup.
+
+You should follow the assembly order in order to maximize access to soldering
+pads. Some components are tightly packed and cannot be soldered after some
+others.
+
+
+Step 1: SD card slots
+---------------------
+
+ * Put a solder blob on JP0
+ * Put a solder blob on the bottom part of JP1, JP2 and JP3 to use the lock
+   switch on all 4 SD cards. If you omit one or more SD slots, solder its
+   matching JP in top position.
+ * Solder the SD card slots.
+ * Solder C4 (100nF 0805), C5 (100nF 0805) and R1 (100k 0805).
+
+
+Step 2: Blue pill
+-----------------
+
+ * Solder 2 female headers for the blue pill. You can omit the 2 GND pins side
+   by side on the bottom-right corner if it helps saving headers.
+
+
+Step 3: HD connector
+--------------------
+
+![HD connector](images/hd_connector.jpg)
+
+ * Use male 2.54 pin headers
+ * Cut them 2 by 2
+ * Solder them on the *bottom side*, they must be pointing on the side where it
+   says "HD CONNECTOR".
+
+
+Step 4: Power
+-------------
+
+ * Solder C2 (100uF 1206) or C1 (100uF) + C2 (100nF-10uF).
+ * Solder C3 (100uF 1206) or C3_TH (100uF).
+ * Solder the DC jack or male header pins on J1.
+ * If you wish to power the ACSI2STM using the USB to TTL adapter, solder male
+   header pins on J4 and put a jumper. You can strap the 2 pins permanently if
+   you are sure that you will never have conflicting power sources.
+
+Step 5: Floppy selector
+-----------------------
+
+ * Solder a toggle switch on S1.
+ * Alternatively, solder male header pins on S1 and use 2 jumpers.
+ * Another possibility is to strap S1 on the right position for your hardware.
+
+Step 6: Atari floppy pins
+-------------------------
+
+See the "Building floppy connector pins" section above to build the 14 pins.
+
+Soldering *must* be done on an Atari ST to align pins properly !
+Be careful with the machine and limit soldering temperature to 300°C-350°C to
+avoid damage to the internal circuits. The operation is not that risky if you
+don't accidentally melt the case with the iron.
+
+You can do this on a damaged ST (in fact this is recommended), all ST and STE
+have the exact same spacing between the HD and floppy connector.
+
+ * Insert one or more pins through the PCB (4 or 5 at the same time is best)
+
+![Pin insertion](images/pin_mount_insert.jpg)
+
+ * With the pins still in place, plug the board on the HD connector of the ST.
+
+ * Wiggle pins so they fit their hole
+
+![Plug the pins](images/pin_plug.jpg)
+
+ * Insert pins completely with pliers so you have just enough to solder
+
+![Pin is ready for soldering](images/pin_ready_to_solder.jpg)
+
+ * Solder the pins. Solder quickly to avoid transfering too much heat to the ST.
+
+
+Step 7: PC floppy pins
+----------------------
+
+ * Simply solder male header pins to the P1 connector. You can use a proper IDC
+   connector or just use loose pins.
+
+
+Step 8: USB to TTL USART converter
+----------------------------------
+
+ * Solder a female header in J2.
+
+
+Step 9: Battery holder
+----------------------
+
+ * Cut the back side of the floppy pin under the BAT1 case as short as possible.
+   It should be flush with the PCB surface.
+ * Solder the battery holder.
+ * Insert a CR2032 battery in the slot.
+
+
+Finished result
+---------------
+
+Here are a few pictures of a finished unit. This unit is an older version so it
+has minor variations.
+
+![Finished unit](images/finished_unit.jpg)
+
+![Unit back side](images/unit_back.jpg)
+
+![Unit side view](images/unit_side.jpg)
+
+![Installed unit](images/unit_installed.jpg)
 

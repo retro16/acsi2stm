@@ -1,15 +1,3 @@
-Version 3: **EXPERIMENTAL BRANCH WITH INTEGRATED DRIVER**
-
-**Incoming pinout change** : SD card write lock logic may be inverted in 3.x.
-(PB0, PB1 and PB3-5)
-
-Meaning: GND means read-write, floating pin means read-only and VCC still means
-disabled. #define will allow tuning all that.
-
-**PCB was not tested**
-
-For production, use the stable 2.4 release.
-
 ACSI2STM: Atari ST ACSI hard drive emulator
 ===========================================
 
@@ -30,8 +18,8 @@ It can work in 2 ways:
 It also provides an UltraSatan compatible real-time clock if you add a simple 3V
 lithium battery.
 
-**WARNING**, the pinout has changed since version 1.0. If you built or bought a
-unit for the 1.0 firmware, you need to make changes.
+**WARNING**, the pinout has changed since version 2.xx. If you built or bought a
+unit for older firmware, you need to make changes. See hardware.md.
 
 Documentation
 -------------
@@ -42,6 +30,7 @@ implementors or curious people.
 This is what you can find:
 
  * [manual.md](doc/manual.md): A brief user manual for people owning a unit.
+ * [pcb_manual.md](doc/pcb_manual.md): User manual for the official PCB.
  * [a2setup.md](doc/a2setup.md): User manual for the ACSI2STM setup tool.
  * [compiling.md](doc/compiling.md): A step-by-step tutorial to compile and
    upload a new firmware. Also includes how to customize the firmware for

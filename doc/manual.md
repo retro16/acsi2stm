@@ -4,6 +4,23 @@ ACSI2STM user manual
 ACSI2STM allows you to use SD cards as Atari ST ACSI hard drives. This manual
 will explain how to setup and use a SD card.
 
+For instructions to mount and use the official PCB, see
+[pcb_manual.md](pcb_manual.md)
+
+For instructions to build the official PCB, see [build_pcb.md](build_pcb.md)
+
+
+Compatibility
+-------------
+
+ACSI2STM was successfully tested on the following hardware:
+
+ * Atari 520 STF, TOS 1.04
+ * Atari 1040 STE, TOS 1.62
+ * Atari 1040 STE, TOS 2.06
+ * Atari 1040 STE, EmuTOS (no driver needed)
+ * Atari TT030
+
 
 Powering the unit
 -----------------
@@ -24,6 +41,9 @@ things to make sure of:
    from happening. Don't go too fast, wait at least 3 seconds before turning
    things back on. If you soldered the RST line to PA15, you have less risks to
    crash the ACSI2STM.
+ 
+ * Details on how to power the official PCB can be found in
+   [pcb_manual.md](pcb_manual.md)
 
 
 Checking whether you own an up to date ACSI2STM unit
