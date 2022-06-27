@@ -26,23 +26,26 @@ Installing the PCB can be a bit tricky, especially inserting floppy pins.
 Powering the PCB
 ================
 
-*WARNING*: Never plug 2 power sources at the same time.
+**WARNING**: Never plug 2 power sources at the same time.
 
 You have several options to power the PCB.
 
  * Use a 5V DC jack, center pin positive.
  * Use a standard PC floppy power cable plugged in J1, red wire up.
- * Use a compatible USB TO TTL USART converter. You need to put a jumper on J4
-   to use power from the USB converter.
+ * Use a compatible USB TO TTL USART adapter. You need to put a jumper on J4 to
+   use power from the USB converter.
 
 
 Installing a PC floppy drive
 ============================
 
 You can optionally install a standard PC floppy drive or a floppy emulator on
-the standard 34-pin connector. This will appear as drive B.
+the standard 34-pin connector. This will appear as drive B on the ST.
 
 To use this floppy as drive A, a hardware modification of the ST is required.
+
+The PCB supports both straight and twisted ribbon cables by setting S1
+accordingly.
 
 
 Flashing firmware
@@ -67,4 +70,16 @@ Set the Blue Pill jumpers to the firmware flash position, then press reset:
     |                \  /| |       -|--
     |     (o)         \/ |_|       -|--
     |_______________________________|
+
+
+Now, the STM32 is in firmware flash mode. Use the *stm32flash* command to upload
+the new firmware:
+
+    stm32flash -w acsi2stm-3.00.ino.bin /dev/ttyUSB0
+
+`acsi2stm-3.00.ino.bin` is the firmware to flash and `/dev/ttyUSB0` is the
+serial device connected to the blue pill.
+
+You can also use the Arduino IDE if it is properly set up. See
+[compiling.md](compiling.md) for  more information.
 

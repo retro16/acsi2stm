@@ -8,8 +8,7 @@ The aim of this project is to be very easy to build, extremely cheap, reliable
 and safe for your precious vintage machine.
 
 The module supports up to 5 SD card readers, showing them as 5 different ACSI
-devices plugged in. You can choose the ACSI ID of each SD card by soldering CS
-wires on the matching STM32 pin.
+devices plugged in.
 
 It can work in 2 ways:
  * Expose a raw SD card as a hard disk to the Atari.
@@ -18,26 +17,28 @@ It can work in 2 ways:
 It also provides an UltraSatan compatible real-time clock if you add a simple 3V
 lithium battery.
 
-**WARNING**, the pinout has changed since version 2.xx. If you built or bought a
-unit for older firmware, you need to make changes. See hardware.md.
+**WARNING**, the pinout has changed for version 3.xx. If you built or bought a
+unit for older firmware, you need to make changes. See the last section of
+[hardware.md](doc/hardware.md) for more information.
+
 
 Documentation
 -------------
 
-The doc directory provides documentation for the end-user as well as hardware
+The *doc* directory provides documentation for the end-user as well as hardware
 implementors or curious people.
 
 This is what you can find:
 
  * [manual.md](doc/manual.md): A brief user manual for people owning a unit.
- * [pcb_manual.md](doc/pcb_manual.md): User manual for the official PCB.
  * [a2setup.md](doc/a2setup.md): User manual for the ACSI2STM setup tool.
+ * [pcb_manual.md](doc/pcb_manual.md): User manual for the official PCB.
  * [compiling.md](doc/compiling.md): A step-by-step tutorial to compile and
    upload a new firmware. Also includes how to customize the firmware for
    non-developers by changing compile-time options.
- * [hardware.md](doc/hardware.md): How to build an acsi2stm unit.
  * [build_pcb.md](doc/build_pcb.md): Instructions for building an unit using
    the official PCB.
+ * [hardware.md](doc/hardware.md): How to build an acsi2stm unit from scratch.
  * [debug_output.txt](doc/debug_output.txt): A sample output of the logs you
    should get when booting a SD card.
 
