@@ -1,6 +1,9 @@
 Creating your own ACSI2STM hardware
 ===================================
 
+This page helps hardware designers to design new hardware from scratch. If you
+simply want to build the official PCB, see [build_pcb.md](build_pcb.md)
+
 
 Hardware needed
 ---------------
@@ -13,8 +16,8 @@ Hardware needed
    to microSD adapter.
  * One or more SD card(s).
  * A male DB19 port (you can modify a DB25 port to fit) with a ribbon cable.
- * (recommended) A protoboard PCB to solder all the components and wires
-   together.
+ * One 10k-100k resistor if you need SD card hotplug capabilities.
+ * One 100nF decoupling capacitor for the SD card (optional but recommended).
  * Do *NOT* connect USB data lines on the STM32. Use the +5V or +3.3V pin to
    power it if you are unsure.
 
@@ -79,10 +82,10 @@ Connecting the SD cards
 
 SD card pins
 
-                             20k-100k
-                           _/\  /\  /\__+3.3V
-                          |   \/  \/
-        __________________|___
+                  100nF      10k-100k
+                  _||__    _/\  /\  /\__+3.3V
+                 | ||  |  |   \/  \/
+        _________|_____|__|___
       /|  |  |  |  |  |  |  | |
      /_|01|02|03|04|05|06|07|8|
     |  |__|__|__|__|__|__|__|_|
@@ -127,7 +130,7 @@ SD card CS pins *must not* be grounded anymore.
 
 **Notes**:
 
- * If you need to hot swap your SD card, you need to put a 20k-100k pull-up
+ * If you need to hot swap your SD card, you need to put a 10k-100k pull-up
    resistor between +3.3V and PA6. A single resistor is enough if you have
    multiple SD card slots.
  * The ACSI2STM module **will** respond to all ACSI IDs, whether a SD card is
@@ -135,30 +138,27 @@ SD card CS pins *must not* be grounded anymore.
    acsi2stm/acsi2stm.h to change ACSI IDs, or see the table below to disable IDs
    by connecting pins to +3.3V.
  * The SD card had 2 GND pins. Connecting only one is enough.
- * You should put decoupling capacitors of about 100nF and 10uF (in parallel)
-   between VDD and VSS, as close as possible from the SD card pins. If you use a
-   pre-built SD slot module it should be properly decoupled already.
- * If you need other ACSI IDs, you can change the sdCs array in the source code.
-   See "Compile-time options" below.
- * CS pins must be on GPIO port A (PA pins).
+ * You should put decoupling capacitors of about 100nF between VDD and VSS, as
+   close as possible from the SD card pins. If you use a pre-built SD slot
+   module it should be properly decoupled already.
  * Some microSD slot boards for Arduino have logic level adapters to allow using
    SD cards on 5V Arduino boards. This will reduce speed and compatibility.
-   Connect SD card pins directly to the STM32 pins.
+   Connect SD card pins directly to the STM32 pins for best results.
  * microSD to SD adapters are a quick, cheap way to obtain a microSD reader.
    Simply solder on the SD adapter pads.
 
 Some pins can be used to configure each SD card slot:
 
-| ACSI ID | STM32 | Connect to       | Connect to disable |
-|--------:|:------|------------------|--------------------|
-|       0 | PB0   | SD 0 write lock  | +3.3V              |
-|       1 | PB1   | SD 1 write lock  | +3.3V              |
-|       2 | PB3   | SD 2 write lock  | +3.3V              |
-|       3 | PB4   | SD 3 write lock  | +3.3V              |
-|       4 | PB5   | SD 4 write lock  | +3.3V              |
+| ACSI ID | STM32 | Connect to enable    | Connect to disable |
+|--------:|:------|----------------------|--------------------|
+|       0 | PB0   | SD0 write lock / GND | +3.3V              |
+|       1 | PB1   | SD1 write lock / GND | +3.3V              |
+|       2 | PB3   | SD2 write lock / GND | +3.3V              |
+|       3 | PB4   | SD3 write lock / GND | +3.3V              |
+|       4 | PB5   | SD4 write lock / GND | +3.3V              |
 
-When the pin is connected to GND, the SD card will be read-only. When the pin is
-left floating, the SD card will be writable. You can connect this pin to the
+When the pin is connected to GND, the SD card will be writable. When the pin is
+left floating, the SD card will be read-only. You can connect this pin to the
 physical write lock switch if you have a full size SD card reader with this
 ability. This logic can be inverted or disabled using the ACSI_SD_WRITE_LOCK
 define in acsi2stm/acsi2stm.h.
@@ -217,12 +217,13 @@ will be greatly improved by doing that.
 Solder PB0, PB1, PB3, PB4 and/or PB5 to GND to make SD cards permanently
 read-write. See the table mentioning these pins above for more details.
 
-Alternatively, you can rebuild a firmware with ACSI_SD_WRITE_LOCK set to 0.
+Alternatively, you can rebuild a firmware with ACSI_SD_WRITE_LOCK set to 0 to
+ignore write lock switch completely.
 
 
 Changes required for 1.xx units
 -------------------------------
 
- * Do all changes for 2.xx units
+ * Do all changes required for 2.xx units
  * Swap PA8 and PA12
 

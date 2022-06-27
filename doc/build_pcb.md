@@ -11,12 +11,22 @@ should be standard enough to be used as-is by any widespread manufacturer.
 For people wanting to etch the PCB themselves, etching masks are provided in
 PDF format.
 
-The schematic is provided as a PDF and photo views as SVG if you don't want to
-or cannot use EasyEDA.
+The schematic is provided as a PDF and photo views as SVG if you don't want or
+cannot use EasyEDA.
 
 
-Powering the PCB
-================
+PCB Features and options
+========================
+
+Some parts are optional and some jumpers require soldering depending on what you
+want or need to do.
+
+The section below helps you decide what features and what components you will
+need to build the PCB.
+
+
+Power sources
+-------------
 
 **Warning**: Do not use the onboard USB socket of the STM32. USB data lines are
 connected to the hard drive port, this **will** break things.
@@ -30,15 +40,8 @@ There are 3 options to power the board:
   have a Y cable. Be careful to insert it the right way.
 * Power via the USB serial converter. Put a jumper on J4 to use that solution.
 
-
-PCB Features and options
-========================
-
-Some parts are optional and some jumpers require soldering depending on what you
-want or need to do.
-
-The section below helps you decide what features and what components you will
-need to build the PCB.
+You can choose to omit some components such as the DC jack if you feel that you
+don't need that solution.
 
 
 SD card slots
@@ -121,17 +124,19 @@ If you don't know what to do, put a jumper in the DD position.
 
 ### Drive swap switch (S1)
 
-Use S2 to indicate which kind of ribbon cable you use: twisted if you connect
+Use S1 to indicate which kind of ribbon cable you use: twisted if you connect
 the top row, straight if you connect the bottom row.
 
 If you connect 2 floppies to the ribbon cable (with a twisted cable or by
-setting drive jumpers), this switch will swap the 2 drives.
+setting drive jumpers), this switch will swap the 2 drives. The Atari hardware
+supports 2 drives on the same connector, but STF/STE seem to use only the first
+drive.
 
 You can use either 2 jumpers or a suitable toggle switch:
 
 ![Toggle switch](images/toggle_switch.jpg)
 
-If unsure, connect in twisted mode with 2 jumpers.
+If unsure, connect in twisted mode with 2 jumpers (top position).
 
 
 Optional / alternative components

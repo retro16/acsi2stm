@@ -4,11 +4,6 @@ ACSI2STM user manual
 ACSI2STM allows you to use SD cards as Atari ST ACSI hard drives. This manual
 will explain how to setup and use a SD card.
 
-For instructions to mount and use the official PCB, see
-[pcb_manual.md](pcb_manual.md)
-
-For instructions to build the official PCB, see [build_pcb.md](build_pcb.md)
-
 
 Compatibility
 -------------
@@ -22,42 +17,23 @@ ACSI2STM was successfully tested on the following hardware:
  * Atari TT030
 
 
-Powering the unit
+Quick start guide
 -----------------
 
-How to apply power depends on the unit you built or bought. There are a few
-things to make sure of:
+ * Plug the ACSI2STM module to the Atari ST's hard disk port.
+ * Insert a SD card in the first SD slot.
+ * Plug the power cable to the ACSI2STM.
+ * Turn on the ST and press Shift+S repeatedly during boot to start the
+   ACSI2STM setup tool.
+ * Select the ACSI2STM device containing the SD card to format (press '0' for
+   the first SD card).
+ * Press Q for quick setup.
+ * Press Y to confirm formating. This may take a few minutes.
+ * Press Esc twice to exit the menu and reboot the ST.
+ * The SD card will show up as C: on the desktop.
+ * The SD card should be compatible with most modern computers.
 
- * When powering the unit via USB, make sure you do not use a data cable. The
-   unit must be powered through a USB cable with no data line ("charge only"
-   cables) or a charger that has nothing connected to its data lines (most
-   "fast" chargers short their data lines or have resistors connected to them).
-
- * Power the ACSI2STM unit at the same time or before the Atari ST.
-
- * When power cycling the ST (turn off, then turn on), turn off the ACSI2STM
-   unit. If you keep the unit powered, voltage on data lines may keep some chips
-   inside the ST powered by the data lines, which will prevent a full cold boot
-   from happening. Don't go too fast, wait at least 3 seconds before turning
-   things back on. If you soldered the RST line to PA15, you have less risks to
-   crash the ACSI2STM.
- 
- * Details on how to power the official PCB can be found in
-   [pcb_manual.md](pcb_manual.md)
-
-
-Checking whether you own an up to date ACSI2STM unit
-----------------------------------------------------
-
-To check the version of a recent unit, simply plug the ACSI2STM unit to the ACSI
-port and boot with no SD card or floppy disk. A message will be displayed,
-indicating the firmware version along with other information.
-
-**WARNING**: Units based on the old 1.x firmware cannot be upgraded to 2.x
-because of an incompatibility. The hardware needs to be changed to upgrade to
-the new version.
-
-Units built for the 2.x firmware should be upgraded to use the RST line.
+See [a2setup.md](a2setup.md) for more details on the setup tool.
 
 
 Use a ready-made disk image
@@ -68,6 +44,7 @@ to use it.
 
 ### Using the image directly
 
+ * Use a SD card formatted for PC (FAT32/ExFAT).
  * Create a folder named *acsi2stm* at the root of the SD card.
  * Copy your image inside that folder.
  * Rename your image *hd0.img*.
@@ -136,20 +113,8 @@ You can also use the ACSI2STM setup tool to reformat the SD card for a PC.
 See [a2setup.md](a2setup.md) for more details on the setup tool.
 
 
-Create your own image
----------------------
-
-### Format a SD card with the integrated driver
-
- * Boot the ST and press Shift+S on boot to start the ACSI2STM setup tool.
- * Select the ACSI2STM device containing the SD card to format.
- * Press Q for quick setup.
- * Press Esc to exit the menu and reboot the ST.
- * The SD card will show up as C: on the desktop.
-
-See [a2setup.md](a2setup.md) for more details on the setup tool.
-
-### Create an ICD PRO image
+Creating an ICD PRO image
+-------------------------
 
 There is a very good tutorial on
 [Jookie's home page](http://joo.kie.sk/?page_id=306).
@@ -206,6 +171,17 @@ The following features are disabled in strict mode:
  * Test pattern checking.
  * Remote payload execution: Ability to upload and run STM32 code from the Atari
    ST. This feature is not used.
+
+
+Checking whether you own an up to date ACSI2STM unit
+----------------------------------------------------
+
+To check the version of a recent unit, simply plug the ACSI2STM unit to the ACSI
+port and boot with no SD card or floppy disk. A message will be displayed,
+indicating the firmware version along with other information.
+
+**WARNING**: See [hardware.md](hardware.md) if you wish to upgrade a 1.x or 2.x
+unit to 3.x, you may need to make changes.
 
 
 Choosing a hard disk driver

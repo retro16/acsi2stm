@@ -5,8 +5,8 @@ Software needed
 ---------------
 
  * The Arduino software with the Roger Clark Melbourne STM32 library.
-  * This is *NOT* compatible with the official STM32duino library: you need
-    Clark's variant.
+ * This is *NOT* compatible with the official STM32duino library: you need
+   Clark's variant.
  * The SdFat Arduino library by Bill Greiman.
 
 
@@ -143,14 +143,14 @@ of the following commands:
  * gcc
  * clang
 
-Binaries are compiled into the *bin* subdirectory.
+Binaries are compiled into the top-level directory.
 
 
 Building the Windows EXE tools
 ------------------------------
 
 The build_tools.sh script requires [mingw-w64](https://www.mingw-w64.org/) to
-build.
+build the Windows version.
 
 One of the following C compiler commands must be in your PATH:
 
