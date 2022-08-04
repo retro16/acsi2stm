@@ -1,7 +1,7 @@
 # ACSI2STM-MSTE
  
 This a KiCAD (6.0) design to host an [ACSI2STM](https://github.com/retro16/acsi2stm) directly inside an Atari Mega STE using the internal connector. 
-The PCB has been designed to accomodate version 2.x and 3.x of ACSI2STM (aka V2) but also the V1 design as sold by @masteries on AtariAge. 
+The PCB has been designed to accomodate version 2.x and 3.x of ACSI2STM (aka V2) but also the old V1 design. 
 - No external power is required, the 5v is taken directly from the internal ACSI connector, but this has only been tested with a fully recapped PSU. 
 - A set of jumper needs to be soldered to configure the board for V1 or V2 as noted on the PCB.
 
@@ -16,7 +16,7 @@ The PCB has been designed to accomodate version 2.x and 3.x of ACSI2STM (aka V2)
 - Female 2.54 headers
 - Amphenol GSD090012SEU SD Card socket
 - STM32F103C8T6 "Blue Pill" (original one is highly recommended!!!). 
-- Firmware from [ACSI2STM](https://github.com/retro16/acsi2stm) or from @masteries. 
+- Firmware from [ACSI2STM](https://github.com/retro16/acsi2stm)
 
 ## Configuration
 Configuration is done by simple solder bridges on the pads, instructions are also written on PCB.
