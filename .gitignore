@@ -4,3 +4,17 @@ acsi2stm-*
 *.exe
 *.bin
 a2stboot*
+.DS_Store
+pcb/MegaSTE Internal/fp-info-cache
+*.gbl
+*.gbs
+*.gbp
+*.gbo
+*.gm1
+*.gtl
+*.gts
+*.gtp
+*.gto
+*.gbr
+*.drl
+pcb/MegaSTE Internal/ACSI2STM MegaSTE-backups/*
