@@ -18,7 +18,6 @@
 #include <Arduino.h>
 #include "BlockDev.h"
 #include "SdFat.h"
-#include "Acsi.h"
 
 static const uint32_t sdRates[] = {
   SD_SCK_MHZ(ACSI_SD_MAX_SPEED),
@@ -37,53 +36,37 @@ static const uint32_t sdRates[] = {
   SD_SCK_MHZ(1) // Fallback to a horribly slow speed
 };
 
-void BlockDev::modeSense0(uint8_t *outBuf) {
-  for(uint8_t b = 0; b < 16; ++b) {
-    outBuf[b] = 0;
-  }
-  // Values got from the Hatari emulator
-  outBuf[1] = 14;
-  outBuf[3] = 8;
-  // Send the number of blocks of the SD card
-  outBuf[5] = (blocks >> 16) & 0xFF;
-  outBuf[6] = (blocks >> 8) & 0xFF;
-  outBuf[7] = (blocks) & 0xFF;
-  // Sector size middle byte
-  outBuf[10] = 2;
-}
-
-void BlockDev::modeSense4(uint8_t *outBuf) {
-  for(uint8_t b = 0; b < 24; ++b) {
-    outBuf[b] = 0;
-  }
-  // Values got from the Hatari emulator
-  outBuf[0] = 4;
-  outBuf[1] = 22;
-  // Send the number of blocks in CHS format
-  outBuf[2] = (blocks >> 23) & 0xFF;
-  outBuf[3] = (blocks >> 15) & 0xFF;
-  outBuf[4] = (blocks >> 7) & 0xFF;
-  // Hardcode 128 heads
-  outBuf[5] = 128;
-}
-
 void BlockDev::updateBootable() {
   bootable = false;
 
   // Read the boot sector
-  if(!readStart(0) || !readData(Acsi::buf, 1) || !readStop())
+  if(!readStart(0) || !readData(buf, 1) || !readStop())
     return;
 
-  bootable = (Acsi::computeChecksum(Acsi::buf) == 0x1234);
+  bootable = (computeChecksum(buf) == 0x1234);
 }
 
 bool SdDev::reset() {
   BlockDev::reset();
 
+  // Check if the device is disabled (wpPin pin to VCC)
+  pinMode(wpPin, INPUT_PULLDOWN);
+  delayMicroseconds(10);
+  if(digitalRead(wpPin)) {
+    // wpPin pin to VCC: unit disabled
+    pinMode(wpPin, INPUT_PULLUP);
+    verbose("SD", slot, " disabled\n");
+    slot = -1;
+    return false;
+  }
+
   // Set wp pin as input pullup to read write lock later
   pinMode(wpPin, INPUT_PULLUP);
 
   int rate;
+
+  // Invalidate media id cache
+  lastMediaCheckTime = millis() - mediaCheckPeriod;
 
   for(rate = 0; rate < sizeof(sdRates)/sizeof(sdRates[0]); ++rate) {
     if(!card.begin(SdSpiConfig(csPin, SHARED_SPI, sdRates[rate], &SPI)))
@@ -93,12 +76,12 @@ bool SdDev::reset() {
 
     // Give some time to the internal SD electronics to initialize properly
     // Not sure if this is required. Pretty sure it's not.
-    delay(100);
+    delay(20);
 
     // Get SD card identification to test communication
     cid_t cid;
     if(!card.readCID(&cid)) {
-      Acsi::verbose("CID error (", sdRates[rate] / 1000000, "MHz) ");
+      verbose("CID error (", sdRates[rate] / SD_SCK_MHZ(1), "MHz) ");
       continue;
     }
 
@@ -119,7 +102,7 @@ bool SdDev::reset() {
     // Open the file system
     fsOpen = fs.begin(&card);
     if(fsOpen)
-      Acsi::verbose("(fs ok) ");
+      verbose("(fs ok) ");
 
     // Get writable pin status
 #if !ACSI_SD_WRITE_LOCK
@@ -129,19 +112,19 @@ bool SdDev::reset() {
 #elif ACSI_SD_WRITE_LOCK == 2
     writable = !digitalRead(wpPin);
 #endif
-    Acsi::verbose(writable ? "(rw) ": "(ro) ");
+    verbose(writable ? "(rw) ": "(ro) ");
 
     // Check if bootable
     updateBootable();
     if(bootable)
-      Acsi::verbose("(boot) ");
+      verbose("(boot) ");
 
-    Acsi::dbg('(', sdRates[rate] / 1000000, "MHz ", blocks, " blocks) ");
+    dbg('(', sdRates[rate] / 1000000, "MHz ", blocks, " blocks) ");
   } else {
-    Acsi::verbose("(0 block) ");
+    verbose("(0 block) ");
   }
 
-  return blocks;
+  return true;
 }
 
 bool SdDev::readStart(uint32_t block) {
@@ -212,11 +195,11 @@ bool SdDev::writeStop() {
 
 void SdDev::getDeviceString(char *target) {
   // Characters:  0         1         2
-  //              012345678901234567890123
-  memcpy(target, "ACSI2STM SD? RAW ???M   " ACSI2STM_VERSION, 29);
+  //              012345678901234567890123  4567
+  memcpy(target, "ACSI2STM SD0 RAW ???M   " ACSI2STM_VERSION, 29);
 
   // Update sd card number
-  target[11] = '0' + deviceId;
+  target[11] += slot;
 
   if(!blocks) {
     memcpy(&target[13], "NO SD CARD", 10);
@@ -233,7 +216,7 @@ void SdDev::getDeviceString(char *target) {
   }
  
   // Write SD card size
-  Acsi::blocksToString(blocks, &target[17]);
+  blocksToString(blocks, &target[17]);
  
   // Add a + symbol if capacity is artificially capped
   if(card.sectorCount() > blocks)
@@ -252,9 +235,15 @@ bool SdDev::isWritable() {
   return writable;
 }
 
-uint32_t SdDev::mediaId() {
+uint32_t SdDev::mediaId(bool force) {
   if(!blocks)
     return 0;
+
+  uint32_t now = millis();
+  if(!force) {
+    if(now < lastMediaCheckTime + mediaCheckPeriod)
+      return lastMediaId;
+  }
 
   cid_t cid;
   if(!card.readCID(&cid))
@@ -268,37 +257,41 @@ uint32_t SdDev::mediaId() {
   if(!id)
     ++id;
 
+  // Make sure the same card transfered to another slot won't give the same value
+  id += slot;
+
+  lastMediaId = id;
+  lastMediaCheckTime = now;
+
   return id;
 }
 
-bool ImageDev::begin(SdDev *sdDev, const char *path, int imageLun) {
+bool ImageDev::begin(SdDev *sdDev, const char *path) {
   if(!sdDev->fsOpen) {
     blocks = 0;
     sd = nullptr;
     return false;
   }
   sd = sdDev;
-  Acsi::verbose("Searching image ", path, " ... ");
+  verbose("Searching image ", path, " ... ");
 #if ! ACSI_READONLY
   if(sd->isWritable() && image.open(&sd->fs, path, O_RDWR)) {
     blocks = image.fileSize() / ACSI_BLOCKSIZE;
-    lun = imageLun;
     updateBootable();
-    Acsi::verbose("opened\n");
+    verbose("opened\n");
     return true;
   }
 #endif
   if(image.open(&sd->fs, path, O_RDONLY)) {
     blocks = image.fileSize() / ACSI_BLOCKSIZE;
-    lun = imageLun;
     updateBootable();
-    Acsi::verbose("opened read-only\n");
+    verbose("opened read-only\n");
     return true;
   }
 
   sd = nullptr;
   blocks = 0;
-  Acsi::verbose("not found\n");
+  verbose("not found\n");
   return false;
 }
 
@@ -375,13 +368,10 @@ void ImageDev::getDeviceString(char *target) {
   memcpy(&target[21], "   ", 3);
 
   // Set image type
-  memcpy(&target[13], "IM", 2);
+  memcpy(&target[13], "IMG", 2);
 
-  // Set image index
-  target[15] = '0' + lun;
- 
   // Write image size
-  Acsi::blocksToString(blocks, &target[17]);
+  blocksToString(blocks, &target[17]);
 
   // Add 'R' if read-only
   if(!image.isWritable())
@@ -399,12 +389,13 @@ bool ImageDev::isWritable() {
   return image.isWritable();
 }
 
-uint32_t ImageDev::mediaId() {
+uint32_t ImageDev::mediaId(bool force) {
   if(!sd)
     return 0;
 
   // For now, images cannot be switched on the fly so they cannot change
-  // unless the SD card is physically swapped.
-  return sd->mediaId();
+  // unless the SD card is physically swapped. Derive mediaId from the SD
+  // card itself
+  return ~sd->mediaId(force);
 }
 
