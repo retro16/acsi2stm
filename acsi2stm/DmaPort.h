@@ -21,7 +21,9 @@
 #include <setjmp.h>
 
 struct DmaPort {
-  static const unsigned int PORT_TIMEOUT = 100; // Timeout in ms
+  friend struct SysHook;
+
+  static const unsigned int PORT_TIMEOUT = 200; // Timeout in half ms
   static const int A1 = PB6; // Must be on port B
   static const int CS = PB7; // Must be on port B
 
@@ -57,15 +59,28 @@ struct DmaPort {
   // Read one byte using the IRQ/CS method.
   static uint8_t readIrq();
 
+  // Read one byte using the CS method without pulling IRQ.
+  static uint8_t readNoIrq();
+
   // Send one byte using the IRQ/CS method.
   // This is normally used for the status byte.
   static void sendIrq(uint8_t byte);
 
+  // Send many bytes using the fast IRQ/CS method.
+  // This is used for the GEMDOS protocol.
+  static void sendIrqFast(uint8_t *bytes, int count);
+
   // Read bytes using the DRQ/ACK method.
   static void readDma(uint8_t *bytes, int count);
 
+  // Read a zero-terminated string using the DRQ/ACK method.
+  static void readDmaString(char *bytes, int count);
+
   // Send bytes using the DRQ/ACK method.
   static void sendDma(const uint8_t *bytes, int count);
+
+  // Fill memory with a byte value.
+  static void fillDma(uint8_t byte, int count);
 
   // Returns the device id for a given command byte.
   static uint8_t cmdDeviceId(uint8_t cmd) {
@@ -80,6 +95,15 @@ struct DmaPort {
 
   // longjmp to this target if reset is detected
   static jmp_buf resetJump;
+
+  // Delay between receiving a command and switching to DMA.
+  // Can be tuned with ACSI_DMA_START_DELAY in acsi2stm.h
+  static void dmaStartDelay() {
+#if ACSI_DMA_START_DELAY
+    delay_us(ACSI_DMA_START_DELAY);
+#endif
+  }
+
 
 protected:
   // Reset timeout timer
@@ -103,6 +127,10 @@ protected:
   // Setup DMA_TIMER and its DMA channel
   // Handles DRQ/ACK cycles
   static void setupDrqTimer();
+
+  // Setup GPIO copy on DMA cycle
+  static void enableDmaRead();
+  static void disableDmaRead();
 
   // Quick reset: reset GPIO and jump to the waitBusReady call
   static void quickReset();

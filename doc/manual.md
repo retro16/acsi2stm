@@ -5,10 +5,46 @@ ACSI2STM allows you to use SD cards as Atari ST ACSI hard drives. This manual
 will explain how to setup and use a SD card.
 
 
+Two operating modes
+-------------------
+
+ACSI2STM can work in 2 different modes: ACSI and GemDrive.
+
+### ACSI mode
+
+ACSI mode tries to mimic an old ACSI hard drive as closely as possible. The SD
+card is accessed like a block device and must be specially formated for Atari.
+
+You need to install a hard disk driver to work in ACSI mode. This is detailed
+in the sections below.
+
+
+### GemDrive mode
+
+Inspired by Hatari's GEMDOS drive, GemDrive mounts the SD card on the STM32,
+then exposes the filesystem to the Atari. This removes most limitations and
+brings a much more stable experience, but compatibility is somewhat reduced in
+some cases.
+
+GemDrive supports FAT16, FAT32 and ExFAT with no size limit. It supports only
+one partition per SD card.
+
+
+### How to choose one mode or another
+
+ACSI2STM detects the best mode at boot. By default it tries to enable GemDrive,
+except if the following conditions is met:
+
+ * The first SD card has a valid Atari boot sector
+ * The first SD card is present but its filesystem is unknown
+ * The first SD card contains a hard disk image
+ * The strict mode jumper is set
+
+
 Compatibility
 -------------
 
-ACSI2STM was successfully tested on the following hardware:
+ACSI2STM was successfully tested in ACSI mode on the following hardware:
 
  * Atari 520 STF, TOS 1.04
  * Atari 1040 STE, TOS 1.62
@@ -16,24 +52,21 @@ ACSI2STM was successfully tested on the following hardware:
  * Atari 1040 STE, EmuTOS (no driver needed)
  * Atari TT030
 
+GemDrive mode is limited to Atari ST and STE (no TT or Falcon). Tos >= 1.04 is
+strongly recommended.
+
 
 Quick start guide
 -----------------
 
- * Plug the ACSI2STM module to the Atari ST's hard disk port.
- * Insert a SD card in the first SD slot.
- * Plug the power cable to the ACSI2STM.
- * Turn on the ST and press Shift+S repeatedly during boot to start the
-   ACSI2STM setup tool.
- * Select the ACSI2STM device containing the SD card to format (press '0' for
-   the first SD card).
- * Press Q for quick setup.
- * Press Y to confirm formating. This may take a few minutes.
- * Press Esc twice to exit the menu and reboot the ST.
- * The SD card will show up as C: on the desktop.
- * The SD card should be compatible with most modern computers.
+This will use GemDrive.
 
-See [a2setup.md](a2setup.md) for more details on the setup tool.
+ * Plug the ACSI2STM module to the Atari ST's hard disk port.
+ * Insert a standard SD card in the first SD slot.
+ * Plug the power cable to the ACSI2STM.
+ * Turn on the ST.
+ * The SD card will show up as C: on the desktop.
+ * If you have more than 1 SD card slot, they will show up as D:, E:, ...
 
 
 Use a ready-made disk image
@@ -48,8 +81,6 @@ to use it.
  * Create a folder named *acsi2stm* at the root of the SD card.
  * Copy your image inside that folder.
  * Rename your image *hd0.img*.
- * Don't forget to properly unmount/eject your SD card before removing it from
-   your computer.
  * Insert the SD card in the ACSI2STM unit.
  * Turn everything on.
  * Enjoy.
@@ -62,10 +93,6 @@ directly on the SD card by opening hd0.img from within Hatari !
 When working with disk images, the SD card can be of any size, as long as it
 uses a standard filesystem (FAT, FAT32 or ExFAT). The ST only sees the content
 of the hd0.img file.
-
-**Note**: You can also mount *.st floppy images ! Rename them to hd0.img and the
-integrated driver will read them easily. This trick is limited to ordinary
-non-bootable data disks.
 
 
 ### Read-only image
@@ -97,7 +124,7 @@ To transfer images to the disk, you can use
 
 If you have a SD card formatted for the Atari (or any other weird format), the
 Raspberry Pi Imager can revert it back to the standard format so you can use it
-again on your PC (or any other device).
+again on your PC or in GemDrive mode.
 
  * Open Raspberry Pi Imager.
  * Click *Choose Os* under *Operating System*.
@@ -107,10 +134,6 @@ again on your PC (or any other device).
  * Click *Write* to start writing. **Existing data on the SD card will be
    erased**. Click *Yes* to confirm.
  * The SD card is now formatted to the standard format.
-
-You can also use the ACSI2STM setup tool to reformat the SD card for a PC.
-
-See [a2setup.md](a2setup.md) for more details on the setup tool.
 
 
 Creating an ICD PRO image
@@ -122,55 +145,16 @@ There is a very good tutorial on
 **Hint**: To access files from within Hatari, use the GEMDOS drive feature.
 
 
-Installing the integrated driver onto an image
-----------------------------------------------
-
-The integrated driver is incompatible with strict mode, so the only way to use
-it in strict mode is to install it directly onto a disk image.
-
-To do this, the image must be already compatible with the integrated driver and
-the first partition must start after sector 8.
-
-Boot into the ACSI2STM setup tool (Shift+S on boot), select your device, press
-P to enter the partitioning tool, then press I to install the driver onto the
-SD card.
-
-If you cannot boot the ACSI2STM setup tool (it is unavailable in strict mode),
-you can transfer `A2SETUP.TOS` by other means and run it from GEM.
-
-See [a2setup.md](a2setup.md) for more details on the setup tool.
-
-
-Using the real-time clock
--------------------------
-
-If your ACSI2STM unit comes with a battery, it can keep the time. The
-integrated driver will set the time automatically.
-
-To set the clock, enter the ACSI2STM setup tool.
-
-See [a2setup.md](a2setup.md) for more details on the setup tool.
-
-
 Strict mode
 -----------
 
-ACSI2STM offers extra features that can be dynamically turned on or off with the
-BOOT1 jumper near the reset button. Since these features aren't 100% SCSI
-compliant, you can turn them off to have a strict implementation of the SCSI
-standard.
+ACSI2STM tries to autodetect ACSI / GemDrive mode, but you may want to force
+ACSI mode in some cases.
 
-If BOOT1 is in the 0 position, extra features will be enabled. If BOOT1 is in
-position 1, extra features will be disabled.
+Use the BOOT1 jumper on the STM32 (the jumper near the reset button)
 
-The following features are disabled in strict mode:
-
- * Dummy boot sector if no SD card is present: displays a "No SD card" message
-   on boot if no SD card is inserted.
- * Integrated driver.
- * Test pattern checking.
- * Remote payload execution: Ability to upload and run STM32 code from the Atari
-   ST. This feature is not used.
+If BOOT1 is in the 0 position, GemDrive will be enabled. If BOOT1 is in
+position 1, ACSI mode will be forced.
 
 
 Checking whether you own an up to date ACSI2STM unit
@@ -181,31 +165,16 @@ port and boot with no SD card or floppy disk. A message will be displayed,
 indicating the firmware version along with other information.
 
 **WARNING**: See [hardware.md](hardware.md) if you wish to upgrade a 1.x or 2.x
-unit to 3.x, you may need to make changes.
+unit to 3.x or later: you may need to make changes.
 
 
-Choosing a hard disk driver
----------------------------
+Choosing a hard disk driver for ACSI mode
+-----------------------------------------
 
 There are many hard disk drivers for the Atari ST out there. All of them come
 with their pros and cons.
 
 Here is the list of the free drivers I'm aware of, in no particular order:
-
-### Integrated ACSI2STM driver
-
-Just plug the ACSI2STM, insert a non-bootable FAT12/FAT16 MS-DOS
-partitioned/formatted SD card and boot your Atari.
-
-Pros:
- * Officially supported by ACSI2STM. Tested before each release.
- * Open source.
- * No installation, driver is built-in.
- * Reads ST floppy disk images easily (as C:).
-
-Cons:
- * Does not support TOS extended partitions.
- * No support for BigDOS.
 
 ### ICD PRO Festplatentreiber 6.55
 
@@ -273,7 +242,7 @@ just by switching these jumpers to different places.
 **WARNING:** Do not attempt any other combination than what is explained here.
 You might damage your product.
 
-Normal mode, full featured. ACSI id 0 to 4
+ACSI id 0 to 4, GemDrive enabled
 
      _______________________________
     |                     _         |
@@ -284,40 +253,40 @@ Normal mode, full featured. ACSI id 0 to 4
     |_______________________________|
 
 
-ACSI id 1 to 5, full featured
+ACSI id 1 to 5, GemDrive enabled
 
      _______________________________
     |                     _         |
     |    o o o        /\ | |       -|--
     |   [==] o       /  \| |       -|--
-    |                \  /| |       -|||| <- Jumper here
-    |     (o)         \/ |_|       -||||
+    |                \  /| |       -||"| <- Jumper here
+    |     (o)         \/ |_|       -||_|
     |_______________________________|
 
 
-ACSI id 2 to 6, full featured
+ACSI id 2 to 6, GemDrive enabled
 
      _______________________________
     |                     _         |
     |    o o o        /\ | |       -|--
-    |   [==] o       /  \| |       -|||| <- Jumper here
-    |                \  /| |       -||||
+    |   [==] o       /  \| |       -||"| <- Jumper here
+    |                \  /| |       -||_|
     |     (o)         \/ |_|       -|--
     |_______________________________|
 
 
-ACSI id 3 to 7, full featured
+ACSI id 3 to 7, GemDrive enabled
 
      _______________________________
     |                     _         |
-    |    o o o        /\ | |       -|||| <- Jumper here
-    |   [==] o       /  \| |       -||||
+    |    o o o        /\ | |       -||"| <- Jumper here
+    |   [==] o       /  \| |       -||_|
     |                \  /| |       -|--
     |     (o)         \/ |_|       -|--
     |_______________________________|
 
 
-Strict mode, ACSI id 0 to 4
+ACSI id 0 to 4, GemDrive disabled - ACSI mode forced
 
      _______________________________
     |                     _         |
@@ -328,19 +297,18 @@ Strict mode, ACSI id 0 to 4
     |_______________________________|
 
 
-Strict mode, ACSI id 1 to 5
+GemDrive disabled, other ACSI ids
 
      _______________________________
     |                     _         |
     |    o o o        /\ | |       -|--
     |    o [==]      /  \| |       -|--
-    |                \  /| |       -|||| <- Jumper here
-    |     (o)         \/ |_|       -||||
+    |                \  /| |       -||"| <- Jumper here
+    |     (o)         \/ |_|       -||_|
     |_______________________________|
 
 
-The ACSI id selection jumper on the right works the same as in full featured
-mode
+The ACSI id selection jumper on the right works the same as in GemDrive mode
 
 
 Firmware programming mode

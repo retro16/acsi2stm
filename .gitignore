@@ -3,7 +3,6 @@ acsi2stm-*
 *.tos
 *.exe
 *.bin
-a2stboot*
 .DS_Store
 pcb/MegaSTE Internal/fp-info-cache
 *.gbl

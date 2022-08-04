@@ -1,3 +1,5 @@
+**ALPHA VERSION**
+
 ACSI2STM: Atari ST ACSI hard drive emulator
 ===========================================
 
@@ -10,15 +12,17 @@ and safe for your precious vintage machine.
 The module supports up to 5 SD card readers, showing them as 5 different ACSI
 devices plugged in.
 
-It can work in 2 ways:
+It can work in 3 ways:
  * Expose a raw SD card as a hard disk to the Atari.
  * Expose a floppy or hard disk image file on a standard SD card to the Atari.
+ * Mount a standard SD card on the Atari.
 
-It also provides an UltraSatan compatible real-time clock if you add a simple 3V
-lithium battery.
+It also provides an UltraSatan compatible real-time clock if you add a simple
+3V lithium battery such as a CR2032.
 
-**WARNING**, the pinout has changed for version 3.xx. If you built or bought a
-unit for older firmware, you need to make changes. See the last section of
+**WARNING**, the pinout has changed for version 3.xx and above. If you built or
+bought a unit for older 1.xx or 2.xx firmware, you need to make changes or use
+the "legacy" firmware image. See the last section of
 [hardware.md](doc/hardware.md) for more information.
 
 
@@ -31,16 +35,17 @@ implementors or curious people.
 This is what you can find:
 
  * [manual.md](doc/manual.md): A brief user manual for people owning a unit.
- * [a2setup.md](doc/a2setup.md): User manual for the ACSI2STM setup tool.
- * [pcb_manual.md](doc/pcb_manual.md): User manual for the official PCB.
+ * [flashing.md](doc/flashing.md): A tutorial on how to download and flash a
+   firmware into a STM32. For first time users or for upgrading a pre-built
+   unit.
  * [compiling.md](doc/compiling.md): A step-by-step tutorial to compile and
-   upload a new firmware. Also includes how to customize the firmware for
-   non-developers by changing compile-time options.
- * [build_pcb.md](doc/build_pcb.md): Instructions for building an unit using
+   customize a new firmware. Describes compilation options.
+ * [pcb_manual.md](doc/pcb_manual.md): User manual for the official PCB.
+ * [build_pcb.md](doc/build_pcb.md): Instructions for building a unit using
    the official PCB.
- * [hardware.md](doc/hardware.md): How to build an acsi2stm unit from scratch.
- * [debug_output.txt](doc/debug_output.txt): A sample output of the logs you
-   should get when booting a SD card.
+ * [hardware.md](doc/hardware.md): How to design and build an acsi2stm unit
+   from scratch (hand wired, or your own PCB design).
+ * [gemdrive.md](doc/gemdrive.md): Technical details about GemDrive.
 
 
 To people buying/selling hardware
@@ -72,6 +77,9 @@ some implications:
    clear distinction between this code and your product will be greatly
    appreciated (most sellers do).
 
+**Note**: the Mega STE PCB is copyrighted by Olivier Jan and is released under the
+MIT license so it does not have the same restrictions.
+
 
 Credits
 -------
@@ -80,10 +88,13 @@ I would like to thanks the people that put invaluable information online that
 made this project possible in a finite amount of time. Without them, this
 project would have not existed.
 
+ * Bill Greiman for the SdFat library. It's really fantastic.
  * The http://atari.8bitchip.info website and his author, who also contributes
    on various forums.
  * The Hatari developpers. I used its source code as a reference for ACSI
-   commands.
+   commands, as well as the excellent GEMDOS drive implementation.
+ * The people who made the FreeMiNT TOS documentation.
+ * The EmuTOS developers, again the source code is an excellent reference.
  * The UltraSatan project for their documentation and their RTC clock tool.
  * Uwe Seimet for his SCSI testing tool.
  * Jean-Louis Guérin (DrCoolZic) for his excellent "Atari Hard Disk File Systems
@@ -94,3 +105,4 @@ project would have not existed.
    projects.
  * All people contributing on GitHub, for their code, their ideas, the issues
    they submit, and their patience when things fail !
+ * Olivier Jan for the Mega STE PCB.

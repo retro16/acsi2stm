@@ -19,9 +19,11 @@
 #define BLOCKDEV_H
 
 #include "SdFat.h"
+#include "Monitor.h"
+#include "Devices.h"
 
 // Block device generic interface
-class BlockDev {
+class BlockDev: public Monitor, public Devices {
 public:
   operator bool() {
     return blocks;
@@ -40,11 +42,7 @@ public:
   virtual bool isWritable() = 0;
 
   // Return a (hopefully) unique id for this media
-  virtual uint32_t mediaId() = 0;
-
-  // SCSI commands
-  void modeSense0(uint8_t *outBuf);
-  void modeSense4(uint8_t *outBuf);
+  virtual uint32_t mediaId(bool force = false) = 0;
 
   // Flags and state
 
@@ -66,13 +64,11 @@ protected:
 
 class SdDev: public BlockDev {
 public:
-  SdDev(int csPin_, int wpPin_):
+  SdDev(int slot_, int csPin_, int wpPin_):
+    slot(slot_),
     csPin(csPin_),
     wpPin(wpPin_) {}
-  bool begin(int deviceId_) {
-    deviceId = deviceId_;
-    return reset();
-  }
+  SdDev(SdDev&&);
   bool reset();
 
   // BlockDev interface
@@ -84,21 +80,27 @@ public:
   virtual bool writeStop();
   virtual void getDeviceString(char *target);
   virtual bool isWritable();
-  virtual uint32_t mediaId();
+  virtual uint32_t mediaId(bool force = false);
 
   SdSpiCard card;
   FsVolume fs;
   bool fsOpen;
 
-  int deviceId;
+  int slot;
   int csPin;
   int wpPin;
   bool writable;
+
+protected:
+  static const uint32_t mediaCheckPeriod = 500;
+  uint32_t lastMediaId;
+  uint32_t lastMediaCheckTime;
+  void mediaChecked();
 };
 
 class ImageDev: public BlockDev {
 public:
-  bool begin(SdDev *sdDev, const char *path, int lun);
+  bool begin(SdDev *sdDev, const char *path);
   void end();
 
   // BlockDev interface
@@ -110,11 +112,10 @@ public:
   virtual bool writeStop();
   virtual void getDeviceString(char *target);
   virtual bool isWritable();
-  virtual uint32_t mediaId();
+  virtual uint32_t mediaId(bool force = false);
 
   SdDev *sd;
   FsBaseFile image;
-  int lun;
 };
 
 #endif

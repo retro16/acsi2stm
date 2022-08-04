@@ -1,0 +1,23 @@
+The following commands set DMA read operations on the stack, right after the stack return pointer (CPU dependant)
+This offset cannot be fetched again, so make sure you read all parameters before playing with the DMA address
+0x0e: GEMDOS hook
+0x0f: BIOS hook
+0x10: XBIOS hook
+
+
+Reply format:
+$8d: forward hook to system
+$8c [4x byte]: Set D0 and return from exception
+$8a [4x byte]: Set D0 and return from subroutine
+$88 [4x byte]: Call pexec(4, 0, param, 0) then return from exception
+$86 [4x byte]: Call pexec(6, 0, param, 0) then return from exception
+$85 [4x byte]: execute 4 bytes as machine code, set DMA read on the stack then wait for another reply byte
+$84 [4x byte]: execute 4 bytes as machine code, set DMA write on the stack then wait for another reply byte
+$83 [4x byte]: set DMA read at address and wait for another reply byte
+$82 [4x byte]: set DMA write at address and wait for another reply byte
+$81 [4x byte]: read byte count from stack (word), and copy [byte count + 1] bytes from stack to address. set DMA read on stack data. sp unchanged
+$80 [4x byte]: read byte count from stack (word), and copy [byte count + 1] bytes from address to stack. set DMA write on stack data. sp unchanged
+
+Notes:
+ * For non-returning commands, the ST signals that the operation is completed by sending a dummy command byte
+ * All command bytes (both sending and receiving) are transfered in "fast" mode: the ST doesn't wait for the ACK signal at all. The STM32 is fast enough to handle this in all cases.
