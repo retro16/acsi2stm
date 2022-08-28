@@ -31,7 +31,7 @@ Power sources
 **Warning**: Do not use the onboard USB socket of the STM32. USB data lines are
 connected to the hard drive port, this **will** break things.
 
-There are 3 options to power the board:
+There are 4 options to power the board:
 
 * Power via a 5V DC jack. Solder a DC jack in DC1 and use any standard 5V power
   adapter.
@@ -39,6 +39,8 @@ There are 3 options to power the board:
   floppy power cable. If you have an external floppy, chances are you already
   have a Y cable. Be careful to insert it the right way.
 * Power via the USB serial converter. Put a jumper on J4 to use that solution.
+* Power via the onboard USB jack of the blue pill. For this you need to make
+  some modifications on the blue pill itself, see [hardware.md](hardware.md)
 
 You can choose to omit some components such as the DC jack if you feel that you
 don't need that solution.

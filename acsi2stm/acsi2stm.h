@@ -22,7 +22,7 @@
 
 // acsi2stm global configuration
 
-#define ACSI2STM_VERSION "3.01"
+#define ACSI2STM_VERSION "3.02"
 
 // Set to 1 to enable debug output on the serial port
 #define ACSI_DEBUG 0

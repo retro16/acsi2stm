@@ -34,6 +34,8 @@ You have several options to power the PCB.
  * Use a standard PC floppy power cable plugged in J1, red wire up.
  * Use a compatible USB TO TTL USART adapter. You need to put a jumper on J4 to
    use power from the USB converter.
+ * Power via the onboard USB jack of the blue pill. For this you need to make
+   some modifications on the blue pill itself, see [hardware.md](hardware.md)
 
 
 Installing a PC floppy drive

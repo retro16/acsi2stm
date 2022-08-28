@@ -74,6 +74,8 @@ some implications:
    clear distinction between this code and your product will be greatly
    appreciated (most sellers do).
 
+Note: the Mega STE PCB is copyrighted by Olivier Jan and is released under the
+MIT license so it does not have the same restrictions.
 
 Credits
 -------
@@ -96,3 +98,4 @@ project would have not existed.
    projects.
  * All people contributing on GitHub, for their code, their ideas, the issues
    they submit, and their patience when things fail !
+ * Olivier Jan for the Mega STE PCB.
