@@ -15,7 +15,7 @@
  * along with the program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#define ACSI2STM_VERSION "3.01"
+#define ACSI2STM_VERSION "3.02"
 #define ACSI2STM_HEADER \
   "ACSI2STM " ACSI2STM_VERSION " by Jean-Matthieu Coulon\n" \
   "This is free software, licenced under the GPLv3 license.\n" \

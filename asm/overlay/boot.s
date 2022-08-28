@@ -42,9 +42,9 @@
 drvaloc	equ	boot-4
 
 boot	pea	msg.loading(pc)
+	gemdos	Cconws,6
 
 	ifne	enablesetup
-	gemdos	Cconws,6
 
 	ifne	enableserial
 	gemdos	Cauxis,2                ; Check for data on the serial port
@@ -82,9 +82,6 @@ boot	pea	msg.loading(pc)
 	rts
 .drv	
 	endc
-	elseif
-
-	gemdos	Cconws,6
 
 	endc
 
@@ -158,8 +155,10 @@ msg.loading
 
 	ifd	enablesetup
 	dc.b	'Shift+S for setup'
-	dc.b	13,10,0
+	dc.b	13,10
 	endc
+
+	dc.b	0
 
 	even
 

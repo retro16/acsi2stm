@@ -19,10 +19,45 @@ Hardware needed
  * One 10k-100k resistor if you need SD card hotplug capabilities.
  * One 100nF decoupling capacitor for the SD card (optional but recommended).
  * Do *NOT* connect USB data lines on the STM32. Use the +5V or +3.3V pin to
-   power it if you are unsure.
+   power it if you are unsure. To power from USB, you need to modify the blue
+   pill itself (see below).
 
 You can use the PCB design provided in the PCB folder. See
 [build_pcb.md](build_pcb.md) for more information.
+
+
+Modifying the Blue Pill board
+-----------------------------
+
+While this section is optional, you may want to do a few modifications to your
+blue pill board:
+
+### Removing R10
+
+R10 is a 1.5k pull-up resistor required for USB operation of the STM32.
+Unfortunately R10 is connected to PA12 and this is connected to a very
+important data line on the ST ACSI connector.
+
+This resistor may cause problems on some DMA chips, also this resistor tends to
+feed power from the data line back to the STM32 power pin if you turn on the
+Atari before the ACSI2STM unit, which is bad.
+
+You may want to remove R10 entirely. For this you can either try to unsolder it
+(a quite difficult operation) or just destroy it with cutting pliers, then
+clean up residues. Check with an ohmmeter between the 2 pads of R10, you should
+see an open loop.
+
+Removing R10 will compromise the ability to use USB on that blue pill board.
+
+
+### Removing R9 and R11
+
+R9 and R11 are mounted in series between the STM32 and the USB port data lines.
+
+Removing these resistors allow powering the STM32 with a USB cable.
+
+Of course, removing R9 and R11 will compromise the ability to use USB on that
+blue pill board. USB is not used at all in ACSI2STM.
 
 
 Building the ACSI connector
