@@ -15,7 +15,24 @@ fi
 
 VERSION=`cat VERSION`
 
-rm acsi2stm-*.ino.bin *.tos *.exe
+# Sanity checks for release package !
+if ! grep 'ACSI_DEBUG 0' acsi2stm/acsi2stm.h >/dev/null \
+|| ! grep 'ACSI_VERBOSE 0' acsi2stm/acsi2stm.h >/dev/null \
+|| ! grep 'ACSI_SD_CARDS 5' acsi2stm/acsi2stm.h >/dev/null \
+|| ! grep 'ACSI_STRICT 0' acsi2stm/acsi2stm.h >/dev/null \
+|| ! grep 'ACSI_READONLY 0' acsi2stm/acsi2stm.h >/dev/null \
+|| ! grep 'ACSI_SD_WRITE_LOCK 2' acsi2stm/acsi2stm.h >/dev/null \
+|| ! grep 'ACSI_HAS_RESET 1' acsi2stm/acsi2stm.h >/dev/null \
+|| ! grep -E 'maxsecsize.*16384' asm/acsi2stm.i >/dev/null \
+|| ! grep -E 'enablesetup.*1' asm/acsi2stm.i >/dev/null \
+|| ! grep -E 'enableserial.*1' asm/acsi2stm.i >/dev/null \
+; then
+  echo "Sanity checks failed"
+  echo "Please revert back to release configuration"
+  exit 1
+fi
+
+rm -f acsi2stm-*.ino.bin *.tos *.exe
 
 ./build_asm.sh || exit $?
 ./build_arduino.sh || exit $?
