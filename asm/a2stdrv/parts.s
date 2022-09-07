@@ -756,4 +756,35 @@ isfatfs	; Detects whether this is a valid FAT boot sector
 .no	moveq	#0,d0
 	rts
 
+swappun	; Swap 2 partitions inside the PUN table
+	; Input:
+	;  d0.w: PUN entry number 1
+	;  d1.w: PUN entry number 2
+
+	move.l	pun_ptr.w,a0            ; Load the regular pun table
+
+	move.b	pun.pun(a0,d0),-(sp)
+	move.b	pun.pun(a0,d1),pun.pun(a0,d0)
+	move.b	(sp)+,pun.pun(a0,d1)
+
+	move.b	pun.sectorsize(a0,d0),-(sp)
+	move.b	pun.sectorsize(a0,d1),pun.sectorsize(a0,d0)
+	move.b	(sp)+,pun.sectorsize(a0,d1)
+
+	lsl.w	#1,d0
+	lsl.w	#1,d1
+
+	move.w	pun.size_mb(a0,d0),-(sp)
+	move.w	pun.size_mb(a0,d1),pun.size_mb(a0,d0)
+	move.w	(sp)+,pun.size_mb(a0,d1)
+
+	lsl.w	#1,d0
+	lsl.w	#1,d1
+
+	move.l	pun.part_start(a0,d0),-(sp)
+	move.l	pun.part_start(a0,d1),pun.part_start(a0,d0)
+	move.l	(sp)+,pun.part_start(a0,d1)
+
+	rts
+
 ; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm tw=80

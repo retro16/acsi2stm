@@ -152,6 +152,24 @@ To set the clock, enter the ACSI2STM setup tool.
 See [a2setup.md](a2setup.md) for more details on the setup tool.
 
 
+Booting to another partition
+----------------------------
+
+The integrated driver allows selecting the boot partition.
+
+During boot, press the key of the partition to be remapped as C:. This allows
+having alternate sets of utilities started at boot, such as different desktop
+accessories or different DESKTOP.INF files.
+
+For example, if the SD cards provide C:, D: and E:, pressing the 'e' key during
+boot will swap the E: and C: partitions.
+
+Note that, while this feature is perfectly compatible with SD card hotplug,
+switching the card providing the C: partition will remap drive letters in a
+strange way. Also, unplugging then replugging the same card will revert
+partitions to their normal drive letters, partition remapping won't carry over.
+
+
 Strict mode
 -----------
 

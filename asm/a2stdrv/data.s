@@ -87,6 +87,10 @@ prtpart.drv	dc.b	'C: SD'
 prtpart.sd	dc.b	'? ',0
 prtpart.end	dc.b	'M',13,10,0
 
+		; Drive remapping message
+remaptxt	dc.b	'Remapped '
+remaptxt.letter	dc.b	'A: as C:',13,10,0
+
 		; Masks
 mchmask		dc.l	0               ; Media change mask
 mprmask		dc.b	0               ; Media present mask
