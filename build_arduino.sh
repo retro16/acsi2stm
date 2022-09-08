@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # This script is a "Works on my computer" script.
 # You may have to study and adapt it to run on your computer.
 #

@@ -24,12 +24,12 @@ partfmt
 	;  a5: Target partition descriptor
 	;  d7.b: ACSI id
 
+	cls
 	bsr.w	parttool.save1st        ; Changes must be saved to disk
 	bsr.w	partfmt.init            ; Initialize pfmt with best defaults
 
 	enter
 
-	cls
 	print	.header(pc)
 	lea	bss+pfmt(pc),a0         ;
 	bsr.w	partfmt.pfmt

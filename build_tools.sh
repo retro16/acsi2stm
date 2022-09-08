@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # This script is a "Works on my computer" script.
 # You may have to study and adapt it to run on your computer.
 #
@@ -22,8 +22,8 @@ echo "Patch the tools source to set VERSION to $VERSION"
 sed -i 's/^\(#define ACSI2STM_VERSION\).*/\1 "'$VERSION'"/' tools/acsi2stm.h
 
 echo "Searching for a valid C compiler"
-if which "$CC" &>/dev/null; then
-  echo "Using environment-defined CC ($CC)"
+if [ "$CC" ] && which "$CC" &>/dev/null; then
+  echo "Using environment-defined CC ('$CC')"
 elif which "gcc" &>/dev/null; then
   CC=gcc
   CFLAGS="-Os -g0 -Wl,-s"
@@ -51,6 +51,11 @@ else
   echo "Install mingw-w64 to cross-compile for Windows"
   WINCC=""
 fi
+
+export CC
+export CFLAGS
+export WINCC
+export WINCFLAGS
 
 buildtool() {
   if [ "$WINCC" ]; then
