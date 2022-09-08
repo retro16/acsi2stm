@@ -257,6 +257,7 @@ parttool.install
 	loadpos
 	tst.w	d0
 	rstne
+	bsr.w	parttool.pskip
 
 	move.l	d3,-(sp)
 

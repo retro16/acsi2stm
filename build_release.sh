@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # This script is a "Works on my computer" script.
 # You may have to study and adapt it to run on your computer.
 #
@@ -26,6 +26,9 @@ if ! grep 'ACSI_DEBUG 0' acsi2stm/acsi2stm.h >/dev/null \
 || ! grep -E 'maxsecsize.*16384' asm/acsi2stm.i >/dev/null \
 || ! grep -E 'enablesetup.*1' asm/acsi2stm.i >/dev/null \
 || ! grep -E 'enableserial.*1' asm/acsi2stm.i >/dev/null \
+|| grep -ri 'deadbeef' asm >/dev/null \
+|| grep -ri 'cafe' asm >/dev/null \
+|| grep -ri 'badc0de' asm >/dev/null \
 ; then
   echo "Sanity checks failed"
   echo "Please revert back to release configuration"
