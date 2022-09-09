@@ -105,9 +105,7 @@ drvinit	; Driver initialization
 
 	bsr.w	scan                    ; Scan devices and mount them
 
-.nobdrv
-	; Display partitions
-	bsr.w	prtpart
+	bsr.w	prtpart                 ; Display partitions
 
 	; Check for boot drive selection
 	gemdos	Cconis,2                ; Check if a key was pressed
@@ -123,13 +121,17 @@ drvinit	; Driver initialization
 	bgt.b	.setbd                  ;
 
 .domap	sub.b	#'a',d0                 ; Convert to offset in pun
-	ext.w	d0                      ; d0 = offset in pun table
 	lea	pun(pc),a0              ; a0 = local pun table
+	ext.w	d0                      ; d0 = offset in pun table
+	beq.b	.mapfd                  ; Ignore mounted status for floppy
 
 	btst.b	#7,pun.pun(a0,d0)       ; Check if there is a mounted drive
 	bne.b	.setbd                  ;
+	bra.b	.mapmsg                 ; If yes, display remap message
 
-	lea	remaptxt.letter(pc),a0  ; Adjust remapping message
+.mapfd	bclr	#2,(drvbits+3).w        ; Unmount C:
+
+.mapmsg	lea	remaptxt.letter(pc),a0  ; Adjust remapping message
 	add.b	d0,(a0)                 ;
 
 	moveq	#2,d1                   ; Swap drive with C:
@@ -143,7 +145,7 @@ drvinit	; Driver initialization
 	moveq	#2,d1                   ; Drive C
 
 	btst	d1,(drvbits+3).w        ; Check if C is mounted
-	beq.b	.nobdrv                 ;
+	beq.b	.ready                  ;
 
 	move.w	d1,bootdev.w            ; Write boot drive to C:
 
