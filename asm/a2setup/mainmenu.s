@@ -25,6 +25,7 @@ mainmenu
 	savepos                         ;
 
 	print	.menu(pc)               ;
+	bsr.w	escback
 
 	lea	bss+lasterr(pc),a0      ; Clear last error
 	clr.w	(a0)                    ;
@@ -75,14 +76,12 @@ mainmenu
 .menu	dc.b	13,10,10
 	dc.b	'Main menu:',13,10
 	dc.b	10
-	dc.b	'  T:Test ACSI2STM',13,10
-	dc.b	'  C:Clock setup',13,10
-	dc.b	'  S:Format SD for PC',13,10
+	dc.b	'  T:Test',13,10
+	dc.b	'  C:Clock',13,10
+	dc.b	'  S:Format for PC',13,10
 	dc.b	'  I:Create image',13,10
 	dc.b	'  Q:Quick setup',13,10
-	dc.b	'  P:Partition/format tool',13,10
-	dc.b	10
-	dc.b	'Esc:Back',13,10
+	dc.b	'  P:Partition tool',13,10,10,0
 	dc.b	0
 	even
 

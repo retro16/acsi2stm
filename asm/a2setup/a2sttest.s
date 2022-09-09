@@ -95,19 +95,43 @@ a2sttest
 	bne.b	.nextlb
 
 	print	.succss(pc)
+	bsr.w	escback
+
+	bsr.w	blkdev.waitkey          ; Wait for a key or a device event
+
+	tst.w	d1                      ; Check error
+	bne.w	a2sttest.failed         ; Exit if error
+
+	tst.w	d0                      ; Check if key pressed
+	beq.w	a2sttest.exit           ; No key press, strange: exit now
+
+	gemdos	Cnecin,2                ; Read key
+
+	cmp.b	#$1b,d0                 ; Check for Esc
+	beq.w	a2sttest.exit           ;
+
+	and.b	#$df,d0                 ; Turn everything upper case
+
+	cmp.b	#'C',d0                 ; C: continuous testing
+	beq.w	a2sttest.conttst        ;
+
+	cmp.b	#'S',d0                 ; S: block device surface testing
+	beq.w	a2sttest.srftst         ;
 
 	bra.w	a2sttest.exit
 
 	; Test descriptions
-.tstrd	dc.b	'Testing in read mode',13,10,0
+.tstrd	dc.b	'Testing read mode',13,10,0
 .cmdp	dc.b	'Test command',13,10,0
 .zcmdp	dc.b	'Zero filled command',13,10,0
 .fcmdp	dc.b	'Ones filled command',13,10,0
-.tstwr	dc.b	'Testing in write mode',13,10,0
-.getbuf	dc.b	'Fetch buffer size:',0
-.ckpat	dc.b	'Check DMA with data integrity',13,10,0
+.tstwr	dc.b	'Test write mode',13,10,0
+.getbuf	dc.b	'Buffer size:',0
+.ckpat	dc.b	'DMA data integrity',13,10,0
 .tstpat	dc.b	'Testing DMA with pattern ',0
-.succss	dc.b	'All tests successful',13,10,0
+.succss	dc.b	'Tests successful',13,10
+	dc.b	'C:Continuous test',13,10
+	dc.b	'S:Surface test',13,10,0
 	even
 
 .patlst	dc.l	$55aa55aa,$ff00ff00
@@ -162,7 +186,7 @@ a2sttest.tstdma
 	lea	bss+buf(pc),a1          ; Compare the buffer
 	move.l	d5,d1                   ;
 .check	cmp.l	(a1)+,d3                ; Test the correct pattern
-	bne.b	a2sttest.failed         ;
+	bne.w	a2sttest.failed         ;
 	dbra	d1,.check               ;
 
 	dbra	d4,.next                ; Loop tests
@@ -181,8 +205,92 @@ a2sttest.bufop
 	bsr.w	acsicmd                 ;
 
 	tst.b	d0
-	bne.b	a2sttest.failed
+	bne.w	a2sttest.failed
 	rts
+
+a2sttest.conttst; Continuous testing
+	move.l	#$f00f55aa,d3           ; Pattern expected by the ACSI2STM unit
+	lea	a2sttest.rwbuffer(pc),a0; Switch to the pattern check buffer
+	move.b	#$01,4(a0)              ;
+	bsr.w	a2sttest.tstdma         ;
+
+	gemdos	Cconis,2                ;
+	tst.w	d0                      ;
+	beq.b   a2sttest.conttst        ;
+	gemdos	Cnecin,2                ; Empty keyboard buffer
+	restart
+
+a2sttest.srftst	; Block device surface testing (destructive)
+	print	a2sttest.srftstc(pc)    ; Ask for confirmation
+	bsr.w	areyousure              ;
+	rstne	                        ;
+
+	lea	bss+buf+1024(pc),a0     ; Fill buffer with numbers at buf+1024
+	moveq	#0,d0                   ; Value to fill
+	move.w	#1023,d1                ; Byte counter
+.bf	move.b	d0,(a0)+                ;
+	addq.b	#1,d0                   ;
+	dbra	d1,.bf                  ;
+
+	lea	bss+buf+2048(pc),a0     ; Fill zero buffer at buf+2048
+	moveq	#0,d0                   ;
+	move.w	#255,d1                 ;
+.bz	move.l	d0,(a0)+                ;
+	dbra	d1,.bz                  ;
+
+	bsr.w	blkdev.cap              ; Fetch block count
+		                        ; d0 = block count
+	moveq	#0,d1                   ; d2 = current block
+
+.cont	move.l	d0,-(sp)                ; Save d0 and d2
+	move.l	d2,-(sp)                ;
+
+	lea	bss+buf+1024(pc),a0     ; Point source at data buffer
+	moveq	#2,d0                   ; Transfer 2 blocks at once
+	move.l	a0,d1                   ;
+	bsr.w	blkdev.wr               ; Write buffer to SD card
+
+	lea	bss+buf(pc),a0          ; Point dest at data buffer
+	clr.b	(a0)                    ; Clear a couple bytes to ensure that
+	clr.b	1023(a0)                ; DMA was completely done and aligned
+	moveq	#2,d0                   ; 2 blocks transfer
+	move.l	a0,d1                   ;
+	move.l	(sp),d2                 ; Restore current block
+	bsr.w	blkdev.rd               ; Read back from SD card
+
+	lea	bss+buf(pc),a0          ; Compare both buffers
+	lea	bss+buf+1024(pc),a1     ;
+	move.w	#1023,d0                ;
+.cmpbuf	cmp.b	(a0)+,(a1)+             ;
+	bne.b	a2sttest.failed         ;
+	dbra	d0,.cmpbuf              ;
+
+	lea	bss+buf+2048(pc),a0     ; Point source at blank buffer
+	moveq	#2,d0                   ; Transfer 2 blocks at once
+	move.l	a0,d1                   ;
+	move.l	(sp),d2                 ; Restore current block
+	bsr.w	blkdev.wr               ; Write buffer to SD card
+
+	move.l	(sp),d2                 ; Print block number in hexadecimal
+	tst.b	d2                      ; every 256 blocks
+	bne.b	.nblk                   ;
+	print	a2sttest.block(pc)      ;
+	move.l	(sp),d0                 ;
+	bsr.w	phlong                  ;
+.nblk		                        ;
+	move.l	(sp)+,d2                ; Restore block counter
+	move.l	(sp)+,d0                ; Restore block count
+
+	addq.l	#2,d2                   ; Move to next block
+	cmp.l	d0,d2                   ; If reached the end of the card
+	blt.b	.nend                   ;
+	moveq	#0,d0                   ; Go back to the beginning
+.nend
+	gemdos	Cconis,2                ;
+	tst.w	d0                      ;
+	beq.b   .cont                   ;
+	gemdos	Cnecin,2                ; Empty keyboard buffer
+	restart
 
 a2sttest.cmd	; ACSI2STM command loopback test
 	dc.b	9
@@ -207,13 +315,16 @@ a2sttest.fcmd	; ACSI2STM 0xff command loopback test
 	even
 
 a2sttest.failed
-	print	a2sttest.failmsg(pc)
+	print	tui.ko(pc)
 a2sttest.exit
 	bsr.w	presskey
 	restart
 
-a2sttest.failmsg
-	dc.b	7,'Test failed',13,10,0
+a2sttest.srftstc
+	dc.b	'Will erase SD card',13,10,0
+
+a2sttest.block
+	dc.b	13,'Block:',0
 
 	even
 

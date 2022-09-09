@@ -40,6 +40,7 @@ parttool
 
 .devrdy	bsr.w	parttool.refrsh         ; Refresh screen
 	print	.menu(pc)               ; Print main menu and reset cursor
+	bsr.w	escback
 	loadpos
 
 .again	bsr.w	menu.waitmed
@@ -106,7 +107,6 @@ parttool
 	dc.b	'1-4:Edit part 1 to 4 E:Edit partition',13,10
 	dc.b	'  I:Install driver   K:Kill boot sector',13,10
 	dc.b	'  P:Save pending     U:Undo changes',13,10
-	dc.b	'Esc:Back'
 	dc.b	0
 	even
 
@@ -122,7 +122,7 @@ parttool.exit
 
 	restart
 
-.sure	dc.b	'Exit and revert',13,10,0
+.sure	dc.b	'Revert and exit',13,10,0
 	even
 
 parttool.refrsh
@@ -342,7 +342,7 @@ parttool.install
 .toosmall
 	dc.b	'Not enough space',13,10,0
 
-.warn	dc.b	'Previous boot sector cannot be recovered',13,10
+.warn	dc.b	'Boot sector cannot be recovered',13,10
 	dc.b	'All changes will be saved',13,10,0
 	even
 
@@ -421,7 +421,7 @@ parttool.quick
 
 	bra.w	parttool.save
 
-.quick	dc.b	'Warning: disk will be formatted',13,10
+.quick	dc.b	'Disk will be formatted',13,10
 	dc.b	'Esc to cancel',13,10,10
 	dc.b	'How many partitions:',0
 	even

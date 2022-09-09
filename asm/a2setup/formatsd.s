@@ -39,9 +39,9 @@ formatsd
 .formatsd
 	dc.b	'The SD card will be formatted to FAT32',13,10
 	dc.b	'or ExFAT. All data will be lost',13,10,0
-.wait	dc.b	'Formatting the SD card ...',13,10
+.wait	dc.b	'Formating...',13,10
 	dc.b	'This can take a few minutes',13,10,0
-.failed	dc.b	'Cannot format the SD card',13,10,0
+.failed	dc.b	'Cannot format',13,10,0
 	even
 
 ; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm tw=80

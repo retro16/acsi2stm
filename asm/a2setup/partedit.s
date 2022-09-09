@@ -52,6 +52,7 @@ partedit
 .mbrok
 
 	print	.menu(pc)
+	bsr.w	escback
 	loadpos
 
 	flagtst	ok,(a5)                 ; If the partition is not set:
@@ -110,7 +111,6 @@ partedit
 	dc.b	'  S:Set first sector  L:Set last sector',13,10
 	dc.b	'  T:Set type          R:Resize',13,10
 	dc.b	'  P:Save pending      U:Undo changes',13,10
-	dc.b	'Esc:Back'
 	dc.b	0
 	even
 

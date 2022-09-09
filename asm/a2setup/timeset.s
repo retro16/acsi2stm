@@ -24,6 +24,7 @@ timeset
 	print	.menu1(pc)
 	savepos
 	print	.menu2(pc)
+	bsr.w	escback
 
 .refrsh	loadpos
 	bsr.w	timeset.print
@@ -53,10 +54,7 @@ timeset
 .menu2	dc.b	13,10
 	dc.b	10
 	dc.b	'Return: set time',13,10
-	dc.b	'Esc: main menu',13,10
 	dc.b	0
-
-
 	even
 
 timeset.print
