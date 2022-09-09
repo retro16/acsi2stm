@@ -50,7 +50,7 @@ public:
   Acsi(Acsi&&);
 
   // Initialize the ACSI bridge
-  bool begin(int deviceId);
+  bool begin(int slotId, int deviceId);
 
   // Reset error status
   void reset();
@@ -116,6 +116,11 @@ public:
   // Patch the sector in the buffer so it is bootable.
   // You can specify the offset to patch.
   static void patchBootSector(uint8_t *data, int offset = 438);
+#endif
+
+#if (ACSI_DUMMY_BOOT_SECTOR || ACSI_BOOT_OVERLAY) && !ACSI_STRICT
+  // SD card slot number
+  int slot;
 #endif
 
 #if ACSI_BOOT_OVERLAY && !ACSI_STRICT

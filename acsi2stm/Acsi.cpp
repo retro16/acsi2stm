@@ -47,19 +47,6 @@ const
 
 #endif
 
-// CRC function taken from SdFat's SdSpiCard.cpp
-static uint16_t crc16(const uint8_t* data, size_t n) {
-  uint16_t crc = 0;
-  for (size_t i = 0; i < n; i++) {
-    crc = (uint8_t)(crc >> 8) | (crc << 8);
-    crc ^= data[i];
-    crc ^= (uint8_t)(crc & 0xff) >> 4;
-    crc ^= crc << 12;
-    crc ^= (crc & 0xff) << 5;
-  }
-  return crc;
-}
-
 Acsi::Acsi(int sdCs_, int sdWp_):
   card(sdCs_, sdWp_) {}
 
@@ -70,10 +57,16 @@ Acsi::Acsi(Acsi &&other):
 void rtcInit() {}
 #endif
 
-bool Acsi::begin(int deviceId) {
+bool Acsi::begin(int slotId, int deviceId) {
 #if !ACSI_STRICT
   // Read strict mode from the on-board BOOT1 jumper
   strict = digitalRead(PB2);
+#endif
+
+#if (ACSI_DUMMY_BOOT_SECTOR || ACSI_BOOT_OVERLAY) && !ACSI_STRICT
+  slot = slotId;
+#else
+  (void)slotId;
 #endif
 
   // Check if the device is disabled (wpPin pin to VCC)
@@ -192,7 +185,7 @@ void Acsi::process(uint8_t cmd) {
       dev = luns[getLun()];
 
 #if ACSI_DUMMY_BOOT_SECTOR && !ACSI_STRICT
-    if(!strict && !dev
+    if(!strict && !dev && slot <= ACSI_DUMMY_BOOT_SECTOR
      && cmdBuf[0] == 0x08
      && cmdBuf[1] == 0x00
      && cmdBuf[2] == 0x00
@@ -293,7 +286,7 @@ void Acsi::process(uint8_t cmd) {
     lastSeek = true;
 
 #if ACSI_BOOT_OVERLAY && !ACSI_STRICT
-    if(!strict && lastBlock == 0 && cmdBuf[4] == 1 && !dev->bootable) {
+    if(!strict && lastBlock == 0 && slot <= ACSI_BOOT_OVERLAY && cmdBuf[4] == 1 && !dev->bootable) {
       commandStatus(processBootOverlay(dev));
       return;
     }
@@ -666,40 +659,6 @@ void Acsi::process(uint8_t cmd) {
         }
         commandStatus(ERR_OK);
         return;
-#if !ACSI_STRICT
-      case 0x04: // Code execution
-        dbg("Execute buffer\n");
-        if(strict) {
-          verbose("Disabled in strict mode\n");
-          commandStatus(ERR_INVARG);
-          return;
-        }
-        if(length > bufSize) {
-          dbg("Out of range\n");
-          commandStatus(ERR_INVADDR);
-          return;
-        }
-
-        DmaPort::readDma(buf, length);
-
-        // Check CRC
-        uint16_t crc = (((uint16_t)cmdBuf[4]) << 8) | (uint16_t)(cmdBuf[5]);
-        if(crc == crc16(buf, length)) {
-          // Acknowledge the exec before starting execution:
-          // if the code crashes, at least the ACSI bus will be released.
-          commandStatus(ERR_OK);
-
-          // Execute the buffer
-          ((void (*)())buf)();
-
-          // Too dangerous to go on: simply reboot
-          reboot();
-        }
-
-        verbose("Exec buffer CRC error\n");
-        commandStatus(ERR_WRITEERR);
-        return;
-#endif
       }
       verboseHex("Invalid buffer mode ", cmdBuf[1], '\n');
       commandStatus(ERR_INVARG);
@@ -942,7 +901,7 @@ Acsi::ScsiErr Acsi::processBlockWrite(uint32_t block, int count, BlockDev *dev) 
     DmaPort::readDma(buf, ACSI_BLOCKSIZE * burst);
 
 #if !ACSI_STRICT && ACSI_BOOT_OVERLAY
-    if(!strict && block == 0 && s == 0)
+    if(!strict && block == 0 && s == 0 && slot <= ACSI_BOOT_OVERLAY)
       fixOverlayWrite(dev);
 #endif
 

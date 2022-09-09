@@ -10,76 +10,81 @@
 #    arduino
 #    zip
 
-if ! [ -e acsi2stm/acsi2stm.ino ]; then
-  echo "Please run this script from the root directory of the project"
-  exit 1
-fi
-
-srcdir="$PWD/asm"
+srcdir="$(dirname "$0")/asm"
 builddir="$PWD/build.asm~"
 tosdir="$PWD"
-VERSION=`cat VERSION`
+VERSION=`cat "$srcdir/../VERSION"`
 
 echo "Patch the source to set VERSION to $VERSION"
 
-sed -i '/; ACSI2STM VERSION NUMBER/s/dc\.b.'\''.*'\''/dc.b\t'\'"$VERSION"\'/ asm/acsi2stm.i
+sed -i '/; ACSI2STM VERSION NUMBER/s/dc\.b.'\''.*'\''/dc.b\t'\'"$VERSION"\'/ "$srcdir/acsi2stm.i"
 
 # Remove previous build artifacts and create a build directory
 rm -rf "$builddir"
 mkdir -p "$builddir"
 
 buildbin() {
-  if [ -e "$srcdir/$1/bin.s" ]; then
-    echo "Compile $1 BIN program"
-    vasmm68k_mot -maxerrors=20 -devpac -ldots -showopt -Fbin -L "$builddir/$1.bin.lst" -o "$srcdir/$1/$1.bin" "$srcdir/$1/bin.s" || exit $?
-    [ -e "$srcdir/$1/$1.bin" ] || exit $?
-  fi
+  export builddir
+  (
+    cd "$1"
+    if [ -e "bin.s" ]; then
+      name="$(basename "$1")"
+      [ -d "$builddir/$name" ] || mkdir -p "$builddir/$name" || exit $?
+      echo "Compile $name BIN program"
+      vasmm68k_mot -maxerrors=20 -devpac -ldots -showopt -Fbin -L "$builddir/$name.bin.lst" -o "$builddir/$name/$name.bin" "$srcdir/$name/bin.s" || exit $?
+      [ -e "$builddir/$name/$name.bin" ] || exit $?
+    fi
+  )
 }
 
 buildasm() {
-  if [ -e "$srcdir/$1/boot.s" ]; then
-    echo "Compile $1 boot program"
-    vasmm68k_mot -maxerrors=20 -devpac -ldots -showopt -Fbin -L "$builddir/$1.boot.lst" -o "$builddir/$1.boot.bin" "$srcdir/$1/boot.s" || exit $?
-    [ -e "$builddir/$1.boot.bin" ] || exit $?
+  if [ -e "$1/boot.s" ]; then
+    name="$(basename "$1")"
+    echo "Compile $name boot program"
+    [ -d "$builddir/$name" ] || mkdir -p "$builddir/$name" || exit $?
+    vasmm68k_mot -maxerrors=20 -devpac -ldots -showopt -Fbin -I"$builddir/$name" -L "$builddir/$name.boot.lst" -o "$builddir/$name.boot.bin" "$srcdir/$name/boot.s" || exit $?
+    [ -e "$builddir/$name.boot.bin" ] || exit $?
 
     echo "Generate Arduino source code from the binary blob"
 
-    cd "$builddir"
-    xxd -i "$1.boot.bin" > "../acsi2stm/$1.boot.h"
+    (
+      cd "$builddir"
+      xxd -i "$name.boot.bin" > "$name.boot.h"
+    )
+    cp "$builddir/$name.boot.h" "$srcdir/../acsi2stm/"
   fi
 
-  if [ -e "$srcdir/$1/tools.s" ]; then
-    echo "Compile $1 tools payload"
-    vasmm68k_mot -maxerrors=20 -devpac -ldots -showopt -Fbin -L "$builddir/$1.tools.lst" -o "$builddir/$1.tools.bin" "$srcdir/$1/tools.s" || exit $?
-    [ -e "$builddir/$1.tools.bin" ] || exit $?
+  if [ -e "$1/tools.s" ]; then
+    name="$(basename "$1")"
+    echo "Compile $name tools payload"
+    [ -d "$builddir/$name" ] || mkdir -p "$builddir/$name" || exit $?
+    vasmm68k_mot -maxerrors=20 -devpac -ldots -showopt -Fbin -I"$builddir/$name" -L "$builddir/$name.tools.lst" -o "$builddir/$name.tools.bin" "$srcdir/$name/tools.s" || exit $?
+    [ -e "$builddir/$name.tools.bin" ] || exit $?
 
     echo "Generate source code from the binary blob"
 
-    cd "$builddir"
-    xxd -i "$1.tools.bin" > "../tools/$1.h"
+    (
+      cd "$builddir"
+      xxd -i "$name.tools.bin" > "$name.h"
+    )
+    cp "$builddir/$name.h" "$srcdir/../tools/"
   fi
 
-  if [ -e "$srcdir/$1/tos.s" ]; then
-    echo "Compile $1 TOS program"
+  if [ -e "$1/tos.s" ]; then
+    name="$(basename "$1")"
+    echo "Compile $name TOS program"
+    [ -d "$builddir/$name" ] || mkdir -p "$builddir/$name" || exit $?
     [ -e "$tosdir" ] || mkdir "$tosdir"
-    vasmm68k_mot -maxerrors=20 -devpac -monst -ldots -showopt -Ftos -L "$builddir/$1.lst" -o "$tosdir/$1.tos" "$srcdir/$1/tos.s" || exit $?
-    [ -e "$tosdir/$1.tos" ] || exit $?
+    vasmm68k_mot -maxerrors=20 -devpac -monst -ldots -showopt -Ftos -I"$builddir/$name" -L "$builddir/$name.lst" -o "$tosdir/$name.tos" "$srcdir/$name/tos.s" || exit $?
+    [ -e "$tosdir/$name.tos" ] || exit $?
   fi
 }
 
-cd "$srcdir"; for d in *; do buildbin "$d"; done
-cd "$srcdir"; for d in *; do buildasm "$d"; done
-cd "$srcdir"
-for d in *; do
-  if [ -e "$d/$d.bin" ]; then
-    rm "$d/$d.bin"
-  fi
-done
-
+for d in "$srcdir"/*; do buildbin "$d"; done
+for d in "$srcdir"/*; do buildasm "$d"; done
 
 # Clean up
 
-cd ..
 if ! [ "$KEEP_BUILD" ]; then
   rm -r "$builddir"
 fi

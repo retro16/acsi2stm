@@ -107,6 +107,7 @@ void setup() {
   // Initialize the ACSI bridges
   for(int c = 0; c < sdCount; ++c)
     if(acsi[c].begin(
+      c,
       ACSI_FIRST_ID + c
 #if ACSI_ID_OFFSET_PINS
       + idOffset

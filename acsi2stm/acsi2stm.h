@@ -56,12 +56,14 @@
 // Include a dummy boot sector if no SD card is inserted.
 // This will display an alert message during the ST boot process.
 // This makes the device less SCSI-conformant.
+// The variable indicates how many SD card slots have this feature.
 // Disabled in strict mode.
 #define ACSI_DUMMY_BOOT_SECTOR 1
 
 // Overlay a dummy boot sector if the SD card is not bootable.
 // This will display an alert message during the ST boot process.
 // This makes the device absolutely weird and may break some system tools.
+// The variable indicates how many SD card slots have this feature.
 // Disabled in strict mode.
 #define ACSI_BOOT_OVERLAY 1
 
