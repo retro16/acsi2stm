@@ -56,6 +56,13 @@ crlf	; Print a carriage return
 .crlf	dc.b	13,10,0
 	even
 
+escback	print	tui.escback(pc)
+	rts
+
+tui.escback
+	dc.b	'Esc:back',13,10,0
+	even
+
 presskey
 	; Displays "Press a key to continue" then waits for a key
 	asksil	.msg(pc)
