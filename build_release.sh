@@ -8,38 +8,45 @@
 #    arduino
 #    zip
 
-if ! [ -e acsi2stm/acsi2stm.ino ]; then
-  echo "Please run this script from the root directory of the project"
-  exit 1
-fi
-
-VERSION=`cat VERSION`
+srcdir="$(dirname "$0")"
+VERSION=`cat "$srcdir/VERSION"`
 
 # Sanity checks for release package !
-if ! grep 'ACSI_DEBUG 0' acsi2stm/acsi2stm.h >/dev/null \
-|| ! grep 'ACSI_VERBOSE 0' acsi2stm/acsi2stm.h >/dev/null \
-|| ! grep 'ACSI_SD_CARDS 5' acsi2stm/acsi2stm.h >/dev/null \
-|| ! grep 'ACSI_STRICT 0' acsi2stm/acsi2stm.h >/dev/null \
-|| ! grep 'ACSI_READONLY 0' acsi2stm/acsi2stm.h >/dev/null \
-|| ! grep 'ACSI_SD_WRITE_LOCK 2' acsi2stm/acsi2stm.h >/dev/null \
-|| ! grep 'ACSI_HAS_RESET 1' acsi2stm/acsi2stm.h >/dev/null \
-|| ! grep -E 'maxsecsize.*16384' asm/acsi2stm.i >/dev/null \
-|| ! grep -E 'enablesetup.*1' asm/acsi2stm.i >/dev/null \
-|| ! grep -E 'enableserial.*1' asm/acsi2stm.i >/dev/null \
-|| grep -ri 'deadbeef' asm >/dev/null \
-|| grep -ri 'cafe' asm >/dev/null \
-|| grep -ri 'badc0de' asm >/dev/null \
+if ! grep 'ACSI_DEBUG 0' "$srcdir/acsi2stm/acsi2stm.h" >/dev/null \
+|| ! grep 'ACSI_VERBOSE 0' "$srcdir/acsi2stm/acsi2stm.h" >/dev/null \
+|| ! grep 'ACSI_SD_CARDS 5' "$srcdir/acsi2stm/acsi2stm.h" >/dev/null \
+|| ! grep 'ACSI_STRICT 0' "$srcdir/acsi2stm/acsi2stm.h" >/dev/null \
+|| ! grep 'ACSI_READONLY 0' "$srcdir/acsi2stm/acsi2stm.h" >/dev/null \
+|| ! grep 'ACSI_SD_WRITE_LOCK 2' "$srcdir/acsi2stm/acsi2stm.h" >/dev/null \
+|| ! grep 'ACSI_HAS_RESET 1' "$srcdir/acsi2stm/acsi2stm.h" >/dev/null \
+|| ! grep -E 'maxsecsize.*16384' "$srcdir/asm/acsi2stm.i" >/dev/null \
+|| ! grep -E 'enablesetup.*1' "$srcdir/asm/acsi2stm.i" >/dev/null \
+|| ! grep -E 'enableserial.*1' "$srcdir/asm/acsi2stm.i" >/dev/null \
+|| grep -ri 'deadbeef' "$srcdir/asm" >/dev/null \
+|| grep -ri 'cafe' "$srcdir/asm" >/dev/null \
+|| grep -ri 'badc0de' "$srcdir/asm" >/dev/null \
 ; then
   echo "Sanity checks failed"
   echo "Please revert back to release configuration"
   exit 1
 fi
 
-rm -f acsi2stm-*.ino.bin *.tos *.exe
+rm -f acsi2stm-*.zip acsi2stm-*.ino.bin *.tos *.exe
 
-./build_asm.sh || exit $?
-./build_arduino.sh || exit $?
-./build_tools.sh || exit $?
+export KEEP_BUILD
+"$srcdir/build_asm.sh" || exit $?
+"$srcdir/build_arduino.sh" || exit $?
+"$srcdir/build_tools.sh" --windows || exit $?
+
+if [ "$(find -size +64k -name 'acsi2stm-*.ino.bin')" ]; then
+  echo "acsi2stm firmware is too big for release"
+  exit 1
+fi
+
+if ! [ -e a2stboot.exe ]; then
+  echo "Missing Windows executable"
+  exit 1
+fi
 
 builddir="$PWD/build.release~"
 zipfile="$PWD/acsi2stm-$VERSION.zip"
@@ -49,7 +56,7 @@ mkdir "$builddir"
 
 echo "Copy all the stuff in the release directory"
 
-cp -r "acsi2stm-$VERSION.ino.bin" *.tos *.exe README.md doc pcb LICENSE "$builddir"
+cp -r "acsi2stm-$VERSION.ino.bin" *.tos *.exe "$srcdir"/README.md "$srcdir"/doc "$srcdir"/pcb "$srcdir"/LICENSE "$builddir"
 
 echo "... and the legal stuff"
 
@@ -81,12 +88,12 @@ EOF
 echo "Create release zip package"
 
 cd "$builddir"
-rm -f "$zipfile"
 zip -r "$zipfile" *
 
 echo "Clean up build directories ..."
 
 cd ..
 if ! [ "$KEEP_BUILD" ]; then
+  rm -f acsi2stm-*.ino.bin *.tos *.exe
   rm -r "$builddir"
 fi

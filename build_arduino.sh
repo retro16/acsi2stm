@@ -8,31 +8,26 @@
 #    arduino
 #    zip
 
-if ! [ -e acsi2stm/acsi2stm.ino ]; then
-  echo "Please run this script from the root directory of the project"
-  exit 1
-fi
-
-VERSION=`cat VERSION`
 builddir="$PWD/build.arduino~"
+srcdir="$(dirname "$0")"
+VERSION=`cat "$srcdir/VERSION"`
 
 echo "Patch the arduino source to set VERSION to $VERSION"
 
-sed -i 's/^\(#define ACSI2STM_VERSION\).*/\1 "'$VERSION'"/' acsi2stm/acsi2stm.h
+sed -i 's/^\(#define ACSI2STM_VERSION\).*/\1 "'$VERSION'"/' "$srcdir/acsi2stm/acsi2stm.h"
 
 echo "Create a clean build directory"
 
 rm -rf "$builddir"
 mkdir "$builddir"
-cd "$builddir"
 
 echo "Compile the arduino binary"
 
-arduino --pref build.path=./ --preserve-temp-files --verify ../acsi2stm/acsi2stm.ino
+arduino --pref build.path="$builddir" --board "Arduino_STM32-master:STM32F1:genericSTM32F103C:device_variant=STM32F103C8,upload_method=serialMethod,cpu_speed=speed_72mhz,opt=o2std" --preserve-temp-files --verify "$srcdir/acsi2stm/acsi2stm.ino"
 
-[ -e acsi2stm.ino.bin ] || exit $?
+[ -e "$builddir/acsi2stm.ino.bin" ] || exit $?
 
-cp acsi2stm.ino.bin ../acsi2stm-$VERSION.ino.bin
+cp "$builddir/acsi2stm.ino.bin" ./acsi2stm-$VERSION.ino.bin
 
 # Clean up build
 

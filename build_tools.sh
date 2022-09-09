@@ -7,34 +7,40 @@
 #    sed
 #    gcc
 
-if ! [ -e acsi2stm/acsi2stm.ino ]; then
-  echo "Please run this script from the root directory of the project"
-  exit 1
-fi
-
-srcdir="$PWD/tools"
+srcdir="$(dirname "$0")/tools"
 bindir="$PWD"
 exedir="$PWD"
-VERSION=`cat VERSION`
+VERSION=`cat "$srcdir/../VERSION"`
+
+if [ "$1" = "--windows" ]; then
+  unset NATIVE
+else
+  NATIVE=1
+fi
 
 echo "Patch the tools source to set VERSION to $VERSION"
 
-sed -i 's/^\(#define ACSI2STM_VERSION\).*/\1 "'$VERSION'"/' tools/acsi2stm.h
+sed -i 's/^\(#define ACSI2STM_VERSION\).*/\1 "'$VERSION'"/' "$srcdir/acsi2stm.h"
 
-echo "Searching for a valid C compiler"
-if [ "$CC" ] && which "$CC" &>/dev/null; then
-  echo "Using environment-defined CC ('$CC')"
-elif which "gcc" &>/dev/null; then
-  CC=gcc
-  CFLAGS="-Os -g0 -Wl,-s"
-elif which "clang" &>/dev/null; then
-  CC=clang
-  CFLAGS="-Os -g0 -Wl,-s"
-elif which "cc" &>/dev/null; then
-  CC=cc
+if [ "$NATIVE" ]; then
+  echo "Searching for a valid C compiler"
+  if [ "$CC" ] && which "$CC" &>/dev/null; then
+    echo "Using environment-defined CC ('$CC')"
+  elif which "gcc" &>/dev/null; then
+    CC=gcc
+    CFLAGS="-I '$srcdir' -Os -g0 -Wl,-s"
+  elif which "clang" &>/dev/null; then
+    CC=clang
+    CFLAGS="-I '$srcdir' -Os -g0 -Wl,-s"
+  elif which "cc" &>/dev/null; then
+    CC=cc
+  else
+    echo "Could not find a native C compiler."
+    exit 1
+  fi
 else
-  echo "Could not find a native C compiler."
-  exit 1
+  unset CC
+  unset CFLAGS
 fi
 
 echo "Searching for a valid Windows C compiler"
@@ -42,10 +48,16 @@ if which "$WINCC" &>/dev/null; then
   echo "Using environment-defined WINCC ($WINCC)"
 elif which "i686-w64-mingw32-cc" &>/dev/null; then
   WINCC=i686-w64-mingw32-cc
-  WINCFLAGS="-Os -g0 -Wl,-s"
+  WINCFLAGS="-I '$srcdir' -Os -g0 -Wl,-s"
 elif which "x86_64-w64-mingw32-cc" &>/dev/null; then
   WINCC=x86_64-w64-mingw32-cc
-  WINCFLAGS="-Os -g0 -Wl,-s"
+  WINCFLAGS="-I '$srcdir' -Os -g0 -Wl,-s"
+elif which "i686-w64-mingw32-gcc" &>/dev/null; then
+  WINCC=i686-w64-mingw32-gcc
+  WINCFLAGS="-I '$srcdir' -Os -g0 -Wl,-s"
+elif which "x86_64-w64-mingw32-gcc" &>/dev/null; then
+  WINCC=x86_64-w64-mingw32-gcc
+  WINCFLAGS="-I '$srcdir' -Os -g0 -Wl,-s"
 else
   echo "Could not find a Windows C compiler."
   echo "Install mingw-w64 to cross-compile for Windows"
@@ -68,5 +80,5 @@ buildtool() {
   fi
 }
 
-cd "$srcdir"; for d in *.c; do buildtool "$(basename "$d" .c)"; done
+for d in "$srcdir"/*.c; do buildtool "$(basename "$d" .c)"; done
 

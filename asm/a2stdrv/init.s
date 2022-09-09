@@ -105,7 +105,40 @@ drvinit	; Driver initialization
 
 	bsr.w	scan                    ; Scan devices and mount them
 
-	; Set boot drive
+.nobdrv
+	; Display partitions
+	bsr.w	prtpart
+
+	; Check for boot drive selection
+	gemdos	Cconis,2                ; Check if a key was pressed
+	tst.b	d0                      ;
+	beq.b	.setbd                  ;
+	gemdos	Cnecin,2                ;
+
+	cmp.b	#'a',d0                 ; Check if remapping to floppy
+	beq.b	.domap                  ;
+	cmp.b	#'c',d0                 ; Check if the key is a drive letter
+	bls.b	.setbd                  ;
+	cmp.b	#'p',d0                 ;
+	bgt.b	.setbd                  ;
+
+.domap	sub.b	#'a',d0                 ; Convert to offset in pun
+	ext.w	d0                      ; d0 = offset in pun table
+	lea	pun(pc),a0              ; a0 = local pun table
+
+	btst.b	#7,pun.pun(a0,d0)       ; Check if there is a mounted drive
+	bne.b	.setbd                  ;
+
+	lea	remaptxt.letter(pc),a0  ; Adjust remapping message
+	add.b	d0,(a0)                 ;
+
+	moveq	#2,d1                   ; Swap drive with C:
+	bsr.w	swappun                 ;
+
+	print	remaptxt(pc)            ; Print remapping message
+
+
+.setbd	; Set boot drive
 
 	moveq	#2,d1                   ; Drive C
 
@@ -121,38 +154,7 @@ drvinit	; Driver initialization
 	pea	(sp)                    ;
 	gemdos	Dsetpath,8              ;
 
-.nobdrv
-	; Display partitions
-	bsr.w	prtpart
-
-	; Check for boot drive selection
-	gemdos	Cconis,2                ; Check if a key was pressed
-	tst.b	d0                      ;
-	beq.b	.cont                   ;
-	gemdos	Cnecin,2                ;
-
-	cmp.b	#'c',d0                 ; Check if the key is a drive letter
-	bls.b	.cont                   ;
-	cmp.b	#'p',d0                 ;
-	bgt.b	.cont                   ;
-
-	sub.b	#'a',d0                 ; Convert to offset in pun
-	ext.w	d0                      ; d0 = offset in pun table
-	lea	pun(pc),a0              ; a0 = local pun table
-
-	btst.b	#7,pun.pun(a0,d0)       ; Check if there is a mounted drive
-	bne.b	.cont                   ;
-
-	lea	remaptxt.letter(pc),a0  ; Adjust remapping message
-	add.b	d0,(a0)                 ;
-
-	moveq	#2,d1                   ; Swap drive with C:
-	bsr.w	swappun                 ;
-
-	print	remaptxt(pc)            ; Print remapping message
-
-.cont
-	pea	text.started(pc)        ; Print startup message
+.ready	pea	text.started(pc)        ; Print startup message
 	gemdos	Cconws,6                ;
 
 	move.b	#$e0,d7                 ; Don't boot other drives
