@@ -58,16 +58,18 @@ int patchFat(FILE *f, long imgSize) {
   if(v < 1 || v > 16)
     return 0;
 
-  v = fgetc(f) | fgetc(f) << 8;
-
-  if(v < (drvboot_tools_bin_len+tools_bin_len+511)/512)
-    // Not enough reserved sectors
-    return 0;
+  // Read reserved sectors
+  int res = fgetc(f) | fgetc(f) << 8;
 
   // Check FAT count
   v = fgetc(f);
   if(v < 1 || v > 4)
     return 0;
+
+  if(res < (drvboot_tools_bin_len+tools_bin_len+511)/512)
+    // Not enough reserved sectors
+    return 2;
+
 
   // Looks roughly like a FAT. Let's patch it.
   printf("Patching FAT filesystem\n");
@@ -116,7 +118,7 @@ int patchMbr(FILE *f, long imgSize) {
     }
     if(sector && sector < (drvboot_tools_bin_len+511)/512) {
       // Starts before the space we need !
-      return 0;
+      return 2;
     }
   }
 
@@ -151,7 +153,7 @@ int patchTos(FILE *f, long imgSize) {
     }
     if(sector && sector < (drvboot_tools_bin_len+511)/512) {
       // Starts before the space we need !
-      return 0;
+      return 2;
     }
   }
 
@@ -204,18 +206,21 @@ int main(int argc, char **argv) {
 
   int allocszOffset = 0;
   int checksumOffset = 0;
+  int r = 0;
 
   // Try patching all possible formats
-  if(patchFat(f, imgSize)) {
+  if((r = patchFat(f, imgSize))) {
     allocszOffset = 434+0x3e;
     checksumOffset = 438+0x3e;
-  } else if(patchMbr(f, imgSize)) {
+  } else if((r = patchMbr(f, imgSize))) {
     allocszOffset = 434;
     checksumOffset = 438;
-  } else if(patchTos(f, imgSize)) {
+  } else if((r = patchTos(f, imgSize))) {
     allocszOffset = 434;
     checksumOffset = 510;
-  } else
+  }
+
+  if(r != 1)
     return badImage();
 
   // Patch malloc size and sector count

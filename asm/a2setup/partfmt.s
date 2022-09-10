@@ -307,7 +307,9 @@ partfmt.dofmt
 	lea	bss+buf(pc),a1
 	move.w	#$55aa,fat.sig(a1)
 
-	lea	fat.oem(a1),a2          ; a2 = pointer inside the boot sector
+	lea	(a1),a2                 ; a2 = pointer inside the boot sector
+	move.w	#$eb3c,(a2)+            ; Modern windows wants its x86 jump
+	move.b	#$90,(a2)+              ; instruction to mount the filesystem
 
 	move.b	#'A',(a2)+              ;
 	move.l	#'2SET',(a2)+           ;
