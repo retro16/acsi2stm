@@ -66,7 +66,7 @@ mtbl.sig	rs.w	1   ; $1fe      ; $55aa signature
 ; fat: FAT boot sector
 ; All values are little endian
 		rsreset
-fat.bra		rs.b	3   ; $00       ; Jump instruction
+fat.bra		rs.b	3   ; $00       ; Jump instruction (EB 3C 90 for DOS)
 fat.oem		rs.b	8   ; $03       ; OEM name padded with spaces
 fat.bps		rs.b	2   ; $0b  $0200; Bytes per sector
 fat.spc		rs.b	1   ; $0d  $02  ; Sectors per cluster
