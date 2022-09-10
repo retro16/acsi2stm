@@ -391,9 +391,8 @@ void DmaPort::readDma(uint8_t *bytes, int count) {
       if(!checkDma()) \
         if(!checkDma()) \
           if(!checkDma()) \
-            if(!checkDma()) \
-              while(!checkDma()) \
-                checkReset(); \
+            while(!checkDma()) \
+              checkReset(); \
       triggerDrq(); \
       bytes[b] = dmaData(); \
       armDma(); \
@@ -419,9 +418,8 @@ void DmaPort::readDma(uint8_t *bytes, int count) {
     if(!checkDma())
       if(!checkDma())
         if(!checkDma())
-          if(!checkDma())
-            while(!checkDma())
-              checkReset();
+          while(!checkDma())
+            checkReset();
     bytes[15] = dmaData();
     bytes += 16;
   }
@@ -472,9 +470,8 @@ void DmaPort::sendDma(const uint8_t *bytes, int count) {
       if(!ackReceived()) \
         if(!ackReceived()) \
           if(!ackReceived()) \
-            if(!ackReceived()) \
-              while(!ackReceived()) \
-                checkReset(); \
+            while(!ackReceived()) \
+              checkReset(); \
     } while(0)
   for(i = 0; i <= count - 16; i += 16) {
     ACSI_SEND_BYTE(0);

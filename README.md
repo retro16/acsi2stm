@@ -1,3 +1,5 @@
+**BETA VERSION**
+
 ACSI2STM: Atari ST ACSI hard drive emulator
 ===========================================
 

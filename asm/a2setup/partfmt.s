@@ -29,6 +29,7 @@ partfmt
 	bsr.w	partfmt.init            ; Initialize pfmt with best defaults
 
 	enter
+	cls
 
 	print	.header(pc)
 	lea	bss+pfmt(pc),a0         ;
