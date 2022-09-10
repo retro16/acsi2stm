@@ -47,6 +47,12 @@ const
 
 #endif
 
+static void __attribute__ ((noinline)) write24(uint8_t *target, uint32_t value) {
+  target[0] = (value >> 16) & 0xFF;
+  target[1] = (value >> 8) & 0xFF;
+  target[2] = (value) & 0xFF;
+}
+
 Acsi::Acsi(int sdCs_, int sdWp_):
   card(sdCs_, sdWp_) {}
 
@@ -254,26 +260,20 @@ void Acsi::process(uint8_t cmd) {
       buf[0] = (lastErr >> 8) & 0xFF;
       if(lastSeek) {
         buf[0] |= 0x80;
-        buf[1] = (lastBlock >> 16) & 0xFF;
-        buf[2] = (lastBlock >> 8) & 0xFF;
-        buf[3] = (lastBlock) & 0xFF;
+        write24(&buf[1], lastBlock);
       }
     } else {
       // Build long response in buf
       buf[0] = 0x70;
       if(lastSeek) {
         buf[0] |= 0x80;
-        buf[4] = (lastBlock >> 16) & 0xFF;
-        buf[5] = (lastBlock >> 8) & 0xFF;
-        buf[6] = (lastBlock) & 0xFF;
+        write24(&buf[4], lastBlock);
       }
       buf[2] = (lastErr) & 0xFF;
       buf[3] = (lastErr >> 16) & 0xFF;
       buf[7] = 14;
       buf[12] = (lastErr >> 8) & 0xFF;
-      buf[19] = (lastBlock >> 16) & 0xFF;
-      buf[20] = (lastBlock >> 8) & 0xFF;
-      buf[21] = (lastBlock) & 0xFF;
+      write24(&buf[19], lastBlock);
     }
     // Send the response
     DmaPort::sendDma(buf, cmdBuf[4] < 4 ? 4 : cmdBuf[4]);
@@ -704,9 +704,7 @@ void Acsi::process(uint8_t cmd) {
         else
           buf[0] = 0;
 
-        buf[1] = (uint8_t)(bufSize >> 16);
-        buf[2] = (uint8_t)(bufSize >> 8);
-        buf[3] = (uint8_t)(bufSize);
+        write24(&buf[1], bufSize);
 
         DmaPort::sendDma(buf, 4);
         commandStatus(ERR_OK);
