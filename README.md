@@ -46,6 +46,8 @@ This is what you can find:
  * [hardware.md](doc/hardware.md): How to design and build an acsi2stm unit
    from scratch (hand wired, or your own PCB design).
  * [gemdrive.md](doc/gemdrive.md): Technical details about GemDrive.
+ * [troubleshooting.md](doc/troubleshooting.md): Having problems? Have a look
+   in here.
 
 
 To people buying/selling hardware
