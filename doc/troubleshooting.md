@@ -27,27 +27,4 @@ The workaround is basically to use an alternative TOS version. TOS 2.06 and
 familiar experience with many quality of life improvements and is still under
 active development.
 
-### Boot EmuTOS from SD
-Check out [EmuTOS Bootloader](https://github.com/czietz/emutos-bootloader).
-Installing is as straight-forward as restoring an image file to an SD card. A
-couple of things to note about this method:
-
-* This will wipe all the data from the card, but the linked website offers
-  other methods of installation.
-* This method does not play nice with multiple partitions yet, so is only
-  really suitable if you're happy with a single partition on your card.
-
-### Boot EmuTOS or another TOS from floppy
-Check out the
-[EmuTOS Installation Guide](https://emutos.github.io/manual/#installation)
-for help on how to set up a floppy to boot straight into EmuTOS.
-
-Alternatively you may find floppy images you can use to boot into original
-versions of TOS elsewhere online.
-
-To skip booting from the SD card, hold down the **Alternate** key when turning
-on your computer.
-
-### Physically swap the ROMs
-This is a much more advanced solution and involves sourcing and soldering new
-chips into your machine. This is outwith the scope of this document.
+To install EmuTOS, see the guide in [emutos.md](emutos.md)

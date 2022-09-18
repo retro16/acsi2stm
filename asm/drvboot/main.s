@@ -32,6 +32,8 @@
 	include	tos.i
 	include	atari.i
 
+	dc.b	$eb,$00                 ; Make Windows happy.
+		                        ; Translates to a harmless 'asl.b #5,d0'
 load	print	msg.loading(pc)
 
 	move.l	allocsz(pc),d0          ; Compute allocation size and sectors

@@ -43,6 +43,7 @@ This is what you can find:
  * [hardware.md](doc/hardware.md): How to build an acsi2stm unit from scratch.
  * [debug_output.txt](doc/debug_output.txt): A sample output of the logs you
    should get when booting a SD card.
+ * [emutos.md](doc/emutos.md): A quick tutorial to setup EmuTOS.
  * [troubleshooting.md](doc/troubleshooting.md): Having problems? Have a look
    in here.
 
