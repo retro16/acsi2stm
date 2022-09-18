@@ -48,6 +48,22 @@ rwabs_handler
 	lea	4(sp),a2                ; Point a2 at parameters
 	move.w	rwabs.dev(a2),d1        ; d1 = device number
 
+	btst	#3,rwabs.rwflag+1(a2)   ; Check physical flag
+	beq.b	.nphys
+
+	subq.w	#2,d1                   ; Compute ACSI id
+	and.w	#$3f,d1                 ; Remove "removable" flag (workaround)
+	bmi.b	.nowned                 ; id < 2: floppy call (ignore)
+	cmp.w	#7,d1                   ; id > 7: not an ACSI device call
+	bgt.b	.nowned                 ;
+
+	move.w	d7,-(sp)                ; Set ACSI id
+	move.w	d1,d7                   ;
+	moveq	#0,d0                   ; Sector size is always 512 bytes
+	moveq	#0,d2                   ; No partition offset
+	bra.b	.mok                    ;
+.nphys
+
 	btst	#1,rwabs.rwflag+1(a2)   ; Pay attention to media change ?
 	bne.b	.nmch                   ;
 
@@ -70,7 +86,7 @@ rwabs_handler
 	bne.b	.mountd                 ;
 
 	move.w	(sp)+,d7                ; Not our drive: pass the call
-	hkchain	rwabs                   ;
+.nowned	hkchain	rwabs                   ;
 
 .mountd	btst	#8,d7                   ; Check media present flag
 	bne.b	.mok                    ;
@@ -113,10 +129,8 @@ rwabs_handler
 	swap	d6
 	endif
 
-	btst	#3,rwabs.rwflag+1(a5)   ; Check physical flag
-	bne.b	.phys
 	add.l	a4,d5                   ; d5 = physical sector
-.phys
+
 	moveq	#0,d3                   ;
 	move.w	rwabs.cnt(a5),d3        ; d3 = sector count
 
