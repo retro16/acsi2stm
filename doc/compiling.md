@@ -29,34 +29,15 @@ In the Tools menu of the Arduino interface, select the following:
  * Optimize: Faster (-O2)
  * Port: your USB serial dongle
 
-**Note**: you can use any setting in the "Optimize" menu. O2 is recommended for
-fastest performance, O3 does not bring any speed improvement but generates much
-bigger code.
+**Note**: you must use the O2 optimization level. Any other level will fail.
 
 If you have different options in the Tools menu, it may be because you don't
 have the correct board installed.
 
 Then, you will be able to upload the program to the STM32.
 
-
-Programming the STM32
----------------------
-
-Set the USB dongle to 3.3V if you have a jumper for that. Connect TX to PA10, RX
-to PA9 and the GND pins together.
-
-On the board itself, set the BOOT0 jumper to 1 to enable the serial flash
-bootloader. Reset the STM32 then click Upload.
-
-Once the chip is programmed, switch the BOOT0 jumper back to 0.
-
-**Notes**
-
-The debug output sends data at 2Mbps. Set the serial monitor accordingly.
-
-Programming via anything else than the serial bootloader may require to change
-debug output to Serial0 and may consume more RAM. Serial programming is still
-recommended for best results.
+**Note**: The debug output sends data at 2Mbps. Set the serial monitor
+accordingly.
 
 
 Compile-time options

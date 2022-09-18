@@ -63,25 +63,5 @@ If you power the ACSI2STM from the adapter, unplug all other power sources and
 put a jumper on J4. If you power the ACSI2STM from an external source, make sure
 that J4 is removed.
 
-Set the Blue Pill jumpers to the firmware flash position, then press reset:
-
-     _______________________________
-    |                     _         |
-    |    o [==]       /\ | |       -|--
-    |   [==] o       /  \| |       -|--
-    |                \  /| |       -|--
-    |     (o)         \/ |_|       -|--
-    |_______________________________|
-
-
-Now, the STM32 is in firmware flash mode. Use the *stm32flash* command to upload
-the new firmware:
-
-    stm32flash -w acsi2stm-3.00.ino.bin /dev/ttyUSB0
-
-`acsi2stm-3.00.ino.bin` is the firmware to flash and `/dev/ttyUSB0` is the
-serial device connected to the blue pill.
-
-You can also use the Arduino IDE if it is properly set up. See
-[compiling.md](compiling.md) for  more information.
+See [manual.md](manual.md) for instructions on how to flash the firmware.
 

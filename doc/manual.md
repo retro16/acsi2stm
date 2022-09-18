@@ -361,13 +361,72 @@ The ACSI id selection jumper on the right works the same as in full featured
 mode
 
 
-Firmware programming mode
+Flashing / upgrading the firmware
+---------------------------------
+
+**WARNING**: If you bought pre-built hardware, make sure that the firmware is
+compatible with the hardware. In case of doubt, contact the seller to ask for
+compatibility. Some boards might require special compilation options to work
+correctly.
+
+Programming via anything else than the serial bootloader is not supported and
+will break the code. ST-link and the USB bootloader simply don't work for
+various reasons, don't lose your time trying.
+
+### Connect the hardware
+
+You need a USB to USART converter supporting 3.3V operation.
+
+![Compatible USART adapter](images/usb_serial.jpg)
+
+Depending on the hardware you have, there are multiple possibilities:
+
+ * If you have the official PCB and a compatible USART converter, you can just
+   plug the converter directly on the PCB.
+ * If your PCB contains dedicated firmware flash pins, please consult its user
+   manual (if any) or contact the manufacturer of the PCB.
+ * If you can detach the Blue Pill from the PCB:
+   * Connect a 3.3V or 5V power source on the Blue Pill (you can power via USB)
+   * Connect PA10 on the Blue Pill to the TX pin of your adapter
+   * Connect PA9 on the Blue Pill to the RX pin of your adapter
+   * Connect any GND on the Blue Pill to the GND pin of your adapter
+
+### Put the Blue Pill in firmware flash mode
+
+Set the Blue Pill jumpers to the firmware flash position, then press the reset
+button on the board.
 
      _______________________________
     |                     _         |
     |    o [==]       /\ | |       -|--
     |   [==] o       /  \| |       -|--
     |                \  /| |       -|--
-    |     (o)         \/ |_|       -|--
+    |     (o) reset   \/ |_|       -|--
     |_______________________________|
 
+### Use STM32FLASH
+
+You need [stm32flash](https://sourceforge.net/projects/stm32flash/files/).
+
+The easiest way to run the command is to unzip the acsi2stm release zip file and
+copy the stm32flash binary in the same directory as acsi2stm-X.XX.ino.bin file.
+
+Now, the STM32 is in firmware flash mode. Use the **stm32flash** command to
+upload the new firmware:
+
+On Windows:
+
+    stm32flash -w acsi2stm-X.XX.ino.bin COM1:
+
+On Linux:
+
+    ./stm32flash -w acsi2stm-X.XX.ino.bin /dev/ttyUSB0
+
+COM1: and /dev/ttyUSB0 are just examples, you need to find the actual port of
+the USART adapter. There is a lot of tutorials online explaining how to find
+this.
+
+### Using the Arduino IDE
+
+You can also use the Arduino IDE if it is properly set up. See
+[compiling.md](compiling.md) for  more information.
