@@ -276,6 +276,7 @@ void Acsi::process(uint8_t cmd) {
       write24(&buf[19], lastBlock);
     }
     // Send the response
+    DmaPort::dmaStartDelay();
     DmaPort::sendDma(buf, cmdBuf[4] < 4 ? 4 : cmdBuf[4]);
     
     commandStatus(ERR_OK);
@@ -301,6 +302,7 @@ void Acsi::process(uint8_t cmd) {
     lastSeek = true;
 
     // Do the actual write operation
+    DmaPort::dmaStartDelay();
     commandStatus(processBlockWrite(lastBlock, cmdBuf[4], dev));
     break;
   case 0x0b: // Seek
@@ -334,6 +336,7 @@ void Acsi::process(uint8_t cmd) {
     buf[2] = 1; // ACSI version
     buf[4] = 31; // Data length
 
+    DmaPort::dmaStartDelay();
     DmaPort::sendDma(buf, cmdBuf[4]);
 
     lastSeek = false;
@@ -345,6 +348,7 @@ void Acsi::process(uint8_t cmd) {
   case 0x1a: // Mode sense
     {
       lastSeek = false;
+      DmaPort::dmaStartDelay();
       switch(cmdBuf[2]) { // Sub-command
       case 0x00:
         dev->modeSense0(buf);
@@ -585,6 +589,7 @@ void Acsi::process(uint8_t cmd) {
       buf[7] = 0x00;
     }
 
+    DmaPort::dmaStartDelay();
     DmaPort::sendDma(buf, 8);
 
     commandStatus(ERR_OK);
@@ -606,6 +611,7 @@ void Acsi::process(uint8_t cmd) {
       int count = (((int)cmdBuf[7]) << 8) | (cmdBuf[8]);
 
       // Do the actual write operation
+      DmaPort::dmaStartDelay();
       commandStatus(processBlockWrite(block, count, dev));
     }
     break;
@@ -613,6 +619,7 @@ void Acsi::process(uint8_t cmd) {
     {
       uint32_t offset = (((uint32_t)cmdBuf[3]) << 16) | (((uint32_t)cmdBuf[4]) << 8) | (uint32_t)(cmdBuf[5]);
       uint32_t length = (((uint32_t)cmdBuf[6]) << 16) | (((uint32_t)cmdBuf[7]) << 8) | (uint32_t)(cmdBuf[8]);
+      DmaPort::dmaStartDelay();
       switch(cmdBuf[1]) {
       case 0x02: // Data buffer write
 #if !ACSI_STRICT
@@ -668,6 +675,7 @@ void Acsi::process(uint8_t cmd) {
     {
       uint32_t offset = (((uint32_t)cmdBuf[3]) << 16) | (((uint32_t)cmdBuf[4]) << 8) | (uint32_t)(cmdBuf[5]);
       uint32_t length = (((uint32_t)cmdBuf[6]) << 16) | (((uint32_t)cmdBuf[7]) << 8) | (uint32_t)(cmdBuf[8]);
+      DmaPort::dmaStartDelay();
       switch(cmdBuf[1]) {
       case 0x02: // Data buffer read
 #if !ACSI_STRICT
@@ -716,10 +724,12 @@ void Acsi::process(uint8_t cmd) {
     }
 #if !ACSI_STRICT && ACSI_BOOT_OVERLAY
   case 0x0c:
+    DmaPort::dmaStartDelay();
     DmaPort::sendDma(a2setup_boot_bin, a2setup_boot_bin_len);
     commandStatus(ERR_OK);
     return;
   case 0x0d:
+    DmaPort::dmaStartDelay();
     DmaPort::sendDma(a2stdrv_boot_bin, a2stdrv_boot_bin_len);
     commandStatus(ERR_OK);
     return;

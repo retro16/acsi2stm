@@ -81,6 +81,14 @@ struct DmaPort {
   // longjmp to this target if reset is detected
   static jmp_buf resetJump;
 
+  // Delay between receiving a command and switching to DMA.
+  // Can be tuned with ACSI_DMA_START_DELAY in acsi2stm.h
+  static void dmaStartDelay() {
+#if ACSI_DMA_START_DELAY
+    delay_us(ACSI_DMA_START_DELAY);
+#endif
+  }
+
 protected:
   // Reset timeout timer
   static void resetTimeout();

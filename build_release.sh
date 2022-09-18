@@ -19,9 +19,9 @@ if ! grep 'ACSI_DEBUG 0' "$srcdir/acsi2stm/acsi2stm.h" >/dev/null \
 || ! grep 'ACSI_READONLY 0' "$srcdir/acsi2stm/acsi2stm.h" >/dev/null \
 || ! grep 'ACSI_SD_WRITE_LOCK 2' "$srcdir/acsi2stm/acsi2stm.h" >/dev/null \
 || ! grep 'ACSI_HAS_RESET 1' "$srcdir/acsi2stm/acsi2stm.h" >/dev/null \
-|| ! grep -E 'maxsecsize.*16384' "$srcdir/asm/acsi2stm.i" >/dev/null \
-|| ! grep -E 'enablesetup.*1' "$srcdir/asm/acsi2stm.i" >/dev/null \
-|| ! grep -E 'enableserial.*1' "$srcdir/asm/acsi2stm.i" >/dev/null \
+|| ! grep -E 'maxsecsize.*16384' "$srcdir/asm/inc/acsi2stm.i" >/dev/null \
+|| ! grep -E 'enablesetup.*1' "$srcdir/asm/inc/acsi2stm.i" >/dev/null \
+|| ! grep -E 'enableserial.*1' "$srcdir/asm/inc/acsi2stm.i" >/dev/null \
 || grep -ri 'deadbeef' "$srcdir/asm" >/dev/null \
 || grep -ri 'cafe' "$srcdir/asm" >/dev/null \
 || grep -ri 'badc0de' "$srcdir/asm" >/dev/null \

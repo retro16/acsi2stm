@@ -101,7 +101,7 @@ cygwin, git bash or macos (untested).
 ASM code compile-time options
 -----------------------------
 
-The file *asm/acsi2stm.i* contains compile-time options. For these to take
+The file *asm/inc/acsi2stm.i* contains compile-time options. For these to take
 effect, you need to rebuild both the ASM code and the Arduino code.
 
 Settings that can be changed:

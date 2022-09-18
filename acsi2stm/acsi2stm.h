@@ -22,7 +22,7 @@
 
 // acsi2stm global configuration
 
-#define ACSI2STM_VERSION "3.1a"
+#define ACSI2STM_VERSION "3.1b"
 
 // Set to 1 to enable debug output on the serial port
 #define ACSI_DEBUG 0
@@ -119,6 +119,15 @@
 // Setting to 1 unrolls the DMA transfer code but may be less compatible
 // with some ST DMA controllers.
 #define ACSI_FAST_DMA 1
+
+// Adds an additional delay between the last command byte received and the
+// beginning of a DMA transfer. There is an inherent write hole in the ST and
+// if unlucky enough a bus lock can happen, delaying the time between the CPU
+// sending the last command byte and the CPU actually turning DMA on.
+// The code supposes that an SD card operation is always long enough so this
+// delay is only applied for write operations or synthetized replies.
+// Delay in microseconds.
+#define ACSI_DMA_START_DELAY 2
 
 // Activity LED pin. Leave undefined to remove activity LED.
 #define ACSI_ACTIVITY_LED LED_BUILTIN

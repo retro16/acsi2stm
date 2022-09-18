@@ -43,7 +43,7 @@ partlines	equ	4
 ; Constants
 a2st_version	macro
 	; The following line is patched automatically by build_asm.sh
-	dc.b	'3.1a'			; ACSI2STM VERSION NUMBER
+	dc.b	'3.1b'			; ACSI2STM VERSION NUMBER
 	endm
 
 a2st_header	macro
