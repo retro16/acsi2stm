@@ -65,7 +65,7 @@
 // This makes the device absolutely weird and may break some system tools.
 // The variable indicates how many SD card slots have this feature.
 // Disabled in strict mode.
-#define ACSI_BOOT_OVERLAY 1
+#define ACSI_BOOT_OVERLAY 5
 
 // Set this to limit SD capacity artificially.
 //#define ACSI_MAX_BLOCKS 0x0FFFFF // 512MB limit

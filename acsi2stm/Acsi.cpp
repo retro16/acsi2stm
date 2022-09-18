@@ -191,7 +191,7 @@ void Acsi::process(uint8_t cmd) {
       dev = luns[getLun()];
 
 #if ACSI_DUMMY_BOOT_SECTOR && !ACSI_STRICT
-    if(!strict && !dev && slot <= ACSI_DUMMY_BOOT_SECTOR
+    if(!strict && !dev && slot < ACSI_DUMMY_BOOT_SECTOR
      && cmdBuf[0] == 0x08
      && cmdBuf[1] == 0x00
      && cmdBuf[2] == 0x00
@@ -287,7 +287,7 @@ void Acsi::process(uint8_t cmd) {
     lastSeek = true;
 
 #if ACSI_BOOT_OVERLAY && !ACSI_STRICT
-    if(!strict && lastBlock == 0 && slot <= ACSI_BOOT_OVERLAY && cmdBuf[4] == 1 && !dev->bootable) {
+    if(!strict && lastBlock == 0 && slot < ACSI_BOOT_OVERLAY && cmdBuf[4] == 1 && !dev->bootable) {
       commandStatus(processBootOverlay(dev));
       return;
     }
@@ -909,7 +909,7 @@ Acsi::ScsiErr Acsi::processBlockWrite(uint32_t block, int count, BlockDev *dev) 
     DmaPort::readDma(buf, ACSI_BLOCKSIZE * burst);
 
 #if !ACSI_STRICT && ACSI_BOOT_OVERLAY
-    if(!strict && block == 0 && s == 0 && slot <= ACSI_BOOT_OVERLAY)
+    if(!strict && block == 0 && s == 0 && slot < ACSI_BOOT_OVERLAY)
       fixOverlayWrite(dev);
 #endif
 
