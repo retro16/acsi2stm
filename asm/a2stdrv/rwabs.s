@@ -52,14 +52,21 @@ rwabs_handler
 	beq.b	.nphys
 
 	subq.w	#2,d1                   ; Compute ACSI id
+	bmi.b	.nowned                 ; id < 2: floppy call (forward)
+
 	and.w	#$3f,d1                 ; Remove "removable" flag (workaround)
-	bmi.b	.nowned                 ; id < 2: floppy call (ignore)
-	cmp.w	#7,d1                   ; id > 7: not an ACSI device call
-	bgt.b	.nowned                 ;
 
 	move.w	d7,-(sp)                ; Set ACSI id
+
+	cmp.b	#7,d1                   ; id > 7: not an ACSI device call
+	bgt.b	.undev                  ;
+
 	move.w	d1,d7                   ;
+	lsl.b	#5,d7                   ; Pre-shift ACSI id
+
+	ifgt	maxsecsize-$200         ; If big sectors
 	moveq	#0,d0                   ; Sector size is always 512 bytes
+	endif
 	moveq	#0,d2                   ; No partition offset
 	bra.b	.mok                    ;
 .nphys
@@ -91,7 +98,7 @@ rwabs_handler
 .mountd	btst	#8,d7                   ; Check media present flag
 	bne.b	.mok                    ;
 
-	moveq	#EUNDEV,d0              ; No media: return "invalid device"
+.undev	moveq	#EUNDEV,d0              ; No media: return "invalid device"
 	move.w	(sp)+,d7                ;
 	rts	                        ;
 

@@ -162,6 +162,12 @@ drvinit	; Driver initialization
 .ready	pea	text.started(pc)        ; Print startup message
 	gemdos	Cconws,6                ;
 
+	clr.l	-(sp)                   ; Start EMUTOS.SYS
+	pea	init.zero(pc)           ;
+	pea	init.emutos(pc)         ;
+	clr.w	-(sp)                   ;
+	gemdos	Pexec,16                ; If it doesn't exist, ignore and boot
+
 	move.b	#$e0,d7                 ; Don't boot other drives
 	rts
 

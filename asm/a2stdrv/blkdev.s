@@ -55,8 +55,9 @@ blk.exc ; Execute a command and sense errors
 	bsr.w	acsicmd
 	tst.b	d0
 	bgt.b	blk.sns
+	bne.b	.rts
 	moveq	#0,d0
-	rts
+.rts	rts
 
 blk.sns	; Sense error code
 	; Input:

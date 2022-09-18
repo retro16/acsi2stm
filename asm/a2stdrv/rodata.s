@@ -24,4 +24,7 @@ text.notime	dc.b	'Could not set time',13,10,0
 
 prtpart.none	dc.b	7,'No partition detected',13,10,0
 
+init.emutos	dc.b	'EMUTOS.SYS'
+init.zero	dc.b	0
+
 ; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm tw=80
