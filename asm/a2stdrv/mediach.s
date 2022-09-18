@@ -18,7 +18,8 @@
 ; Mediach handler
 
 mediach_handler
-	; d1 = current device
+	lea	4(sp),a2                ; Point a2 at parameters
+	move.w	(a2)+,d1                ; Load device number
 
 	bsr.b	.chk                    ; Do a quick flag check
 
@@ -31,13 +32,13 @@ mediach_handler
 	bne.b	.mountd                 ;
 
 	move.w	(sp)+,d7                ; Not our drive: pass the call
-	hkchain	bios                    ;
+	hkchain	mediach                 ;
 
 .mountd	move.w	(sp)+,d7                ; Restore d7
 	bsr.b	.chk                    ; Check flag again because of rescan
 
 	moveq	#0,d0                   ; Flag was not set
-	rte
+	rts
 
 .chk	lea	mchmask(pc),a0          ; Check the flag
 	move.l	(a0),d0                 ;
@@ -49,6 +50,6 @@ mediach_handler
 	
 	moveq	#2,d0                   ; Return media change
 	addq.l	#4,sp                   ; Skip subroutine return
-	rte	                        ; Return BIOS call directly
+	rts	                        ; Return BIOS call directly
 
 ; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm tw=80

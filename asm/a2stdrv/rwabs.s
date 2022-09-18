@@ -45,7 +45,7 @@ rwabs_out	macro
 	endm
 
 rwabs_handler
-	; a2 = parameters
+	lea	4(sp),a2                ; Point a2 at parameters
 	move.w	rwabs.dev(a2),d1        ; d1 = device number
 
 	btst	#1,rwabs.rwflag+1(a2)   ; Pay attention to media change ?
@@ -60,7 +60,7 @@ rwabs_handler
 	move.l	(a0),d0                 ;
 	
 	moveq	#E_CHNG,d0              ; Return media change
-	rte
+	rts
 
 .nmch	move.w	d7,-(sp)
 
@@ -70,14 +70,14 @@ rwabs_handler
 	bne.b	.mountd                 ;
 
 	move.w	(sp)+,d7                ; Not our drive: pass the call
-	hkchain	bios                    ;
+	hkchain	rwabs                   ;
 
 .mountd	btst	#8,d7                   ; Check media present flag
 	bne.b	.mok                    ;
 
 	moveq	#EUNDEV,d0              ; No media: return "invalid device"
 	move.w	(sp)+,d7                ;
-	rte	                        ;
+	rts	                        ;
 
 .mok	rwabs_in
 
@@ -150,7 +150,7 @@ rwabs_handler
 	bra.b	.endop                  ;
 .read	bsr.w	blk.rd                  ; Call read
 .endop
-.onerr	bsr.w	acsierr                 ; Get error code in TOS format ; XXX $aabc
+.onerr	bsr.w	acsierr                 ; Get error code in TOS format
 
 	beq.b	.nerr                   ;
 
@@ -170,7 +170,7 @@ rwabs_handler
 
 .end	rwabs_out
 	move.w	(sp)+,d7
-	rte
+	rts
 
 .mch	move.w	rwabs.dev(a5),d1        ; d1 = current drive
 	bsr.w	setmch                  ; Set media change flag

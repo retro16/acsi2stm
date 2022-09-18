@@ -19,30 +19,10 @@ bios_handler
 	lea	0(sp,d0),a2
 	move.w	(a2)+,d1
 
-	cmp.w	#Rwabs,d1
-	blt.b	.chain
-	beq.b	rwabs_handler
-
 	cmp.w	#Drvmap,d1
-	bgt.b	.chain
-	beq.w	drvmap_handler
-
-	cmp.w	#Mediach,d1
-	bne.b	.nmch
-	move.w	(a2),d1
-	bra.w	mediach_handler
-.nmch
-	cmp.w	#Getbpb,d1
-	bne.b	.chain
-	move.w	(a2),d1
-	bra.w	getbpb_handler
-
+	bne.w	.chain
+	bsr.w	rescan
 .chain
 	hkchain	bios
-
-	include	rwabs.s
-	include	drvmap.s
-	include	mediach.s
-	include	getbpb.s
 
 ; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm tw=80

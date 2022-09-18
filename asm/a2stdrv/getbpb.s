@@ -20,6 +20,9 @@
 getbpb_handler
 	; d1 = current device
 
+	lea	4(sp),a2                ; Point a2 at parameters
+	move.w	(a2)+,d1                ; Load device number
+
 	move.w	d7,-(sp)
 
 	bsr.w	rescan                  ; Rescan and remount if necessary
@@ -29,7 +32,7 @@ getbpb_handler
 	bne.b	.mountd                 ;
 
 	move.w	(sp)+,d7                ; Not our drive: pass the call
-	hkchain	bios                    ;
+	hkchain	getbpb                  ;
 
 .mountd	btst	#8,d7                   ; Check media present flag
 	beq.b	.err                    ;
@@ -46,7 +49,7 @@ getbpb_handler
 
 .err	moveq	#0,d0                   ; Error: no BPB
 	move.w	(sp)+,d7                ;
-	rte
+	rts
 
 .nerr
 	; Compute BPB (code inspired from emuTOS)
@@ -143,6 +146,6 @@ getbpb_handler
 	lea	bss+bpb(pc),a0          ; a0 = BPB address
 	move.l	a0,d0                   ; Return BPB address
 	move.w	(sp)+,d7                ; Restore d7
-	rte
+	rts
 
 ; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm tw=80

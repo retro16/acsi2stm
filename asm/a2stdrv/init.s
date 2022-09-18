@@ -93,6 +93,9 @@ drvinit	; Driver initialization
 	endc
 
 	hkinst	bios                    ; Let's thrash that poor system
+	hkinst	getbpb                  ;
+	hkinst	rwabs                   ;
+	hkinst	mediach                 ;
 
 	lea	bss+buf(pc),a0          ; Set the clock
 	bsr.w	synctime                ;
@@ -164,5 +167,8 @@ drvinit	; Driver initialization
 
 ; Hook declarations
 	hook	bios
+	hook	getbpb
+	hook	mediach
+	hook	rwabs
 
 ; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm tw=80
