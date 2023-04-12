@@ -1,3 +1,20 @@
+TODO before 4.0:
+
+ACSI mode:
+
+ * SD card initialization is broken. Breaks booting !!!
+ * Need to really test SD card swap.
+
+GemDrive mode:
+
+ * Pexec (running PRG files) is hit-or-miss. Of course, only the least
+   interesting programs work. This will be **hard**.
+ * ACSI detection logic isn't perfect.
+ * Implement garbage file filter (non 8.3, dot files).
+ * Need to make ACSI and GemDrive work together.
+ * Fix top RAM allocation. I missed something. Need help.
+
+
 4.0a: A giant leap for ST-kind
 ==============================
 
