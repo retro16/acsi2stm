@@ -31,7 +31,8 @@ Compile-time options:
 
 ### acsi2stm-XXXX-debug.ino.bin
 
-The standard firmware, with limited debug output.
+The standard firmware, with limited debug output. Debug output is on the USART
+port of the STM32 (PA9) at 2Mbps.
 
 Compile-time options:
 
@@ -92,7 +93,16 @@ Set the USB dongle to 3.3V if you have a jumper for that. Connect TX to PA10, RX
 to PA9 and the GND pins together.
 
 On the board itself, set the BOOT0 jumper to 1 to enable the serial flash
-bootloader.
+bootloader:
+
+     _______________________________
+    |                     _         |
+    |    o [==]       /\ | |       -|--
+    |   [==] o       /  \| |       -|--
+    |                \  /| |       -|--
+    |     (o)         \/ |_|       -|--
+    |_______________________________|
+
 
 To upload the firmware, you need the `stm32flash` command-line tool available on
 the [Arduino_STM32](https://github.com/rogerclarkmelbourne/Arduino_STM32/tree/master/tools)

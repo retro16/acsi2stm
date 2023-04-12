@@ -1,7 +1,21 @@
-4.0a: A giant leap for ST-kind
+TODO before 4.0:
+
+GemDrive mode:
+
+ * Pexec (running PRG files) still needs a lot of testing.
+ * Implement garbage file filter (non 8.3, dot files).
+ * Fix top RAM allocation. I missed something. Need help.
+ * Set date/time correctly on all created files
+ * Implement date/time functions with RTC
+ * Implement file date/time function
+
+
+4.0b: A giant leap for ST-kind
 ==============================
 
 **ALPHA VERSION**: unfinished, unstable. Do not use in production.
+
+ACSI mode seems better than any 3.XX but needs testing. Feedback appreciated.
 
 Why version 4.0 ?
 -----------------
@@ -72,13 +86,12 @@ Despite the new GemDrive feature, a few fixes and logic changes were made to the
 ACSI block device emulation (i.e. "normal" Atari hard disk). This proved to be a
 very useful use case for most users, so I can't ditch it like that.
 
-Though it is untested, it should be possible to mix GemDrive and Atari SD cards,
-allowing easy transfer between them ... because you have at least 2 SD slots,
-don't you ?
+Depending on your ACSI driver, it is possible to mix GemDrive and Atari SD
+cards if you have multiple SD card slots ...
 
-GemDrive uses a heuristic to try to select the best mode (GemDrive or ACSI)
-depending on what it detects on the first SD card slot, but if you really want
-ACSI only, just turn on strict mode using the second jumper on the STM32.
+GemDrive uses a heuristic to try to select the best mode (GemDrive or ACSI),
+but if all you want is good old ACSI only, just turn on strict mode using the
+second jumper on the STM32.
 
 
 Your hardware is safe

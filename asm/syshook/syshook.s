@@ -16,25 +16,56 @@
 
 ; Hooks TOS system calls into the STM32
 
-; Global registers:
-;  a4 = Call forwarding address
-;  a3 = Current DMA pointer
-;  a2 = DMA controller data port
-;  a1 = DMA controller status port
- 
-	incdir	..\inc\
-	include	tos.i
-	include	atari.i
+; DMA port hardware registers
+dma	equ	$ffff8604
+dmadata	equ	dma
+dmactrl	equ	dma+2
+dmahigh	equ	dma+5
+dmamid	equ	dma+7
+dmalow	equ	dma+9
+gpip	equ	$fffffa01
+flock	equ	$43e                    ; Floppy access semaphore
+
+savereg	macro
+	; Save registers on stack
+	; ... because some poorly written apps rely on scratch register being
+	; preserved !
+	movem.l	d1-d2/a0-a2,-(sp)
+	endm
+
+resreg	macro
+	; Restore registers from stack
+	movem.l	(sp)+,d1-d2/a0-a2
+	endm
+
+	; Stack offset introduced by savereg
+spoff	equ	5*4
 
 	bra.b	syshook.init
 
 	dc.b	0                       ; Patched-in variables
-acsiid	dc.b	$02                     ; Invalid values to check for correct
-prmoff	dc.w	$02                     ; patching code in the STM32
+acsiid	dc.b	$ff                     ; Invalid values to check for correct
+prmoff	dc.w	$ff                     ; patching code in the STM32
 
 syshook.init:
+	savereg	                        ; Save registers
 	move.b	d7,d0                   ; Send a command with the correct id
-	bra.w	syshook.start
+	bra.w	syshook.sendcmd
+
+syshook.setprm:
+	; Point a2 at the parameters of the initial call
+	; The supervisor stack must point at the trap stack frame
+	; Alters d2 and a2 only
+	btst	#5,8+spoff(sp)          ; Check if supervisor mode
+	beq.b	.usp                    ; Branch if user mode
+
+	move.w	prmoff(pc),d2           ; Fetch parameter offset
+	lea	8+spoff(sp,d2),a2       ; Compute pointer to call parameters
+	rts
+
+.usp	move	usp,a2                  ; Point at USP directly
+	rts
+
 
 syshook	macro
 	; \1 = one-byte ACSI command
@@ -46,10 +77,10 @@ syshook	macro
 \@.syshook.old:
 	dc.l	\2
 \@.syshook:
-	move.l	\@.syshook.old(pc),a1   ; Get old vector
+	move.l	\@.syshook.old(pc),-(sp); Push old vector
 	tst.b	flock.w                 ;
 	beq.b	\@.syshook.exec         ;
-	jmp	(a1)                    ; Reentrant call: forward the call
+	rts	                        ; Reentrant call: forward the call
 \@.syshook.exec:
 	moveq	#\1,d0                  ; Set one byte command
 
@@ -76,39 +107,36 @@ syshook.start:
 	;  syshook.prmoff: Offset to a6 to find params (platform dependent)
 	; Output:
 	;  d0.b: Command byte with ACSI ID
-	;  a1: DMA controller command port
-	;  a2: DMA controller status port
-	;  a3: Pointer to parameters
-	;  a4: Old vector for forwarding
+	;  a0: DMA controller command port
+	;  a1: DMA controller status port
+	;  a2: Pointer to parameters
 
-	st	flock.w                 ; Lock floppy controller
-	move.w	prmoff(pc),d1           ; Fetch parameter offset
-	lea	(sp,d1),a0              ; Compute pointer to call parameters
+	savereg	                        ; Save registers
+	bsr.b	syshook.setprm          ; Set a2 (DMA address) at the parameters
 
-	movem.l	a3-a4,-(sp)             ; Save registers
-	move.l	a0,a3                   ; Set DMA address to call parameters
-	move.l	a1,a4                   ; Save current handler for forwarding
+syshook.sendcmd:
 	or.b	acsiid(pc),d0           ; Set ACSI identifier
 
+	st	flock.w                 ; Lock floppy controller
 	bsr.w	syshook.setdmaaddr      ; Set DMA address on chip
 
-	move.l	#$00ff0188,(a1)         ; Send 255 blocks. Switch to command.
+	move.l	#$00ff0188,(a0)         ; Send 255 blocks. Switch to command.
 	move.l	#$01000000,d1           ;
 	move.b	d0,d1                   ;
 	swap	d1                      ; d1 = 00cc0100
-	move.l	d1,(a1)                 ; Send command with A1
+	move.l	d1,(a0)                 ; Send command to the STM32
 
 syshook.reply:
 	; Handle single byte reply
 
-.await	btst.b	#5,gpip.w               ; Wait for acknowledge
+.await	btst.b	#5,gpip.w               ; Wait for acknowledge on IRQ
 	bne.b	.await                  ;
 
-	move.w	#$008a,(a2)             ; Prepare to read command/status
-	move.w	(a1),d0                 ; Read command/status byte
+	move.w	#$008a,(a1)             ; Prepare to read command/status
+	move.w	(a0),d0                 ; Read command/status byte
 
-	cmp.b	#$8d,d0                 ; Check if command byte
-	beq.b	syshook.forward         ; Check command $8d (forward to TOS)
+	cmp.b	#$8b,d0                 ; Check if command byte
+	beq.b	syshook.forward         ; Check command $8b (forward to TOS)
 	blt.b	syshook.execcmd         ; Other commands with parameter
 
 .qret	ext.w	d0                      ; Quick return sign-extended d0
@@ -118,15 +146,15 @@ syshook.reply:
 syshook.return:
 	; Return from interrupt
 	bsr.b	syshook.onexit          ; Release hardware
-	movem.l	(sp)+,a3-a4             ; Restore registers
+	resreg	                        ; Restore registers
+	addq	#4,sp                   ; Pop forward address
 	rte	                        ; Return
 
 syshook.forward:
-	; Command $8d: forward the call to the next handler
+	; Command $8b: forward the call to the next handler
 	bsr.b	syshook.onexit          ; Release hardware
-	move.l	a4,a1                   ; a1 = forwarding address
-	movem.l	(sp)+,a3-a4             ; Restore registers
-	jmp	(a1)                    ; Jump to forwarding address
+	resreg	                        ; Restore registers
+	rts	                        ; Jump to forwarding address
 
 syshook.onexit:
 	move.w	#$0190,dmactrl.w        ; Reset DMA controller
@@ -140,7 +168,7 @@ syshook.execcmd:
 	; Read parameter (4 bytes) into d1
 	swap	d0                      ; Save command byte into upper d0
 	moveq	#3,d2                   ; Repeat 4 times
-.rdbyte	move.w	(a1),d0                 ; Fast byte read (no ack)
+.rdbyte	move.w	(a0),d0                 ; Fast byte read (no ack)
 	lsl.l	#8,d1                   ;
 	move.b	d0,d1                   ;
 	dbra	d2,.rdbyte              ;
@@ -156,20 +184,12 @@ syshook.execcmd:
 	dc.w	syshook.exec-.jmptbl    ; $84
 	dc.w	syshook.pexec6-.jmptbl  ; $86
 	dc.w	syshook.pexec4-.jmptbl  ; $88
-	dc.w	syshook.rts-.jmptbl     ; $8a
-	dc.w	syshook.rte-.jmptbl     ; $8c
+	dc.w	syshook.rte-.jmptbl     ; $8a
 
 syshook.rte
 	; Command $8c: Return long from exception
 	move.l	d1,d0                   ; Put parameter in d0
 	bra.b	syshook.return          ; Return from exception
-
-syshook.rts:
-	; Command $8a: Return from call
-	bsr.b	syshook.onexit          ; Release hardware
-	movem.l	(sp)+,a3-a4             ; Restore registers
-	move.l	d1,d0                   ; Set return value
-	rts	                        ; Return
 
 syshook.pexec4:
 	; Command $86: Pexec4 and rte
@@ -184,19 +204,18 @@ syshook.pexec6:
 
 syshook.pexec:
 	bsr.b	syshook.onexit          ; Release hardware
-	move.l	a4,a1                   ; Prepare for call forwarding
-	movem.l	(sp)+,a3-a4             ; Restore registers
 
 	; Patch the current Pexec call, then forward
-	move.w	prmoff(pc),d2           ; Fetch parameter offset
-	lea	2(sp,d2),a0             ; Compute pointer to Pexec parameters
+	bsr.w	syshook.setprm          ; Point at Pexec parameters
 
-	move.w	d0,(a0)+                ; Replace Pexec parameters
-	clr.l	(a0)+                   ;
-	move.l	d1,(a0)+                ;
-	clr.l	(a0)+                   ;
+	addq	#2,a2                   ; Skip Pexec opcode
+	move.w	d0,(a2)+                ; Pexec.mode (set to 4 or 6)
+	clr.l	(a2)+                   ; Pexec.z1
+	move.l	d1,(a2)+                ; Pexec.basepage
+	clr.l	(a2)+                   ; Pexec.z2
 
-	jmp	(a1)                    ; Forward to GEMDOS
+	resreg	                        ; Restore registers
+	rts	                        ; Forward to GEMDOS
 
 syshook.exec:
 	; Commands $85/$84: Machine code execute
@@ -213,19 +232,19 @@ syshook.exec:
 
 	; Commands $83/$82: DMA setup
 syshook.dmaset:
-	move.l	d1,a3                   ; Set parameter as DMA address
+	move.l	d1,a2                   ; Set parameter as DMA address
 	btst	#0,d0                   ; Check if DMA is read or write
 	beq.b	syshook.wcmd            ; DMA write
 
 syshook.rcmd:
 	; Continue the command stream in DMA read mode
 	; This sends a command byte $00 to signal the STM32 that we are ready.
-	bsr.b	syshook.setdmaaddr      ; Set DMA address to a3
+	bsr.b	syshook.setdmaaddr      ; Set DMA address to a2
 
-	move.w	#$0090,(a2)             ; Set block count.
-	move.l	#$00ff008a,(a1)         ; Send 255 blocks. Switch to command.
+	move.w	#$0090,(a1)             ; Set block count.
+	move.l	#$00ff008a,(a0)         ; Send 255 blocks. Switch to command.
 	moveq	#0,d1                   ;
-	move.l	d1,(a1)                 ; Send zero command byte and enable DMA
+	move.l	d1,(a0)                 ; Send zero command byte and enable DMA
 
 	bra.w	syshook.reply
 
@@ -233,7 +252,7 @@ syshook.byteop:
 	; Commands $81/$80: Byte copy operations
 	move.l	sp,a1                   ; Use a1 to leave sp untouched
 	move.w	(a1)+,d2                ; Pop byte count and point a1 at data
-	move.l	a1,a3                   ; Set DMA on data
+	move.l	a1,a2                   ; Set DMA on data
 	move.l	d1,a0                   ; Memory address
 
 	btst	#0,d0                   ; Check if read or write
@@ -257,24 +276,24 @@ syshook.byteread:
 syshook.wcmd:
 	; Continue the command stream in DMA write mode
 	; This sends a command byte $00 to signal the STM32 that we are ready.
-	bsr.b	syshook.setdmaaddr      ; Set DMA address to a3
+	bsr.b	syshook.setdmaaddr      ; Set DMA address to a2
 
-	move.l	#$00ff018a,(a1)         ; Send 255 blocks. Switch to command.
-	move.l	#$00880100,(a1)         ; Send $88 command byte and enable DMA
+	move.l	#$00ff018a,(a0)         ; Send 255 blocks. Switch to command.
+	move.l	#$00880100,(a0)         ; Send $88 command byte and enable DMA
 
 	bra.w	syshook.reply
 
 syshook.setdmaaddr:
 	; Set DMA address and size
 	; Input:
-	;  a3: DMA address to set
+	;  a2: DMA address to set
 
-	movem.w	syshook.dmareg(pc),a1-a2; Set DMA controller registers
+	movem.w	syshook.dmareg(pc),a0-a1; Set DMA controller registers
 
-	move.w	#$0090,(a2)             ; Reset DMA pipeline
-	move.w	#$0190,(a2)             ;
+	move.w	#$0090,(a1)             ; Reset DMA pipeline
+	move.w	#$0190,(a1)             ;
 
-	move.l	a3,d1                   ; Set DMA address
+	move.l	a2,d1                   ; Set DMA address
 	move.b	d1,dmalow.w             ;
 	lsr.l	#8,d1                   ;
 	move.b	d1,dmamid.w             ;

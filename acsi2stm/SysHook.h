@@ -100,6 +100,7 @@ struct ToWord: public Word {
   ToWord(int8_t value) : ToWord((int16_t)value) {}
   ToWord(int value) : ToWord((uint16_t)value) {}
   ToWord(unsigned int value) : ToWord((uint16_t)value) {}
+  ToWord(const uint8_t *bytes) : ToWord(bytes[0], bytes[1]) {}
 
   operator Word() {
     return *this;
@@ -108,6 +109,10 @@ struct ToWord: public Word {
     uint16_t value = ((uint16_t)bytes[0]) << 8
                    | ((uint16_t)bytes[1]);
     return value;
+  }
+  void set(uint8_t *target) {
+    target[0] = bytes[0];
+    target[1] = bytes[1];
   }
 };
 
@@ -175,6 +180,12 @@ struct Long {
                    | ((uint32_t)bytes[3]);
     return value;
   }
+  void set(uint8_t *target) {
+    target[0] = bytes[0];
+    target[1] = bytes[1];
+    target[2] = bytes[2];
+    target[3] = bytes[3];
+  }
 };
 
 struct ToLong: public Long {
@@ -198,6 +209,7 @@ struct ToLong: public Long {
   ToLong(int16_t value): ToLong((int32_t)value) {}
   ToLong(int value) : ToLong((uint32_t)value) {}
   ToLong(unsigned int value) : ToLong((uint32_t)value) {}
+  ToLong(const uint8_t *bytes) : ToLong(bytes[0], bytes[1], bytes[2], bytes[3]) {}
 
   operator Long() {
     return *this;
@@ -366,9 +378,6 @@ struct SysHook: public Monitor {
 
   // Command : Return a 32-bit value
   static void rte(ToLong value);
-
-  // Command : Return from subroutine
-  static void rts(ToLong value = 0);
 
   // Command : Pexec4 then rte
   static void pexec4ThenRte(ToLong pd);

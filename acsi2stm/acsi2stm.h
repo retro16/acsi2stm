@@ -22,7 +22,7 @@
 
 // acsi2stm global configuration
 
-#define ACSI2STM_VERSION "4.0a"
+#define ACSI2STM_VERSION "4.0b"
 
 // Set to 1 to enable debug output on the serial port
 #define ACSI_DEBUG 0
@@ -125,12 +125,8 @@
 // Activity LED pin. Leave undefined to remove activity LED.
 #define ACSI_ACTIVITY_LED LED_BUILTIN
 
-// Folder containing disk images
-// It must not end with a "/"
-#define ACSI_IMAGE_FOLDER "/acsi2stm"
-
 // File name of the hd image
-#define ACSI_IMAGE_FILE "hd0.img"
+#define ACSI_IMAGE_FILE "/acsi2stm/hd0.img"
 
 // Set to 1 to enable UltraSatan-compatible RTC
 #define ACSI_RTC 1
@@ -141,6 +137,15 @@
 // If more than 75% of this amount of stack is used, debug messages will be
 // displayed.
 #define ACSI_STACK_CANARY 0
+
+// First drive letter to scan when allocating drive letters to GemDrive.
+// In all cases, GemDrive will skip drive letters already reserved by drivers
+// loaded before it (such as ACSI drivers).
+// Define either an uppercase letter such as 'C', or 0 for dynamic mode.
+// In dynamic mode, it uses 'L' if a bootable SD card is detected, 'C'
+// otherwise.
+//#define ACSI_GEMDRIVE_FIRST_LETTER 'C'
+#define ACSI_GEMDRIVE_FIRST_LETTER 0
 
 // If set to 1, allocate GemDrive in top RAM. As I don't know yet all the
 // details, and as I saw a few glitches, I must be doing something wrong
@@ -162,8 +167,7 @@
 // If set to 0 (disabled), try to convert all file names to the Atari 8.3 format.
 // If set to 1, hide files starting by a dot (the unix way to hide files).
 // If set to 2, hide any non-8.3 files or files with non-ASCII characters.
-// TODO: still unimplemented
-#define ACSI_GEMDRIVE_HIDE_GARBAGE_FILES 1
+#define ACSI_GEMDRIVE_HIDE_INCOMPATIBLE_FILES 1
 
 // GEMDOS sniffer
 // In GEMDOS sniffer mode, GemDrive is passthrough. Used to transparently log

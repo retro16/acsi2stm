@@ -230,21 +230,52 @@ struct Tos: public SysHook {
 
   DECLARE_FUNCTION(Pterm0, 0, ()) {
   };
+  DECLARE_FUNCTION(Cconin, 1, ()) {
+  };
   DECLARE_FUNCTION(Cconout, 2, (char c)) {
     Word c;
   };
+  DECLARE_FUNCTION(Cauxin, 3, ()) {
+  };
+  DECLARE_FUNCTION(Cauxout, 4, (char c)) {
+    Word c;
+  };
+  DECLARE_FUNCTION(Cprnout, 5, (char c)) {
+    Word c;
+  };
+  DECLARE_FUNCTION(Crawio, 6, (ToWord w)) {
+    Word w;
+  };
+  DECLARE_FUNCTION(Crawcin, 7, ()) {
+  };
+  DECLARE_FUNCTION(Cnecin, 8, ()) {
+  };
   DECLARE_FUNCTION(Cconws, 9, (ToLong buf, int len = 0)) {
     Long buf;
+  };
+  DECLARE_FUNCTION(Cconrs, 10, (ToLong buf)) {
+    Long buf;
+  };
+  DECLARE_FUNCTION(Cconis, 11, ()) {
   };
   DECLARE_FUNCTION(Dsetdrv, 14, (ToWord drv)) {
     Word drv;
   };
   DECLARE_FUNCTION(Cconos, 16, ()) {
   };
+  DECLARE_FUNCTION(Cprnos, 17, ()) {
+  };
+  DECLARE_FUNCTION(Cauxis, 18, ()) {
+  };
+  DECLARE_FUNCTION(Cauxos, 19, ()) {
+  };
   DECLARE_FUNCTION(Dgetdrv, 25, ()) {
   };
   DECLARE_FUNCTION(Fsetdta, 26, (ToLong buf)) {
     Long buf;
+  };
+  DECLARE_FUNCTION(Super, 32, (ToLong stack)) {
+    Long stack;
   };
   DECLARE_FUNCTION(Tsetdate, 43, (ToWord date)) {
     Word date;
@@ -316,6 +347,7 @@ struct Tos: public SysHook {
     Long block;
   };
   DECLARE_FUNCTION(Mshrink, 74, (ToLong block, ToLong newsiz)) {
+    Word z1;
     Long block;
     Long newsiz;
   };
@@ -371,6 +403,7 @@ struct Tos: public SysHook {
   DECLARE_FUNCTION(Fsnext, 79, ()) {
   };
   DECLARE_FUNCTION(Frename, 86, (const char *oldname, const char *newname)) {
+    Word z1;
     Long oldname;
     Long newname;
   };

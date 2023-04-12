@@ -40,13 +40,17 @@ public:
     ERR_NOMEDIUM = 0x003a06,
   };
 
-  Acsi(SdDev &card_): card(card_) {}
+  Acsi(SdDev &card_): blockDev(card_) {}
 
-  // Reset error status
-  void reset();
+  // Called during Atari reset, after SdDev::onReset()
+  void onReset();
 
-  // Mount the SD card as a block device.
-  void mountBlockDev();
+  // Check the SD card.
+  // Sets lastErr to
+  //   ERR_MEDIUMCHANGE if the card was swapped
+  //   ERR_NOMEDIUM if the card was removed
+  // otherwise, leaves lastErr unchanged
+  void refresh();
 
   // Command processing. Pass the first command byte (without the device id).
   // This function will read all subsequent bytes as needed.
@@ -65,18 +69,9 @@ public:
   // Also updates lastErr with the error passed in parameter.
   void commandStatus(ScsiErr err);
 
-  // Reopen the SD card and remount LUNs
-  // Updates lastErr:
-  //   ERR_MEDIUMCHANGE if the card was swapped
-  //   ERR_NOMEDIUM if the card was removed
-  void refresh();
-
   // Process block I/O requests
   ScsiErr processBlockRead(uint32_t block, int count);
   ScsiErr processBlockWrite(uint32_t block, int count);
-
-  // Check if the SD card was potentially changed since last access
-  bool hasMediaChanged();
 
   // Reboot the STM32
   static void reboot();
@@ -86,19 +81,18 @@ public:
   void modeSense4(uint8_t *outBuf);
 
   // Block device definition
-  BlockDev *blockDev = nullptr;
+  SdDev &blockDev;
+
   // Last media ID
   uint32_t mediaId = 0;
-  // Present the device as removable
-  bool removable = true;
-
-  ImageDev image;
-  SdDev &card;
 
   // SCSI status variables
   ScsiErr lastErr;
   bool lastSeek;
   uint32_t lastBlock;
+
+  // Present the device as removable
+  static const bool removable = true;
 
   // Command buffer
   static int cmdLen;

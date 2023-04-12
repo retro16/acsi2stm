@@ -366,7 +366,7 @@ Long SysHook::readLongAtIndirect(ToLong source) {
 }
 
 void SysHook::rte(int8_t value) {
-  if(value < (int8_t)0x8d)
+  if(value <= (int8_t)0x8b)
     rte(ToLong(value));
   dbgHex("rte (quick ", (uint32_t)(uint8_t)value, ")\n");
   DmaPort::sendIrq(value);
@@ -374,22 +374,11 @@ void SysHook::rte(int8_t value) {
 
 void SysHook::forward() {
   dbg("forward\n");
-  DmaPort::sendIrq(0x8d);
+  DmaPort::sendIrq(0x8b);
 }
 
 void SysHook::rte(ToLong value) {
   dbgHex("rte(", (uint32_t)value, ")\n");
-  uint8_t bytes[5];
-  bytes[0] = 0x8c;
-  bytes[1] = value.bytes[0];
-  bytes[2] = value.bytes[1];
-  bytes[3] = value.bytes[2];
-  bytes[4] = value.bytes[3];
-  DmaPort::sendIrqFast(bytes, 5);
-}
-
-void SysHook::rts(ToLong value) {
-  dbgHex("rts(", (uint32_t)value, ")\n");
   uint8_t bytes[5];
   bytes[0] = 0x8a;
   bytes[1] = value.bytes[0];

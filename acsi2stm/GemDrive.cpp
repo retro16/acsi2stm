@@ -54,6 +54,7 @@ struct TOS_PACKED PrivDTA {
   const PrivDTA & operator<<(const TinyFile &tf) {
     index = ToWord(tf.index);
     dirCluster = tf.dirCluster;
+    return *this;
   }
 
   operator TinyFile() const {
@@ -105,7 +106,7 @@ bool PrivDTA::isValid() const {
   if(!isMediaIdValid(mediaId))
     return false;
 
-  for(int i = 0; i < sizeof(pattern); ++i)
+  for(unsigned int i = 0; i < sizeof(pattern); ++i)
     if(pattern[i] < 0x20)
       return false;
 
@@ -145,7 +146,8 @@ GemFile * GemDrive::createFd(uint32_t &stfd, int driveIndex, Long basePage) {
   return nullptr;
 }
 
-void GemDrive::setDta(FsFile *file, DTA &dta) {
+void GemDrive::setDta(FsFile *file, const PrivDTA &priv, DTA &dta) {
+  memcpy(dta.d_reserved, &priv, sizeof(priv));
   uint16_t date;
   uint16_t time;
   file->getModifyDateTime(&date, &time);
@@ -169,15 +171,21 @@ void GemDrive::process(uint8_t cmd) {
       {
         // Read command: inject syshook driver into a boot sector
 
-        // Ignore subsequent command bytes
+        // Read subsequent command bytes
         for(int b = 0; b < 5; ++b)
-          DmaPort::readIrq();
+          buf[b] = DmaPort::readIrq();
+
+        if(buf[0] != 0x00 || buf[1] != 0x00 || buf[2] != 0x00 || buf[3] != 0x01 || buf[4] != 0x00) {
+          // Not a boot query: send the 'no operation' SCSI status
+          dbg("reject non-boot query\n");
+          DmaPort::sendIrq(0x08);
+        }
 
         // Build a boot sector
         memcpy(buf, syshook_boot_bin, syshook_boot_bin_len);
 
         // Patch ACSI id
-        buf[3] = Devices::acsiFirstId << 5;
+        buf[3] = SdDev::gemBootDrive << 5;
 
         // Patch checksum
         buf[ACSI_BLOCKSIZE - 2] = 0;
@@ -188,6 +196,8 @@ void GemDrive::process(uint8_t cmd) {
 
         // Send the boot sector
         DmaPort::sendDma(buf, ACSI_BLOCKSIZE);
+
+        // Acknowledge the ACSI read command
         DmaPort::sendIrq(0);
 
         // Wait for the command byte telling that the ST is ready
@@ -223,11 +233,14 @@ void GemDrive::process(uint8_t cmd) {
       onExtCmd();
       break;
 
-    // For unknown commands, play dead to avoid confusing other drivers
+    default:
+      // For unknown commands, play dead to avoid confusing other drivers
+      dbg("Unknown command\n");
+      break;
   }
 }
 
-bool GemDrive::onPterm0(const Tos::Pterm0_p &p) {
+bool GemDrive::onPterm0(const Tos::Pterm0_p &) {
   closeProcessFiles();
   return false;
 }
@@ -237,23 +250,24 @@ bool GemDrive::onDsetdrv(const Tos::Dsetdrv_p &p) {
 
   setCurDrive(p.drv);
 
-  if(!checkMedium(curDrive)) {
-    rte(EDRIVE);
-    return true;
-  }
-
   return false;
 }
 
 bool GemDrive::onTsetdate(const Tos::Tsetdate_p &p) {
+  // TODO
+  (void)p;
   return false;
 }
 
 bool GemDrive::onTsettime(const Tos::Tsettime_p &p) {
+  // TODO
+  (void)p;
   return false;
 }
 
 bool GemDrive::onDfree(const Tos::Dfree_p &p) {
+  // TODO
+  (void)p;
   return false;
 }
 
@@ -287,14 +301,14 @@ bool GemDrive::onDdelete(const Tos::Ddelete_p &p) {
   }
 
   if(!sd.isWritable()) {
-    rte(EACCDN);
+    rte(EWRPRO);
     return true;
   }
 
   FsFile file;
   path.open(volume, &file);
   if(!file.rmdir()) {
-    rte(EACCDN);
+    rte(EWRPRO);
     return true;
   }
 
@@ -361,7 +375,7 @@ bool GemDrive::onFread(const Tos::Fread_p &p) {
   uint32_t ptr = p.buf;
 
   while(size > 0) {
-    if(size > sizeof(buf))
+    if(size > (int)sizeof(buf))
       bufSize = sizeof(buf);
     else
       bufSize = size;
@@ -411,7 +425,7 @@ bool GemDrive::onFwrite(const Tos::Fwrite_p &p) {
   }
 
   if(!sd.isWritable()) {
-    rte(EACCDN);
+    rte(EWRPRO);
     return true;
   }
 
@@ -421,7 +435,7 @@ bool GemDrive::onFwrite(const Tos::Fwrite_p &p) {
   int bufSize;
 
   while(size > 0) {
-    if(size > sizeof(buf))
+    if(size > (int)sizeof(buf))
       bufSize = sizeof(buf);
     else
       bufSize = size;
@@ -459,7 +473,7 @@ bool GemDrive::onFdelete(const Tos::Fdelete_p &p) {
 
   FsVolume &volume = Devices::sdSlots[driveIndex].fs;
   if(!Devices::sdSlots[driveIndex].isWritable()) {
-    rte(EACCDN);
+    rte(EWRPRO);
     return true;
   }
 
@@ -469,7 +483,7 @@ bool GemDrive::onFdelete(const Tos::Fdelete_p &p) {
   for(int i = 0; i < filesMax; ++i) {
     if(files[i] && files[i] == tf) {
       verbose("File opened\n");
-      rte(EACCDN);
+      rte(EWRPRO);
       return true;
     }
   }
@@ -545,7 +559,7 @@ bool GemDrive::onFattrib(const Tos::Fattrib_p &p) {
 
   if(p.wflag.bytes[1]) {
     if(!Devices::sdSlots[driveIndex].isWritable()) {
-      rte(EACCDN);
+      rte(EWRPRO);
       return true;
     }
     if(!file.attrib(p.attrib.bytes[1])) {
@@ -559,7 +573,13 @@ bool GemDrive::onFattrib(const Tos::Fattrib_p &p) {
 }
 
 bool GemDrive::onDgetpath(const Tos::Dgetpath_p &p) {
-  int driveIndex = getDrive(p.driveno);
+  int driveNo = p.driveno;
+  if(!driveNo)
+    driveNo = Dgetdrv();
+  else
+    --driveNo;
+
+  int driveIndex = getDrive(driveNo);
   if(driveIndex < 0)
     return false; // Unknown device: forward
 
@@ -575,6 +595,7 @@ bool GemDrive::onDgetpath(const Tos::Dgetpath_p &p) {
     return true;
   }
 
+  dbg("->", (const char *)buf, ' ');
   sendAt(p.path, buf, strlen((const char *)buf) + 1);
 
   rte(E_OK);
@@ -595,7 +616,6 @@ bool GemDrive::onPexec(const Tos::Pexec_p &p) {
   if(driveIndex < 0)
     return false; 
 
-  Drive &drive = drives[driveIndex];
   auto &sd = Devices::sdSlots[driveIndex];
   FsVolume &volume = sd.fs;
 
@@ -722,18 +742,22 @@ bool GemDrive::onPexec(const Tos::Pexec_p &p) {
         }
 
         // Apply current relocation vector
-        *(Long *)&buf[relOffset] += prgStart;
-
-        verboseHex("Patching at offset ", relOffset + prgOffset, '\n');
+        ToLong value(&buf[relOffset]);
+        verboseHex("Patching at offset ", relOffset + prgOffset, ": ", (uint32_t)value);
+        value += prgStart;
+        verboseHex(" -> ", (uint32_t)value, '\n');
+        value.set(&buf[relOffset]);
 
         // Load more relocation info if needed
 loadRelocationInfo:
         if(relTableIndex == relTableSize) {
           // Need to load more relocation info
           relTableSize = relFile.read(relTableCache, sizeof(relTableCache));
+          relTableIndex = 0;
+          verbose("Loaded ", relTableSize, " bytes of relocation info\n");
           if(relTableSize < 0)
             goto relocationFailed;
-          if(!relTableSize) {
+          else if(!relTableSize) {
             // End of relocation info
             relOffset = -1;
             break;
@@ -767,22 +791,22 @@ loadRelocationInfo:
 
   // Finished: run the program or RTE depending on the mode
   if(p.mode == 3)
-    rte(basepage);
+    rte(ToLong(basepage));
   else if(os_version < 0x104)
-    pexec4ThenRte(basepage);
+    pexec4ThenRte(ToLong(basepage));
   else
-    pexec6ThenRte(basepage);
+    pexec6ThenRte(ToLong(basepage));
 
   return true;
 
 relocationFailed:
-  verbose("Relocation error\n");
+  dbg("Relocation error\n");
   Mfree(basepage);
   rte(EPLFMT);
   return true;
 }
 
-bool GemDrive::onPterm(const Tos::Pterm_p &p) {
+bool GemDrive::onPterm(const Tos::Pterm_p &) {
   closeProcessFiles();
   return false;
 }
@@ -792,7 +816,6 @@ bool GemDrive::onFsfirst(const Tos::Fsfirst_p &p) {
   DTA dta;
 
   // Read parameters
-  auto attrib = p.attr.bytes[1]; // Only used for drive label
   const char *filename;
   if(!p.filename)
     return false;
@@ -828,7 +851,8 @@ bool GemDrive::onFsfirst(const Tos::Fsfirst_p &p) {
       return true;
   }
 
-  PrivDTA &priv = *(PrivDTA *)&dta.d_reserved;
+  PrivDTA priv;
+  memcpy(&priv, dta.d_reserved, sizeof(priv));
   priv.mediaId = sd.mediaId();
   priv.insertMediaId(priv.mediaId);
   TinyFile tf;
@@ -841,7 +865,7 @@ bool GemDrive::onFsfirst(const Tos::Fsfirst_p &p) {
   // Update DTA
   memcpy(priv.pattern, path.lastPattern(), sizeof(priv.pattern));
   priv << tf;
-  setDta(file, dta);
+  setDta(file, priv, dta);
 
   // Success: upload DTA and return from system call
   sendAt(dta, Fgetdta());
@@ -850,11 +874,12 @@ bool GemDrive::onFsfirst(const Tos::Fsfirst_p &p) {
   return true;
 }
 
-bool GemDrive::onFsnext(const Tos::Fsnext_p &p) {
+bool GemDrive::onFsnext(const Tos::Fsnext_p &) {
   DTA dta;
   readAt(dta, Fgetdta());
 
-  PrivDTA &priv = *(PrivDTA *)&dta.d_reserved;
+  PrivDTA priv;
+  memcpy(&priv, dta.d_reserved, sizeof(priv));
   if(!priv.isValid())
     // This DTA wasn't emitted by GemDrive
     return false;
@@ -878,7 +903,7 @@ bool GemDrive::onFsnext(const Tos::Fsnext_p &p) {
   }
 
   priv << tf;
-  setDta(file, dta);
+  setDta(file, priv, dta);
 
   // Success: upload updated DTA and return from system call
   sendAt(dta, Fgetdta());
@@ -894,14 +919,12 @@ bool GemDrive::onFrename(const Tos::Frename_p &p) {
     return true;
   if(driveIndex < 0)
     return false;
-  return false;
 
-  Drive &drive = drives[driveIndex];
   auto &sd = Devices::sdSlots[driveIndex];
   FsVolume &volume = sd.fs;
 
   readStringAt((char *)buf, p.newname, sizeof(buf));
-  dbg("to='", (char *)buf, "'\n");
+  dbg("to=", (const char *)buf, " ");
 
   const char *filename;
   if(getDrive((char *)buf, &filename) != driveIndex) {
@@ -914,10 +937,11 @@ bool GemDrive::onFrename(const Tos::Frename_p &p) {
     if(*c == '\\')
       lastsep = c;
 
-  TinyPath newPath = path;
-  if(lastsep > filename) {
+  TinyPath newPath;
+  if(*lastsep == '\\') {
     // Move
     *lastsep = 0;
+    newPath = drives[driveIndex].curPath;
     if(newPath.set(volume, filename)) {
       rte(EPTHNF);
       return true;
@@ -925,18 +949,27 @@ bool GemDrive::onFrename(const Tos::Frename_p &p) {
     filename = lastsep + 1;
   } else {
     // Just rename: the new path is current file's parent
+    newPath = path;
     newPath.setParent();
   }
 
   FsFile source;
   FsFile targetDir;
 
+  path.open(volume, &source, O_RDWR);
+  newPath.open(volume, &targetDir);
+
+  if(!source || !targetDir) {
+    rte(ERROR);
+    return true;
+  }
+
   // Convert Atari file name to unicode
   TinyPath::parseAtariPattern(filename);
   TinyPath::patternToUnicode((char *)buf, sizeof(buf));
 
   if(!source.rename(&targetDir, (const char *)buf)) {
-    rte(EACCDN);
+    rte(EWRPRO);
     return true;
   }
 
@@ -945,6 +978,8 @@ bool GemDrive::onFrename(const Tos::Frename_p &p) {
 }
 
 bool GemDrive::onFdatime(const Tos::Fdatime_p &p) {
+  // TODO
+  (void)p;
   return false;
 }
 
@@ -959,7 +994,7 @@ void GemDrive::onBoot() {
   memcpy(buf, syshook_boot_bin, syshook_boot_bin_len);
 
   // Patch ACSI id
-  buf[3] = Devices::acsiFirstId << 5;
+  buf[3] = SdDev::gemBootDrive << 5;
 
   // Patch parameter offset
   verbose("Query longframe\n");
@@ -1009,8 +1044,14 @@ void GemDrive::onBoot() {
   os_beg = _sysbase();
   verbose("Read OSHEADER from ROM\n");
   os_beg = readLongAt(os_beg + offsetof(OSHEADER, os_beg));
+
+  // Check TOS version
   os_version = readWordAt(os_beg + offsetof(OSHEADER, os_version));
   dbgHex("TOS ", os_version, '\n');
+  if(os_version < 0x104)
+    tosPrint("\x07TOS < 1.04 has issues with GemDrive\r\n\r\n");
+
+  // Get basepage pointer
   os_conf = readWordAt(os_beg + offsetof(OSHEADER, os_conf));
   if(os_version < 0x102) {
     if(os_conf >> 1 == 4)
@@ -1031,14 +1072,24 @@ void GemDrive::onBoot() {
 
 #if ! ACSI_GEMDOS_SNIFFER
   dbg("Mount SD\n");
+  // Compute first drive letter
+#if ACSI_GEMDRIVE_FIRST_LETTER
+  static const int firstDriveLetter = ACSI_GEMDRIVE_FIRST_LETTER;
+#else
+  int firstDriveLetter = 'C';
+  for(int d = 0; d < driveCount; ++d)
+    if(Devices::sdSlots[d]->bootable)
+      // Avoid conflicts with legacy drivers that don't respect _drvbits.
+      firstDriveLetter = 'L';
+#endif
   uint32_t drvbits = _drvbits();
   for(int d = 0; d < driveCount; ++d) {
-    if(Devices::sdSlots[d].slot < 0)
+    if(Devices::sdSlots[d].mode != SdDev::GEMDRIVE)
       continue;
 
     buf[1] = ':';
     buf[2] = ' ';
-    for(int i = 2; i < 26; ++i) {
+    for(int i = (firstDriveLetter - 'A'); i < 26; ++i) {
       if(!(drvbits & (1 << i))) {
         drives[d].id = i;
         drvbits |= (1 << i);
@@ -1055,17 +1106,20 @@ void GemDrive::onBoot() {
   }
   _drvbits(drvbits);
 
-  // Set boot drive
-  if(Devices::sdSlots[0].slot >= 0 && Devices::sdSlots[0]) {
-    setCurDrive(drives[0].id);
-    _bootdev(curDriveId);
-    Dsetdrv(curDriveId);
-    verbose("Set boot drive to ", drives[0].letter(), ":\n");
+  // Set boot drive on the ST
+  for(int d = 0; d < driveCount; ++d) {
+    if(Devices::sdSlots[d].mode == SdDev::GEMDRIVE && Devices::sdSlots[d].mediaId()) {
+      setCurDrive(drives[d].id);
+      _bootdev(curDriveId);
+      Dsetdrv(curDriveId);
+      dbg("Set boot drive to ", drives[d].letter(), ":\n");
+      break;
+    }
   }
 #endif
 
-  // Return to boot sequence
-  rts();
+  // Continue boot sequence
+  forward();
 }
 
 void GemDrive::onGemdos() {
@@ -1075,8 +1129,7 @@ void GemDrive::onGemdos() {
 #define DECLARE_CALLBACK(name) \
   case Tos::name ## _op: { name ## _p p; \
     dbg(" " #name "("); \
-    read(p); \
-    notVerboseDump(&p, sizeof(p)); \
+    if(sizeof(p) > 1) { read(p); notVerboseDump(&p, sizeof(p)); } \
     dbg(")\n"); \
   } break
 
@@ -1092,7 +1145,7 @@ void GemDrive::onGemdos() {
 #define DECLARE_CALLBACK(name) \
   case Tos::name ## _op: { name ## _p p; \
     dbg(#name "("); \
-    read(p); \
+    if(sizeof(p) > 1) read(p); \
     notVerboseDump(&p, sizeof(p)); \
     dbg("): "); if(on ## name(p)) return; \
   } break
@@ -1119,8 +1172,7 @@ void GemDrive::onGemdos() {
 #define DECLARE_CALLBACK(name) \
   case Tos::name ## _op: { name ## _p p; \
     dbg(#name "("); \
-    read(p); \
-    notVerboseDump(&p, sizeof(p)); \
+    if(sizeof(p) > 1) { read(p); notVerboseDump(&p, sizeof(p)); } \
     dbg(")\n"); sniff ## name(p); \
   } break
 #endif
@@ -1134,11 +1186,48 @@ void GemDrive::onGemdos() {
   DECLARE_CALLBACK(Fsfirst);
   DECLARE_CALLBACK(Frename);
 
+  // Just log these callbacks
+#if ACSI_DEBUG
+#undef DECLARE_CALLBACK
+#define DECLARE_CALLBACK(name) \
+  case Tos::name ## _op: { name ## _p p; \
+    dbg(#name "("); \
+    if(sizeof(p) > 1) { read(p); notVerboseDump(&p, sizeof(p)); } \
+    dbg("): "); \
+  } break
+#else
+#undef DECLARE_CALLBACK
+#define DECLARE_CALLBACK(name) \
+  case Tos::name ## _op: break
+#endif
+
+  DECLARE_CALLBACK(Cconin);
+  DECLARE_CALLBACK(Cconout);
+  DECLARE_CALLBACK(Cauxin);
+  DECLARE_CALLBACK(Cauxout);
+  DECLARE_CALLBACK(Cprnout);
+  DECLARE_CALLBACK(Crawio);
+  DECLARE_CALLBACK(Crawcin);
+  DECLARE_CALLBACK(Cnecin);
+  DECLARE_CALLBACK(Cconws);
+  DECLARE_CALLBACK(Cconrs);
+  DECLARE_CALLBACK(Cconis);
+  DECLARE_CALLBACK(Cconos);
+  DECLARE_CALLBACK(Cprnos);
+  DECLARE_CALLBACK(Cauxis);
+  DECLARE_CALLBACK(Cauxos);
+  DECLARE_CALLBACK(Dgetdrv);
+  DECLARE_CALLBACK(Fsetdta);
+  DECLARE_CALLBACK(Super);
+  DECLARE_CALLBACK(Malloc);
+  DECLARE_CALLBACK(Mfree);
+  DECLARE_CALLBACK(Mshrink);
+
 #undef DECLARE_CALLBACK
 
   default:
     dbgHex((uint32_t)op, ' ');
-
+    break;
   }
   forward();
 }
@@ -1187,7 +1276,7 @@ bool GemDrive::openPath(int create, ToLong fname, uint8_t attr, int &driveIndex,
   FsVolume &volume = sd.fs;
 
   if(create && !sd.isWritable()) {
-    rte(EACCDN);
+    rte(EWRPRO);
     return true;
   }
 
@@ -1198,7 +1287,7 @@ bool GemDrive::openPath(int create, ToLong fname, uint8_t attr, int &driveIndex,
     case 0:
       break;
     case 1:
-      rte(create ? EACCDN : EFILNF);
+      rte(create ? EWRPRO : EFILNF);
       return true;
     case 2:
     case 3:
@@ -1217,7 +1306,6 @@ bool GemDrive::onFcreateopen(int create, ToLong fname, oflag_t oflag, uint8_t at
   if(driveIndex < 0)
     return false; 
 
-  Drive &drive = drives[driveIndex];
   auto &sd = Devices::sdSlots[driveIndex];
   FsVolume &volume = sd.fs;
 
@@ -1232,7 +1320,7 @@ bool GemDrive::onFcreateopen(int create, ToLong fname, oflag_t oflag, uint8_t at
   if(!file) {
     // File exists but cannot be opened: the only possible case is opening
     // read-write a readonly file.
-    rte(EACCDN);
+    rte(EWRPRO);
     return true;
   }
 
@@ -1250,7 +1338,7 @@ void GemDrive::installHook(uint32_t driverMem, ToLong vector) {
   static const Long xbra = ToLong('X', 'B', 'R', 'A');
   static const Long a2st = ToLong('A', '2', 'S', 'T');
 
-  for(int i = 0; i < syshook_boot_bin_len - 14; i += 2) {
+  for(unsigned int i = 0; i < syshook_boot_bin_len - 14; i += 2) {
     // Scan XBRA/A2ST marker
     if(syshook_boot_bin[i] == 'X') {
       Long *lbin = (Long *)(&syshook_boot_bin[i]);
@@ -1276,24 +1364,16 @@ bool GemDrive::checkMedium(int driveIndex) {
   if(driveIndex < 0)
     return false;
 
-  // Check and update drive based on SD card status
-  auto &sd = Devices::sdSlots[driveIndex];
-  if(!sd.mediaId()) {
-    if(!sd.reset())
-      return false;
-    if(!sd.mediaId())
-      return false;
-  }
-  return true;
+  // Check SD card mediaId
+  return Devices::sdSlots[driveIndex].mediaId();
 }
 
 int GemDrive::findDriveByMediaId(uint32_t mediaId) {
-  for(int i = 0; i < driveCount; ++i) {
-    if(!checkMedium(i))
-      continue;
+  if(!mediaId)
+    return -1;
+  for(int i = 0; i < driveCount; ++i)
     if(mediaId == Devices::sdSlots[i].mediaId())
       return i;
-  }
   return -1;
 }
 

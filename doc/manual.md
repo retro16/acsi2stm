@@ -30,17 +30,6 @@ GemDrive supports FAT16, FAT32 and ExFAT with no size limit. It supports only
 one partition per SD card.
 
 
-### How to choose one mode or another
-
-ACSI2STM detects the best mode at boot. By default it tries to enable GemDrive,
-except if the following conditions is met:
-
- * The first SD card has a valid Atari boot sector
- * The first SD card is present but its filesystem is unknown
- * The first SD card contains a hard disk image
- * The strict mode jumper is set
-
-
 Compatibility
 -------------
 
@@ -69,8 +58,8 @@ This will use GemDrive.
  * If you have more than 1 SD card slot, they will show up as D:, E:, ...
 
 
-Use a ready-made disk image
----------------------------
+Use a ready-made ACSI disk image
+--------------------------------
 
 If you have a bootable hard disk image, the following sections will describe how
 to use it.
@@ -139,6 +128,8 @@ again on your PC or in GemDrive mode.
 Creating an ICD PRO image
 -------------------------
 
+ICD PRO is the recommended driver to use in ACSI mode.
+
 There is a very good tutorial on
 [Jookie's home page](http://joo.kie.sk/?page_id=306).
 
@@ -176,6 +167,7 @@ with their pros and cons.
 
 Here is the list of the free drivers I'm aware of, in no particular order:
 
+
 ### ICD PRO Festplatentreiber 6.55
 
 Free (not open source) driver that works well and is very stable.
@@ -191,6 +183,7 @@ Cons:
  * Eats up memory like crazy if you leave cache enabled (disable cache, ACSI2STM
    is nearly as fast as memcpy).
  * Not open source.
+
 
 ### P.Putnik's ACSID07 driver (free, 2008 version)
 

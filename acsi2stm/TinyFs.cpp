@@ -177,8 +177,9 @@ int TinyPath::set(FsVolume &volume, const char *path, int create, uint8_t attr) 
     child.openNext(&parent, O_RDONLY);
     while(child) {
       child.getName(unicodeName, 52);
-      parseUnicodeName(unicodeName);
-      if(matches(pattern)) {
+      bool compatible;
+      parseUnicodeName(unicodeName, &compatible);
+      if(compatible && matches(pattern)) {
         if(child.isDirectory() || lastPath)
           break;
       }
@@ -393,6 +394,8 @@ const char * TinyPath::parseAtariPattern(const char *path) {
         break;
       }
       pattern[j] = path[i];
+      if(pattern[j] >= 'a' && pattern[j] <= 'z')
+        pattern[j] += 'A' - 'a';
     }
 
     // Fill the name with spaces
@@ -415,6 +418,8 @@ const char * TinyPath::parseAtariPattern(const char *path) {
         break;
       }
       pattern[j] = path[i];
+      if(pattern[j] >= 'a' && pattern[j] <= 'z')
+        pattern[j] += 'A' - 'a';
     }
   }
 
@@ -428,12 +433,20 @@ const char * TinyPath::parseAtariPattern(const char *path) {
   return &path[i];
 }
 
-const char * TinyPath::parseUnicodeName(const char *path) {
+const char * TinyPath::parseUnicodeName(const char *path, bool *compatible) {
   int i = 0; // Index in the source string
   int j = 0; // Index in name
 
   int nameEnd;
   int ext;
+
+#if ACSI_GEMDRIVE_HIDE_INCOMPATIBLE_FILES
+  if(compatible)
+    *compatible = true;
+#else
+  if(compatible)
+    *compatible = !(path[0] == '.' && path[1] != '.' && path[1]);
+#endif
 
   // Find the end of the current name
   for(nameEnd = 0; path[nameEnd] && path[nameEnd] != '/'; ++nameEnd);
@@ -457,6 +470,11 @@ const char * TinyPath::parseUnicodeName(const char *path) {
     i += getNextUnicode(&path[i], &name[j]);
   }
 
+#if ACSI_GEMDRIVE_HIDE_INCOMPATIBLE_FILES >= 2
+  if(compatible && i != ext)
+    *compatible = false;
+#endif
+
   // Fill the name with spaces
   for(; j < 8; ++j)
     name[j] = ' ';
@@ -474,6 +492,11 @@ const char * TinyPath::parseUnicodeName(const char *path) {
       i += getNextUnicode(&path[i], &name[j]);
     }
   }
+
+#if ACSI_GEMDRIVE_HIDE_INCOMPATIBLE_FILES >= 2
+  if(compatible && i != nameEnd)
+    *compatible = false;
+#endif
 
   // Fill the extension with spaces
   for(; j < 11; ++j)
@@ -564,7 +587,7 @@ void TinyFile::close() {
 }
 
 FsFile * TinyFile::openNext(FsVolume &volume, oflag_t oflag, const char pattern[11]) {
-  int curIndex = index;
+  auto curIndex = index;
 
   acquire(volume, O_RDONLY);
 
@@ -596,8 +619,9 @@ void TinyFile::findNextMatching(const char pattern[11], oflag_t oflag) {
   while(g.f) {
     char name[256];
     g.f.getName(name, 256);
-    TinyPath::parseUnicodeName(name);
-    if(TinyPath::matches(pattern))
+    bool compatible;
+    TinyPath::parseUnicodeName(name, &compatible);
+    if(compatible && TinyPath::matches(pattern))
       break;
     g.f.openNext(&g.dir, oflag);
   }

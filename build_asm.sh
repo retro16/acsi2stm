@@ -15,10 +15,6 @@ builddir="$PWD/build.asm~"
 tosdir="$PWD"
 VERSION=`cat "$srcdir/../VERSION"`
 
-echo "Patch the source to set VERSION to $VERSION"
-
-sed -i '/; ACSI2STM VERSION NUMBER/s/dc\.b.'\''.*'\''/dc.b\t'\'"$VERSION"\'/ "$srcdir/inc/acsi2stm.i"
-
 # Remove previous build artifacts and create a build directory
 rm -rf "$builddir"
 mkdir -p "$builddir"
@@ -52,22 +48,6 @@ buildasm() {
       xxd -i "$name.boot.bin" > "$name.boot.h"
     )
     cp "$builddir/$name.boot.h" "$srcdir/../acsi2stm/"
-  fi
-
-  if [ -e "$1/tools.s" ]; then
-    name="$(basename "$1")"
-    echo "Compile $name tools payload"
-    [ -d "$builddir/$name" ] || mkdir -p "$builddir/$name" || exit $?
-    vasmm68k_mot -maxerrors=20 -devpac -ldots -showopt -Fbin -I"$builddir/$name" -L "$builddir/$name.tools.lst" -o "$builddir/$name.tools.bin" "$srcdir/$name/tools.s" || exit $?
-    [ -e "$builddir/$name.tools.bin" ] || exit $?
-
-    echo "Generate source code from the binary blob"
-
-    (
-      cd "$builddir"
-      xxd -i "$name.tools.bin" > "$name.h"
-    )
-    cp "$builddir/$name.h" "$srcdir/../tools/"
   fi
 
   if [ -e "$1/tos.s" ]; then

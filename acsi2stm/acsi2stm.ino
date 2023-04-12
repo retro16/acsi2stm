@@ -23,16 +23,9 @@
 #include "GemDrive.h"
 #include <libmaple/gpio.h>
 
-static int acsiDeviceMask;
-#if ! ACSI_STRICT
-static bool useGemDrive;
-#else
-static const bool useGemDrive = false;
-#if ACSI_GEMDOS_SNIFFER
+#if ACSI_STRICT && ACSI_GEMDOS_SNIFFER
 #error ACSI_GEMDOS_SNIFFER and ACSI_STRICT are mutually exclusive.
 #endif
-#endif
-
 
 // Main setup function
 void setup() {
@@ -52,62 +45,15 @@ void setup() {
   Monitor::beginDbg();
 
   // Send a few characters to synchronize autoconfigured USB-serial dongles.
-  Monitor::dbg("\n\n\n");
-  delay(20);
-  Monitor::dbg("\n\n\n");
-  delay(100);
+  Monitor::dbg("\n\n");
+  delay(150);
+  Monitor::dbg("\n\n");
+  delay(50);
 
   Monitor::dbg("ACSI2STM SD bridge v" ACSI2STM_VERSION "\n\n");
-  delay(50);
+  delay(20);
 #endif
 
-  bool hasCard = false;
-  bool hasBootable = false;
-  bool hasMountable = false;
-
-  for(int c = 0; c < Devices::sdCount; ++c) {
-    SdDev &sd = Devices::sdSlots[c];
-    if(sd.reset()) {
-      acsiDeviceMask |= 1 << c;
-      if(sd)
-        hasCard = true;
-      if(sd && sd.fsOpen && c == 0)
-        hasMountable = true;
-      if(sd && sd.bootable && c == 0)
-        hasBootable = true;
-#if ACSI_DEBUG
-      sd.getDeviceString((char *)Devices::buf);
-      Monitor::dbg("SD", c, ' ', (char *)Devices::buf, '\n');
-#endif
-    }
-  }
-#if ! ACSI_STRICT
-#if ACSI_GEMDOS_SNIFFER
-  useGemDrive = true;
-#else
-  useGemDrive = !hasCard || (!hasBootable && hasMountable);
-#endif
-  Monitor::verbose("GemDrive ");
-  if(useGemDrive)
-    Monitor::verbose("enabled\n");
-  else
-    Monitor::verbose("disabled\n");
-#endif
-}
-
-// Called on boot, and every time the Atari is reset
-static void quickReset() {
-  Devices::sense();
-  for(int c = 0; c < Devices::sdCount; ++c)
-    Devices::acsi[c].reset();
-
-#if ! ACSI_STRICT
-  if(Devices::strict)
-    useGemDrive = false;
-#endif
-
-  if(useGemDrive)
-    acsiDeviceMask &= ~1;
 }
 
 #if ACSI_STACK_CANARY
@@ -128,33 +74,45 @@ void __attribute__ ((noinline)) checkCanary() {
 // Main loop
 void loop() {
   setjmp(DmaPort::resetJump);
-  quickReset();
+  Devices::sense();
   DmaPort::waitBusReady();
 
   for(;;) {
 #if ACSI_DEBUG && ACSI_STACK_CANARY
     checkCanary();
 #endif
+
     Monitor::ledOff();
     uint8_t cmd = DmaPort::waitCommand();
     Monitor::ledOn();
-    int deviceId = DmaPort::cmdDeviceId(cmd);
 
+    // Parse command and device
+    int deviceId = DmaPort::cmdDeviceId(cmd);
     int deviceIndex = deviceId - Devices::acsiFirstId;
-    if(deviceIndex == 0 && useGemDrive) {
+    int mask = 1 << deviceIndex;
+    cmd = DmaPort::cmdCommand(cmd);
+
+    // Dispatch command byte
+#if ! ACSI_STRICT
+    if(mask & SdDev::gemDriveMask) {
 #if ! ACSI_VERBOSE
-      Monitor::dbg("GEMDRV:");
+      Monitor::dbgHex("GDRV", deviceId, ':', cmd, ' ');
 #endif
-      GemDrive::process(DmaPort::cmdCommand(cmd));
-    } else if(acsiDeviceMask & (1 << deviceIndex)) {
+      if(cmd == 0x08 && deviceIndex != SdDev::gemBootDrive)
+        Monitor::dbg("not the boot device\n");
+      else
+        GemDrive::process(cmd);
+    } else
+#endif
+    if(mask & SdDev::acsiDeviceMask) {
 #if ! ACSI_VERBOSE
       Monitor::dbg("ACSI", deviceId, ':');
 #endif
-      Devices::acsi[deviceIndex].process(DmaPort::cmdCommand(cmd));
+      Devices::acsi[deviceIndex].process(cmd);
     } else {
 #if ! ACSI_VERBOSE
       Monitor::dbg("ACSI", deviceId, ':');
-      Monitor::dbgHex(DmaPort::cmdCommand(cmd));
+      Monitor::dbgHex(cmd);
 #endif
       Monitor::dbg(" - Not for us\n");
     }

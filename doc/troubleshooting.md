@@ -1,12 +1,32 @@
 Troubleshooting
 ===============
 
+If you have an issue, check this place first:
+
+
+Read-Only SD cards
+------------------
+
+You need to solder PB0 to PB5 pins. See [hardware](hardware.md).
+
+
 Corrupted partitions
 --------------------
-This is a symptom of certain models of STE and is unfortunately a [well documented problem](http://joo.kie.sk/?page_id=250). While the DMA chip is often identified as the culprit, an easy fix is to swap out the 68000 processor for a more modern, less noisy lower power equivalent, such as the MC68HC000EI16 which is a drop-in replacement. Swapping the chip should require no soldering, the old chip can be pried out of the socket with a little effort (be careful not to damage the socket) and the substitute chip dropped in its place. Be sure to confirm the orientation of the chip is the same as the old one.
 
-Writing errors
---------------
+This is a symptom of certain models of STE and is unfortunately a
+[well documented problem](http://joo.kie.sk/?page_id=250). While the DMA chip
+is often identified as the culprit, an easy fix is to swap out the 68000
+processor for a more modern, less noisy lower power equivalent, such as the
+MC68HC000EI16 which is a drop-in replacement. Swapping the chip should require
+no soldering, the old chip can be pried out of the socket with a little effort
+(be careful not to damage the socket) and the substitute chip dropped in its
+place. Be sure to confirm the orientation of the chip is the same as the old
+one.
+
+
+Writing errors in ACSI mode
+---------------------------
+
 The following errors are common with TOS 1.62:
 > This disk does not have enough room for this operation.
 > 
@@ -31,3 +51,19 @@ To skip booting from the SD card, hold down the **Alternate** key when turning o
 
 ### Physically swap the ROMs
 This is a much more advanced solution and involves sourcing and soldering new chips into your machine. This is outwith the scope of this document.
+
+
+Programs crashing in GemDrive mode
+----------------------------------
+
+Unfortunately GemDrive isn't 100% compatible due to the way it works. A rule of
+thumb is: if it crashes on Hatari's GEMDOS drives, then there is nothing you
+can do about it.
+
+Implementing Pexec (the TOS function that starts programs) is very hard so it
+very likely has bugs. Some other functions may have subtle differences in
+their implementations compared to the original TOS (including non-existing
+bugs).
+
+Please file a bug report if you find a program that should work but doesn't.
+Provide a debug trace in any case, it really helps.

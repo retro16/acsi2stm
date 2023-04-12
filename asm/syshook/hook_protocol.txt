@@ -6,9 +6,8 @@ This offset cannot be fetched again, so make sure you read all parameters before
 
 
 Reply format:
-$8d: forward hook to system
-$8c [4x byte]: Set D0 and return from exception
-$8a [4x byte]: Set D0 and return from subroutine
+$8b: forward hook to system or continue boot routine
+$8a [4x byte]: Set D0 and return from exception
 $88 [4x byte]: Call pexec(4, 0, param, 0) then return from exception
 $86 [4x byte]: Call pexec(6, 0, param, 0) then return from exception
 $85 [4x byte]: execute 4 bytes as machine code, set DMA read on the stack then wait for another reply byte

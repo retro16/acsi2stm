@@ -10,13 +10,15 @@ Hardware needed
 
  * A STM32F103C8T6 or compatible board. You can find them for a few dollars
    online. The "blue pill" works out of the box and the older "black pill"
-   requires minor modifications.
+   requires minor modifications. The newer STMF4 "black pill" is not
+   compatible.
  * A USB-serial dongle for programming the STM32 chip, with a 3.3V USART.
  * One or more SD card port(s) for your STM32. You can also solder wires on a SD
    to microSD adapter.
  * One or more SD card(s).
  * A male DB19 port (you can modify a DB25 port to fit) with a ribbon cable.
- * One 10k-100k resistor if you need SD card hotplug capabilities.
+ * One 10k-100k resistor if you need SD card hotplug capabilities or if you
+   have multiple SD card slots.
  * One 100nF decoupling capacitor for the SD card (optional but recommended).
  * Do *NOT* connect USB data lines on the STM32. Use the +5V or +3.3V pin to
    power it if you are unsure. To power from USB, you need to modify the blue
@@ -24,6 +26,10 @@ Hardware needed
 
 You can use the PCB design provided in the PCB folder. See
 [build_pcb.md](build_pcb.md) for more information.
+
+**Note:** If you build this project, please seriously think about putting
+multiple SD card slots. It quickly becomes a must have in many situations.
+
 
 
 Modifying the Blue Pill board
@@ -165,9 +171,9 @@ SD card CS pins *must not* be grounded anymore.
 
 **Notes**:
 
- * If you need to hot swap your SD card, you need to put a 10k-100k pull-up
-   resistor between +3.3V and PA6. A single resistor is enough if you have
-   multiple SD card slots.
+ * If you need to hot swap your SD card, or if you want multiple SD slots, you
+   need to put a 10k-100k pull-up resistor between +3.3V and PA6. A single
+   resistor is enough if you have multiple SD card slots.
  * The ACSI2STM module **will** respond to all ACSI IDs, whether a SD card is
    inserted or not. Change ACSI_SD_CARDS and ACSI_FIRST_ID in
    acsi2stm/acsi2stm.h to change ACSI IDs, or see the table below to disable IDs
@@ -255,6 +261,10 @@ will be greatly improved by doing that.
 Solder PB0, PB1, PB3, PB4 and/or PB5 to GND to make SD cards permanently
 read-write. See the table mentioning these pins above for more details.
 
+### Hide non-existing slots
+
+Solder PB0, PB1, PB3, PB4 and/or PB5 to +3.3V to disable the corresponding
+slots. See the table mentioning these pins above for more details.
 
 Changes required for 1.xx units
 -------------------------------

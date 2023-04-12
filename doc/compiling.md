@@ -87,6 +87,10 @@ Settings that you might wish to change:
    timings may not be compatible with some ST DMA chips. You can try values
    between 2 and 5 for even faster performance, but this is glitchy.
  * ACSI_RTC: Setting this to 1 enables UltraSatan real-time clock compatibility.
+ * ACSI_GEMDRIVE_FIRST_LETTER: Set the first drive letter GemDrive will use.
+ * ACSI_GEMDRIVE_HIDE_INCOMPATIBLE_FILES: Hides files with names that don't
+   match what is usually found on the ST. The higher the value, the stricter it
+   gets.
 
 
 Rebuilding ASM code

@@ -50,6 +50,8 @@ public:
   static void beginDbg(int speed = ACSI_SERIAL_SPEED) {
 #if ACSI_DEBUG
     ACSI_SERIAL.begin(speed);
+#else
+    (void)speed;
 #endif
   }
 
@@ -64,6 +66,8 @@ public:
 #if ACSI_DEBUG
     ACSI_SERIAL.print(txt);
     flushDbg();
+#else
+    (void)txt;
 #endif
   }
 
@@ -74,9 +78,15 @@ public:
   }
 
   template<typename... T>
+  static void ignore(T...) {
+  }
+
+  template<typename... T>
   static void verbose(T... txt) {
 #if ACSI_VERBOSE
     dbg(txt...);
+#else
+    ignore(txt...);
 #endif
   }
 
@@ -85,6 +95,8 @@ public:
 #if ACSI_DEBUG
     ACSI_SERIAL.print(txt, HEX);
     flushDbg();
+#else
+    (void)txt;
 #endif
   }
 
@@ -106,6 +118,8 @@ public:
   static void verboseHex(T... txt) {
 #if ACSI_VERBOSE
     dbgHex(txt...);
+#else
+    ignore(txt...);
 #endif
   }
 
@@ -126,6 +140,10 @@ public:
       if(size > maxSize)
         dbg(" [...]");
     }
+#else
+    (void)data_;
+    (void)size;
+    (void)maxSize;
 #endif
   }
 
@@ -133,12 +151,20 @@ public:
   static void notVerboseDump(const void *data_, int size, int maxSize = ACSI_DUMP_LEN) {
 #if ! ACSI_VERBOSE
     dump(data_, size, maxSize);
+#else
+    (void)data_;
+    (void)size;
+    (void)maxSize;
 #endif
   }
 
   static void verboseDump(const void *data_, int size, int maxSize = ACSI_DUMP_LEN) {
 #if ACSI_VERBOSE
     dump(data_, size, maxSize);
+#else
+    (void)data_;
+    (void)size;
+    (void)maxSize;
 #endif
   }
 
@@ -146,12 +172,20 @@ public:
 #if ACSI_DEBUG
     dump(data_, size, maxSize);
     dbg('\n');
+#else
+    (void)data_;
+    (void)size;
+    (void)maxSize;
 #endif
   }
 
   static void verboseDumpln(const void *data_, int size, int maxSize = ACSI_DUMP_LEN) {
 #if ACSI_VERBOSE
     dumpln(data_, size, maxSize);
+#else
+    (void)data_;
+    (void)size;
+    (void)maxSize;
 #endif
   }
 };

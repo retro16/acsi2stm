@@ -28,41 +28,79 @@ Limitations
 * Only one partition per SD card.
 * Works around some TOS limitations by using (relatively safe) heuristics,
   but there may be issues in some very extreme corner cases.
-* Hooks the whole filesystem unconditionally: may decrease performance in
-  some cases. Also, the STM32 can stall the whole TOS in case of error.
+* Hooks the whole system unconditionally: may decrease performance in some
+  cases. Also, the STM32 can stall the whole TOS in case of error.
 * TOS versions below 1.04 (Rainbow TOS) lack necessary APIs to implement Pexec
   properly, meaning that running a program will leak a small amount of RAM.
+  This is also the case in Hatari.
+* Not compatible with EmuTOS, MiNT, or any other TOS replacement.
 
 
 How to use
 ----------
 
-At boot, GemDrive mode will be disabled if:
+When the ST boots (cold boot or reset), ACSI2STM scans all SD cards, then
+decide whether each SD card slot is in ACSI mode, GemDrive mode or disabled,
+in that order:
 
-* Strict mode is enabled by a jumper / compilation flag
-* An Atari-bootable SD card is inserted in the first SD slot at startup
-* A hard disk image is found on the SD card in the first SD slot at startup
+* If the slot doesn't exist, it is completely disabled.
+* If strict mode is enabled (via dumper or "strict" firmware variant), ACSI
+  mode is enabled.
+* If the SD card contains an ACSI disk image, ACSI mode is enabled.
+* If the SD card is Atari bootable, ACSI mode is enabled.
+* If the SD card can be mounted by the STM32, GemDrive mode is enabled.
+* If no SD card is detected in the slot, GemDrive mode is enabled.
+* If no other condition is satisfied, the SD card has an unknown format: ACSI
+  mode is enabled.
 
-GemDrive will start if no SD card is inserted, to allow hot swapping.
+If at least one SD slot is in GemDrive mode, then the driver will load by
+providing a boot sector through the first GemDrive slot only (to avoid loading
+the driver multiple times). All further GemDrive communication will go through
+the ACSI id matching this slot.
 
-Once started, GemDrive will reserve one drive letter per SD card slot, whether
-or not it contains a valid mountable SD card. On each access the STM32 will
-check if the SD card is present and/or has been swapped.
+If no SD card is present, GemDrive mode is enabled, because it supports hot
+inserting and hot swapping cards.
 
-The SD card can then be used like any other drive.
+If GemDrive detects a bootable SD card, it will shift its drive letters to L:
+in order to avoid conflicts with poorly written ACSI drivers that steal
+existing drive letters for themselves.
 
-GemDrive mounts SD cards if the following conditions are met:
+At boot, GemDrive designates the first SD card it finds as boot drive (even if
+it is not C:). If no SD card is detected, it leaves boot drive untouched
+(usually the floppy drive is designated as boot).
 
-* A SD card with a single FAT16/FAT32/ExFAT partition is inserted
-* The SD card can be mounted by the SdFat library
-* The SD card is not Atari-bootable
+**Note**: in order to avoid drive letter confusion, only the first partition of
+the SD card is used by GemDrive. This should not be a problem in most cases as
+the need for multiple partitions arised from disk size limitations, and
+GemDrive doesn't have any of them.
 
-SD cards that cannot be mounted will appear as normal Atari hard drives, just
-like in strict mode. This allows mixing GemDrive and other drivers.
 
-If you want to use another hard drive along with GemDrive, you should place it
-before the ACSI2STM in the device chain (e.g. hard drive on ID 0 and ACSI2STM
-on ID 1).
+Mixing GemDrive and ACSI
+------------------------
+
+### Mixing GemDrive and ICD PRO
+
+To mix GemDrive with ICD PRO, you must proceed like this:
+
+* You must have only one bootable ICD PRO SD card.
+* Insert the ICD PRO SD cards after the GemDrive cards.
+
+The GemDrive driver will boot before the ICD PRO driver. GemDrive will use L:
+and above as drive letters.
+
+### Mixing GemDrive and other ACSI drivers
+
+A few considerations should be made when mixing both kinds of drives:
+
+* ACSI drivers that require ACSI id 0 and break the boot chain won't allow
+  GemDrive loading itself.
+* GemDrive doesn't respond to any ACSI command, except reading the boot sector.
+  Most drivers will ignore such a strange behavior and should skip the drive
+  successfully.
+* In general putting GemDrive first and the ACSI drives last is your best bet.
+
+If your driver has problems with GemDrive, then only solution is to enable
+strict mode to force ACSI everywhere.
 
 
 How it works
@@ -87,7 +125,7 @@ forward the call to the TOS.
 Future improvements
 -------------------
 
-Things that could be done more or less easily (requiring a 128k STM32):
+Things that could be done more or less easily:
 
 * Install the driver in top RAM.
 * Floppy drive emulator, by hooking BIOS and XBIOS calls.
