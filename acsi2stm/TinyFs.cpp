@@ -564,7 +564,7 @@ void TinyFile::close() {
 }
 
 FsFile * TinyFile::openNext(FsVolume &volume, oflag_t oflag, const char pattern[11]) {
-  int curIndex = index;
+  auto curIndex = index;
 
   acquire(volume, O_RDONLY);
 

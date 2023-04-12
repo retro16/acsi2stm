@@ -24,6 +24,7 @@
 
 struct TinyPath;
 struct GemFile;
+struct PrivDTA;
 
 struct GemDrive: public Devices, public Tos {
   // Process a command
@@ -84,7 +85,7 @@ struct GemDrive: public Devices, public Tos {
   static int createFd(Word &stfd);
   static GemFile * createFd(uint32_t &stfd, int driveIndex, Long basePage);
   static bool closeFd(ToWord stfd);
-  static void setDta(FsFile *file, DTA &dta);
+  static void setDta(FsFile *file, const PrivDTA &priv, DTA &dta);
 };
 
 // vim: ts=2 sw=2 sts=2 et

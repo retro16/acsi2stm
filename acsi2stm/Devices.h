@@ -38,6 +38,10 @@ struct Devices {
   static void sense();
 
   static const int sdCount = ACSI_SD_CARDS;
+  static int acsiDeviceMask;
+#if ! ACSI_STRICT
+  static int gemDriveMask;
+#endif
 
   // Realtime clock
 #if ACSI_RTC

@@ -59,7 +59,7 @@ Acsi Devices::acsi[] = {
 bool Devices::strict = false;
 #endif
 #if ACSI_ID_OFFSET_PINS
-int Devices::acsiFirstId;
+int Devices::acsiFirstId = ACSI_FIRST_ID;
 #endif
 
 void Devices::sense() {
@@ -96,6 +96,11 @@ end:
   pinMode(PA13, INPUT_PULLUP);
   pinMode(PA14, INPUT_PULLUP);
 #endif
+
+  for(int c = 0; c < sdCount; ++c) {
+    sdSlots[c].onReset();
+    acsi[c].onReset();
+  }
 }
 
 void Devices::blocksToString(uint32_t blocks, char *target) {

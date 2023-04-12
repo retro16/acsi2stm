@@ -28,34 +28,32 @@ static void __attribute__ ((noinline)) write24(uint8_t *target, uint32_t value) 
   target[2] = (value) & 0xFF;
 }
 
-void Acsi::reset() {
-  if(card.slot < 0)
-    return;
-
-  mountBlockDev();
+void Acsi::onReset() {
+  mediaId = blockDev.mediaId();
   lastErr = ERR_OK;
+  lastSeek = false;
+  lastBlock = 0;
 }
 
 void Acsi::refresh() {
-  if(card.slot < 0)
+  uint32_t realId = blockDev.mediaId();
+  if(realId == mediaId)
     return;
 
-  if(!hasMediaChanged())
-    return;
+  mediaId = realId;
 
   if(!removable) {
-    dbg("Non-removable SD", card.slot, " removed: disable slot\n");
-    card.slot = -1;
-    blockDev = nullptr;
+    dbg("Non-removable SD", blockDev.slot, " removed: disable slot\n");
+    blockDev.disable();
+    onReset();
+    lastErr = ERR_NOMEDIUM;
     return;
   }
 
-  dbg("Refreshing SD", card.slot, ':');
+  dbg("Refreshing SD", blockDev.slot, ':');
 
-  card.reset();
-  if(card) {
+  if(mediaId) {
     dbg("New SD card\n");
-    mountBlockDev();
     lastErr = ERR_MEDIUMCHANGE;
     return;
   }
@@ -64,35 +62,11 @@ void Acsi::refresh() {
   lastErr = ERR_NOMEDIUM;
 }
 
-bool Acsi::hasMediaChanged() {
-  uint32_t realId = blockDev ? blockDev->mediaId() : card.mediaId();
-  return mediaId != realId || (!realId && lastErr != ERR_NOMEDIUM);
-}
-
-void Acsi::mountBlockDev() {
-  blockDev = nullptr;
-
-  // Build the image file name
-  strcpy((char *)buf, ACSI_IMAGE_FOLDER "/" ACSI_IMAGE_FILE);
-
-  // Try to open the image file
-  if(image.begin(&card, (const char *)buf))
-    // Success: associate the image to its LUN
-    blockDev = &image;
-
-  // Mount raw SD card if no image was found for that slot
-  if(!blockDev && card)
-    blockDev = &card;
-
-  if(blockDev)
-    mediaId = blockDev->mediaId();
-}
-
 void Acsi::process(uint8_t cmd) {
   if(cmd != 0x03)
     refresh();
 
-  if(card.slot < 0)
+  if(blockDev.slot < 0)
     // Slot disabled: unplug the device completely
     return;
 
@@ -126,9 +100,6 @@ void Acsi::process(uint8_t cmd) {
     if(!validLun()) {
       dbg("Invalid LUN\n");
       lastErr = ERR_INVLUN;
-    }
-    if(!blockDev && !lastErr) {
-      lastErr = ERR_NOMEDIUM;
     }
 
     // Fall through next case
@@ -231,10 +202,7 @@ void Acsi::process(uint8_t cmd) {
       buf[0] = 0x7F; // Unsupported LUN
     } else {
       // Build the product string
-      if(blockDev)
-        blockDev->getDeviceString((char *)buf + 8);
-      else
-        card.getDeviceString((char *)buf + 8);
+      blockDev.getDeviceString((char *)buf + 8);
     }
 
     buf[1] = removable ? 0x80 : 0x00; // Removable flag
@@ -505,7 +473,7 @@ void Acsi::commandStatus(ScsiErr err) {
 }
 
 Acsi::ScsiErr Acsi::processBlockRead(uint32_t block, int count) {
-  dbg("Read ", count, " blocks from ", block, " on SD", card.slot, '\n');
+  dbg("Read ", count, " blocks from ", block, " on SD", blockDev.slot, '\n');
 
   if(block >= blockDev->blocks || block + count - 1 >= blockDev->blocks) {
     dbg("Out of range\n");
@@ -538,7 +506,7 @@ Acsi::ScsiErr Acsi::processBlockRead(uint32_t block, int count) {
 }
 
 Acsi::ScsiErr Acsi::processBlockWrite(uint32_t block, int count) {
-  dbg("Write ", count, " blocks from ", block, " on SD", card.slot, '\n');
+  dbg("Write ", count, " blocks from ", block, " on SD", blockDev.slot, '\n');
 
 #if ACSI_READONLY == 2
   for(int s = 0; s < count; ++s)
@@ -581,7 +549,7 @@ Acsi::ScsiErr Acsi::processBlockWrite(uint32_t block, int count) {
 }
 
 void Acsi::modeSense0(uint8_t *outBuf) {
-  uint32_t blocks = blockDev ? blockDev->blocks : 0;
+  uint32_t blocks = blockDev->blocks;
   for(uint8_t b = 0; b < 16; ++b)
     outBuf[b] = 0;
 
@@ -597,7 +565,7 @@ void Acsi::modeSense0(uint8_t *outBuf) {
 }
 
 void Acsi::modeSense4(uint8_t *outBuf) {
-  uint32_t blocks = blockDev ? blockDev->blocks : 0;
+  uint32_t blocks = blockDev->blocks;
   for(uint8_t b = 0; b < 24; ++b)
     outBuf[b] = 0;
 

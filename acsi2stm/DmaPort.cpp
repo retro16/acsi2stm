@@ -311,7 +311,6 @@ uint8_t DmaPort::readCommand() {
 }
 
 uint8_t DmaPort::waitCommand() {
-  int cmd;
   do {
     resetTimeout();
   } while(!checkCommand());

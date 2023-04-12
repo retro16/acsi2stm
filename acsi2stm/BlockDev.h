@@ -25,10 +25,6 @@
 // Block device generic interface
 class BlockDev: public Monitor, public Devices {
 public:
-  operator bool() {
-    return blocks;
-  }
-
   // Read/write functions
   virtual bool readStart(uint32_t block) = 0;
   virtual bool readData(uint8_t *data, int count = 1) = 0;
@@ -36,15 +32,12 @@ public:
   virtual bool writeStart(uint32_t block) = 0;
   virtual bool writeData(const uint8_t *data, int count = 1) = 0;
   virtual bool writeStop() = 0;
-
-  // Device description
-  virtual void getDeviceString(char *target) = 0;
   virtual bool isWritable() = 0;
 
   // Return a (hopefully) unique id for this media
+  // Returns 0 if no device is present
+  // Also serves as a device state detection and refresh
   virtual uint32_t mediaId(bool force = false) = 0;
-
-  // Flags and state
 
   // Size in 512 bytes blocks
   uint32_t blocks;
@@ -52,24 +45,55 @@ public:
   // Set to true if the block device is bootable by the ST
   bool bootable;
 
-protected:
-  void reset() {
-    blocks = 0;
-    bootable = false;
+  // Update the bootable flag
+  bool updateBootable();
+};
+
+class ImageDev: public BlockDev {
+public:
+  ImageDev(SdDev &sdDev);
+  bool open(const char *path);
+  void close();
+
+  operator bool() const {
+    return sdMediaId;
   }
 
-  // Update the bootable flag
-  void updateBootable();
+  // BlockDev interface
+  virtual bool readStart(uint32_t block);
+  virtual bool readData(uint8_t *data, int count = 1);
+  virtual bool readStop();
+  virtual bool writeStart(uint32_t block);
+  virtual bool writeData(const uint8_t *data, int count = 1);
+  virtual bool writeStop();
+  virtual bool isWritable();
+  virtual uint32_t mediaId(bool force = false);
+
+  SdDev &sd;
+  FsBaseFile image;
+
+protected:
+  uint32_t sdMediaId; // SD card owning the current image
 };
 
 class SdDev: public BlockDev {
 public:
   SdDev(int slot_, int csPin_, int wpPin_):
+    image(*this),
+    mode(ACSI),
+    writable(false),
     slot(slot_),
     csPin(csPin_),
     wpPin(wpPin_) {}
   SdDev(SdDev&&);
-  bool reset();
+
+  void onReset(); // Called at Atari reset
+
+  void getDeviceString(char *target);
+
+  // Return the actual block device (SD card or image)
+  BlockDev * operator->();
+  const BlockDev * operator->() const;
 
   // BlockDev interface
   virtual bool readStart(uint32_t block);
@@ -78,44 +102,43 @@ public:
   virtual bool writeStart(uint32_t block);
   virtual bool writeData(const uint8_t *data, int count = 1);
   virtual bool writeStop();
-  virtual void getDeviceString(char *target);
   virtual bool isWritable();
   virtual uint32_t mediaId(bool force = false);
 
+  // Permanently disable the slot
+  void disable();
+
   SdSpiCard card;
   FsVolume fs;
-  bool fsOpen;
+  ImageDev image;
 
+  enum {
+    ACSI = 0,
+#if ! ACSI_STRICT
+    GEMDRIVE,
+#endif
+    DISABLED
+  } mode;
+
+  bool writable;
   int slot;
   int csPin;
   int wpPin;
-  bool writable;
 
+  static int acsiDeviceMask;
+  static int gemDriveMask;
+  static int gemBootDrive; // Set to 8 if no boot drive
+
+  friend class ImageDev;
 protected:
   static const uint32_t mediaCheckPeriod = 500;
   uint32_t lastMediaId;
   uint32_t lastMediaCheckTime;
-  void mediaChecked();
-};
-
-class ImageDev: public BlockDev {
-public:
-  bool begin(SdDev *sdDev, const char *path);
-  void end();
-
-  // BlockDev interface
-  virtual bool readStart(uint32_t block);
-  virtual bool readData(uint8_t *data, int count = 1);
-  virtual bool readStop();
-  virtual bool writeStart(uint32_t block);
-  virtual bool writeData(const uint8_t *data, int count = 1);
-  virtual bool writeStop();
-  virtual void getDeviceString(char *target);
-  virtual bool isWritable();
-  virtual uint32_t mediaId(bool force = false);
-
-  SdDev *sd;
-  FsBaseFile image;
+  void reset();
+  void init();
+#if ! ACSI_STRICT
+  void updateGemBootDrive();
+#endif
 };
 
 #endif
