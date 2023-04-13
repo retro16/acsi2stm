@@ -171,9 +171,15 @@ void GemDrive::process(uint8_t cmd) {
       {
         // Read command: inject syshook driver into a boot sector
 
-        // Ignore subsequent command bytes
+        // Read subsequent command bytes
         for(int b = 0; b < 5; ++b)
-          DmaPort::readIrq();
+          buf[b] = DmaPort::readIrq();
+
+        if(buf[0] != 0x00 || buf[1] != 0x00 || buf[2] != 0x00 || buf[3] != 0x01 || buf[4] != 0x00) {
+          // Not a boot query: send the 'no operation' SCSI status
+          dbg("reject non-boot query\n");
+          DmaPort::sendIrq(0x08);
+        }
 
         // Build a boot sector
         memcpy(buf, syshook_boot_bin, syshook_boot_bin_len);
@@ -190,6 +196,8 @@ void GemDrive::process(uint8_t cmd) {
 
         // Send the boot sector
         DmaPort::sendDma(buf, ACSI_BLOCKSIZE);
+
+        // Acknowledge the ACSI read command
         DmaPort::sendIrq(0);
 
         // Wait for the command byte telling that the ST is ready
@@ -225,7 +233,10 @@ void GemDrive::process(uint8_t cmd) {
       onExtCmd();
       break;
 
-    // For unknown commands, play dead to avoid confusing other drivers
+    default:
+      // For unknown commands, play dead to avoid confusing other drivers
+      dbg("Unknown command\n");
+      break;
   }
 }
 
@@ -961,7 +972,6 @@ bool GemDrive::onFdatime(const Tos::Fdatime_p &p) {
 
 void GemDrive::onBoot() {
   dbg("GemDrive boot\n");
-  auto d = SdDev::gemBootDrive;
 
   // Update phystop for this machine
   verbose("Read phystop\n");
@@ -971,7 +981,7 @@ void GemDrive::onBoot() {
   memcpy(buf, syshook_boot_bin, syshook_boot_bin_len);
 
   // Patch ACSI id
-  buf[3] = d << 5;
+  buf[3] = SdDev::gemBootDrive << 5;
 
   // Patch parameter offset
   verbose("Query longframe\n");
@@ -1047,7 +1057,7 @@ void GemDrive::onBoot() {
 #if ACSI_GEMDRIVE_FIRST_LETTER
   static const int firstDriveLetter = ACSI_GEMDRIVE_FIRST_LETTER;
 #else
-  int firstDriveLetter = ACSI_GEMDRIVE_FIRST_LETTER;
+  int firstDriveLetter = 'C';
   for(int d = 0; d < driveCount; ++d)
     if(Devices::sdSlots[d]->bootable)
       // Avoid conflicts with legacy drivers that don't respect _drvbits.
@@ -1055,7 +1065,7 @@ void GemDrive::onBoot() {
 #endif
   uint32_t drvbits = _drvbits();
   for(int d = 0; d < driveCount; ++d) {
-    if(Devices::sdSlots[d].slot < 0)
+    if(Devices::sdSlots[d].mode != SdDev::GEMDRIVE)
       continue;
 
     buf[1] = ':';
@@ -1077,12 +1087,15 @@ void GemDrive::onBoot() {
   }
   _drvbits(drvbits);
 
-  // Set boot drive
-  if(Devices::sdSlots[d].mediaId()) {
-    setCurDrive(drives[d].id);
-    _bootdev(curDriveId);
-    Dsetdrv(curDriveId);
-    verbose("Set boot drive to ", drives[d].letter(), ":\n");
+  // Set boot drive on the ST
+  for(int d = 0; d < driveCount; ++d) {
+    if(Devices::sdSlots[d].mode == SdDev::GEMDRIVE && Devices::sdSlots[d].mediaId()) {
+      setCurDrive(drives[d].id);
+      _bootdev(curDriveId);
+      Dsetdrv(curDriveId);
+      verbose("Set boot drive to ", drives[d].letter(), ":\n");
+      break;
+    }
   }
 #endif
 
@@ -1155,6 +1168,40 @@ void GemDrive::onGemdos() {
   DECLARE_CALLBACK(Fdelete);
   DECLARE_CALLBACK(Fsfirst);
   DECLARE_CALLBACK(Frename);
+
+  // Just log these callbacks
+#if ACSI_DEBUG
+#undef DECLARE_CALLBACK
+#define DECLARE_CALLBACK(name) \
+  case Tos::name ## _op: { name ## _p p; \
+    dbg(#name "("); \
+    read(p); \
+    notVerboseDump(&p, sizeof(p)); \
+    dbg("): "); \
+  } break
+#endif
+
+  DECLARE_CALLBACK(Cconin);
+  DECLARE_CALLBACK(Cconout);
+  DECLARE_CALLBACK(Cauxin);
+  DECLARE_CALLBACK(Cauxout);
+  DECLARE_CALLBACK(Cprnout);
+  DECLARE_CALLBACK(Crawio);
+  DECLARE_CALLBACK(Crawcin);
+  DECLARE_CALLBACK(Cnecin);
+  DECLARE_CALLBACK(Cconws);
+  DECLARE_CALLBACK(Cconrs);
+  DECLARE_CALLBACK(Cconis);
+  DECLARE_CALLBACK(Cconos);
+  DECLARE_CALLBACK(Cprnos);
+  DECLARE_CALLBACK(Cauxis);
+  DECLARE_CALLBACK(Cauxos);
+  DECLARE_CALLBACK(Dgetdrv);
+  DECLARE_CALLBACK(Fsetdta);
+  DECLARE_CALLBACK(Super);
+  DECLARE_CALLBACK(Malloc);
+  DECLARE_CALLBACK(Mfree);
+  DECLARE_CALLBACK(Mshrink);
 
 #undef DECLARE_CALLBACK
 

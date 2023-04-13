@@ -25,7 +25,7 @@
 #define ACSI2STM_VERSION "4.0a"
 
 // Set to 1 to enable debug output on the serial port
-#define ACSI_DEBUG 0
+#define ACSI_DEBUG 1
 
 // Set to 1 to enable verbose command output on the serial port
 #define ACSI_VERBOSE 0

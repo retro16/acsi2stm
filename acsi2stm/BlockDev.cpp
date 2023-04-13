@@ -24,12 +24,6 @@ static const uint32_t sdRates[] = {
 #if ACSI_SD_MAX_SPEED > 36
   SD_SCK_MHZ(36),
 #endif
-#if ACSI_SD_MAX_SPEED > 25
-  SD_SCK_MHZ(25),
-#endif
-#if ACSI_SD_MAX_SPEED > 16
-  SD_SCK_MHZ(16),
-#endif
 #if ACSI_SD_MAX_SPEED > 12
   SD_SCK_MHZ(12),
 #endif
@@ -40,7 +34,11 @@ bool BlockDev::updateBootable() {
   bootable = false;
 
   // Read the boot sector
-  if(!readStart(0) || !readData(buf, 1) || !readStop())
+  if(!readStart(0))
+    return false;
+  if(!readData(buf, 1))
+    return false;
+  if(!readStop())
     return false;
 
   bootable = (computeChecksum(buf) == 0x1234);
@@ -62,22 +60,22 @@ const BlockDev * SdDev::operator->() const {
 
 void SdDev::reset() {
   // Reset internal state
-  lastMediaId = 0;
-  lastMediaCheckTime = millis() - mediaCheckPeriod;
   image.close();
   fs.end();
+  card.end();
   blocks = 0;
   writable = false;
   bootable = false;
+}
 
+void SdDev::onReset() {
+  // Detach from ACSI bus
   acsiDeviceMask &= ~(1 << slot);
 #if ! ACSI_STRICT
   gemDriveMask &= ~(1 << slot);
   updateGemBootDrive();
 #endif
-}
 
-void SdDev::onReset() {
   // Check if the device is disabled (wpPin pin to VCC)
   pinMode(wpPin, INPUT_PULLDOWN);
   delayMicroseconds(10);
@@ -85,33 +83,42 @@ void SdDev::onReset() {
     // wpPin pin to VCC: unit disabled
     pinMode(wpPin, INPUT_PULLUP);
     disable();
+    return;
   }
 
+  // Try to initialize the SD card
+  mode = ACSI; // Enable the slot
   init();
 
-#if ! ACSI_STRICT
-  if(image)
-    mode = ACSI; // Images are ACSI
-  else if(bootable)
-    mode = ACSI; // Anything bootable by the Atari is ACSI
-  else if(fs.fatType())
-    mode = GEMDRIVE; // Non-bootable, mountable filesystem: use GemDrive
-  else if(!lastMediaId)
-    mode = GEMDRIVE; // 
-  else
-    mode = ACSI;
+  // Sense mode
+  if(!Devices::strict) {
+    if(image)
+      mode = ACSI; // Images are ACSI
+    else if(bootable)
+      mode = ACSI; // Anything bootable by the Atari is ACSI
+    else if(fs.fatType())
+      mode = GEMDRIVE; // Non-bootable, mountable filesystem: use GemDrive
+    else if(!lastMediaId)
+      mode = GEMDRIVE; // No SD card: use GemDrive
+    else
+      mode = ACSI; // Unrecognized SD format: pass through as ACSI
+  } else {
+    // In strict mode, attach to the bus only if a SD card is detected at boot
+    if(lastMediaId)
+      mode = ACSI;
+    else
+      mode = DISABLED;
+  }
 
-  if(mode == ACSI)
-    acsiDeviceMask |= (1 << slot);
+  // Attach to the ACSI bus if not disabled
 #if ! ACSI_STRICT
   if(mode == GEMDRIVE) {
     gemDriveMask |= (1 << slot);
     updateGemBootDrive();
-  }
+  } else 
 #endif
-#else
-  mode = ACSI;
-#endif
+  if(mode == ACSI)
+    acsiDeviceMask |= (1 << slot);
 }
 
 void SdDev::init() {
@@ -122,19 +129,29 @@ void SdDev::init() {
 
   unsigned int rate;
   for(rate = 0; rate < sizeof(sdRates)/sizeof(sdRates[0]); ++rate) {
-    if(!card.begin(SdSpiConfig(csPin, SHARED_SPI, sdRates[rate], &SPI)))
+    lastMediaCheckTime = millis();
+    lastMediaId = 0;
+
+    dbg("SD", slot, ' ');
+    if(!card.begin(SdSpiConfig(csPin, SHARED_SPI, sdRates[rate], &SPI))) {
       // Don't retry at slower speed because begin()
       // already works at low speed.
+      dbg("no sd card\n");
+
+      // Refresh mediaId cache
       break;
+    }
+
+    dbg(sdRates[rate] / SD_SCK_MHZ(1), "MHz ");
 
     // Give some time to the internal SD electronics to initialize properly
     // Not sure if this is required. Pretty sure it's not.
-    delay(10);
+    delay(20);
 
     // Get SD card identification to test communication
     cid_t cid;
     if(!card.readCID(&cid)) {
-      verbose("CID error (", sdRates[rate] / SD_SCK_MHZ(1), "MHz) ");
+      dbg("CID error\n");
       continue;
     }
 
@@ -146,43 +163,46 @@ void SdDev::init() {
       blocks = ACSI_MAX_BLOCKS;
 #endif
 
-    if(blocks) {
-      // Open the file system
-      if(fs.begin(&card))
-        image.open(ACSI_IMAGE_FILE);
+    if(!blocks) {
+      dbg("returns 0 block\n");
+      continue;
+    }
 
-      // Get writable pin status
+    // Open the file system
+    if(fs.begin(&card))
+      image.open(ACSI_IMAGE_FILE);
+
+    // Get writable pin status
 #if !ACSI_SD_WRITE_LOCK
-      writable = true;
+    writable = true;
 #elif ACSI_SD_WRITE_LOCK == 1
-      writable = digitalRead(wpPin);
+    writable = digitalRead(wpPin);
 #elif ACSI_SD_WRITE_LOCK == 2
-      writable = !digitalRead(wpPin);
+    writable = !digitalRead(wpPin);
 #endif
 
-      // Check if bootable
-      if(!updateBootable()) {
-        verbose("Read error (", sdRates[rate] / SD_SCK_MHZ(1), "MHz) ");
-        continue;
-      }
+    mediaId(true);
 
-      dbg('(', sdRates[rate] / 1000000, "MHz ", blocks, " blocks ", writable ? "rw":"ro");
-      if(bootable)
-        dbg(" boot");
-      else if(fs.fatType())
-        dbg(" mountable");
-      dbg(')');
-
-      mediaId(true);
-
-      break;
+    // Check if bootable
+    if(!(*this)->updateBootable()) {
+      dbg("read error\n");
+      continue;
     }
+
+    dbg(blocks, " blocks ", writable ? "rw":"ro");
+    if(image)
+      dbg(" image");
+    else if(fs.fatType())
+      dbg(" mountable");
+    if(bootable)
+      dbg(" bootable");
+    dbg('\n');
+
+    break;
   }
 
-  if(!lastMediaId) {
+  if(!lastMediaId)
     reset();
-    verbose("no sd card\n");
-  }
 }
 
 
@@ -262,7 +282,7 @@ void SdDev::getDeviceString(char *target) {
   // Update sd card number
   target[11] += slot;
 
-  if(!mediaId(true)) {
+  if(!mediaId()) {
     memcpy(&target[13], "NO SD CARD", 10);
     return;
   }
@@ -307,7 +327,7 @@ uint32_t SdDev::mediaId(bool force) {
 
   uint32_t now = millis();
   if(!force) {
-    if(now < lastMediaCheckTime + mediaCheckPeriod)
+    if(now - lastMediaCheckTime <= mediaCheckPeriod)
       return lastMediaId;
   }
 
@@ -315,11 +335,19 @@ uint32_t SdDev::mediaId(bool force) {
   lastMediaId = 0;
 
   cid_t cid;
-  if(!card.readCID(&cid))
+  if(!card.readCID(&cid)) {
+    // SD has an issue
+
+    if(force)
+      // The caller wants the truth: don't lie
+      return 0;
+
+    // Try to recover
     init();
 
-  if(!blocks)
-    return 0;
+    // init() called us again, just return the updated value
+    return lastMediaId;
+  }
 
   uint32_t id = 0;
   for(unsigned int i = 0; i < sizeof(cid) / 4; ++i)
@@ -358,6 +386,8 @@ void SdDev::updateGemBootDrive() {
 ImageDev::ImageDev(SdDev &sd_): sd(sd_), sdMediaId(0) {}
 
 bool ImageDev::open(const char *path) {
+  close();
+
   if(!sd.mediaId())
     return false;
 
@@ -378,7 +408,6 @@ bool ImageDev::open(const char *path) {
   }
 
   blocks = image.fileSize() / ACSI_BLOCKSIZE;
-  updateBootable();
   verbose("opened\n");
   return true;
 }

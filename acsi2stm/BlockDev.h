@@ -114,9 +114,7 @@ public:
 
   enum {
     ACSI = 0,
-#if ! ACSI_STRICT
     GEMDRIVE,
-#endif
     DISABLED
   } mode;
 
