@@ -82,33 +82,33 @@ struct __attribute__((__packed__)) TinyPath : public Monitor {
 
   // Convert an atari character to Unicode and write it to the target buffer.
   // Returns the number of bytes written.
-  static int appendUnicode(char atariChar, char *target, int bufSize); // XXX USED BY patternToUnicode
+  static int appendUnicode(char atariChar, char *target, int bufSize);
 
   // Convert the last processed pattern to unicode.
   // Returns the number of bytes written.
   // Warning: does not zero-terminate the string.
-  static int patternToUnicode(char *target, int bufSize); // XXX USED
+  static int patternToUnicode(char *target, int bufSize);
 
   // Convert the last processed file name to Atari encoding.
   // Returns the number of bytes written.
   // Warning: does not zero-terminate the string.
-  static int nameToAtari(char *target, int bufSize); // XXX USED
+  static int nameToAtari(char *target, int bufSize);
 
   // Convert the file's name to Atari encoding.
   // Returns the number of bytes written.
   // Warning: does not zero-terminate the string.
-  static int nameToAtari(FsFile *file, char *target, int bufSize); // XXX USED
+  static int nameToAtari(FsFile *file, char *target, int bufSize);
 
   // Returns true if the name matches pattern.
-  static bool matches(const char pattern[11]); // XXX USED
+  static bool matches(const char pattern[11]);
 
   // Parse an Atari path element and store it to the current pattern.
   // Returns a pointer to the next element in the path.
-  static const char * parseAtariPattern(const char *path); // XXX USED
+  static const char * parseAtariPattern(const char *path);
 
   // Parse a unicode name to an atari name. Use lastName to get the result.
   // Returns a pointer to the next element in the path.
-  static const char * parseUnicodeName(const char *path); // XXX USED
+  static const char * parseUnicodeName(const char *path, bool *compatible = nullptr);
 
   static const char * lastName() {
     return name;

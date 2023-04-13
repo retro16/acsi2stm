@@ -25,7 +25,7 @@
 #define ACSI2STM_VERSION "4.0a"
 
 // Set to 1 to enable debug output on the serial port
-#define ACSI_DEBUG 1
+#define ACSI_DEBUG 0
 
 // Set to 1 to enable verbose command output on the serial port
 #define ACSI_VERBOSE 0
@@ -165,8 +165,7 @@
 // If set to 0 (disabled), try to convert all file names to the Atari 8.3 format.
 // If set to 1, hide files starting by a dot (the unix way to hide files).
 // If set to 2, hide any non-8.3 files or files with non-ASCII characters.
-// TODO: still unimplemented
-#define ACSI_GEMDRIVE_HIDE_GARBAGE_FILES 1
+#define ACSI_GEMDRIVE_HIDE_INCOMPATIBLE_FILES 1
 
 // GEMDOS sniffer
 // In GEMDOS sniffer mode, GemDrive is passthrough. Used to transparently log

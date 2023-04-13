@@ -1,13 +1,13 @@
 TODO before 4.0:
 
- * reset detection is broken (hopefully not yet another timer glitch)
-
 GemDrive mode:
 
  * Pexec (running PRG files) is hit-or-miss. Of course, only the least
    interesting programs work. This will be **hard**.
  * Implement garbage file filter (non 8.3, dot files).
  * Fix top RAM allocation. I missed something. Need help.
+ * Set date/time correctly on all created files
+ * Implement date/time functions with RTC
 
 
 4.0a: A giant leap for ST-kind

@@ -287,12 +287,11 @@ void DmaPort::waitBusReady() {
 
 void DmaPort::checkReset() {
 #if ACSI_HAS_RESET
-  if(!RESET_TIMER->CCR1 || TIMEOUT_TIMER->CNT < 65535 - PORT_TIMEOUT)
-    quickReset();
-#else
-  if(TIMEOUT_TIMER->CNT < 65535 - PORT_TIMEOUT)
+  if(RESET_TIMER->SR & TIMER_SR_TIF)
     quickReset();
 #endif
+  if(TIMEOUT_TIMER->CNT < 65535 - PORT_TIMEOUT)
+    quickReset();
 }
 
 bool DmaPort::checkCommand() {
@@ -750,26 +749,13 @@ void DmaPort::setupGpio() {
 
 void DmaPort::setupResetTimer() {
 #if ACSI_HAS_RESET
-  // Reset values so CCR1 and CCMR1 can be written to.
-  RESET_TIMER->CCER = 0;
-  RESET_TIMER->CCMR1 = 0;
+  RESET_TIMER->CR1 = 0;
 
-  // Set the capture & compare register to 1
-  RESET_TIMER->CCR1 = 1;
+  RESET_TIMER->SMCR = TIMER_SMCR_TS_TI1FP1 | TIMER_SMCR_SMS_RESET;
+  RESET_TIMER->CCER = TIMER_CCER_CC1P | TIMER_CCER_CC1E;
 
-  // Capture on TI1 (remapped to PA15)
-  RESET_TIMER->CCMR1 = TIMER_CCMR1_CC1S_INPUT_TI1;
-
-  // Lock counter to 0
-  RESET_TIMER->ARR = 1;
-  RESET_TIMER->CNT = 0;
-
-  // On PA15 falling edge, capture counter (0) to CCR1
-  RESET_TIMER->CCER = TIMER_CCER_CC1E | TIMER_CCER_CC1P;
-
-  // Update and enable the timer
-  RESET_TIMER->EGR |= TIMER_EGR_UG;
-  RESET_TIMER->CR1 |= TIMER_CR1_CEN;
+  RESET_TIMER->SR = 0;
+  RESET_TIMER->CR1 = TIMER_CR1_CEN;
 #endif
 
   // Reset values so CCR1 and CCMR1 can be written to.
@@ -783,7 +769,7 @@ void DmaPort::setupResetTimer() {
   TIMEOUT_TIMER->CNT = 65535 - PORT_TIMEOUT;
 
   // Update and enable the timer
-  RESET_TIMER->EGR |= TIMER_EGR_UG;
+  TIMEOUT_TIMER->EGR |= TIMER_EGR_UG;
   TIMEOUT_TIMER->CR1 |= TIMER_CR1_CEN;
 }
 

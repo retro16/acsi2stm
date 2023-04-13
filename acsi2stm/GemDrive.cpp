@@ -250,11 +250,6 @@ bool GemDrive::onDsetdrv(const Tos::Dsetdrv_p &p) {
 
   setCurDrive(p.drv);
 
-  if(!checkMedium(curDrive)) {
-    rte(EDRIVE);
-    return true;
-  }
-
   return false;
 }
 
@@ -741,19 +736,21 @@ bool GemDrive::onPexec(const Tos::Pexec_p &p) {
 
         // Apply current relocation vector
         ToLong value(&buf[relOffset]);
+        verboseHex("Patching at offset ", relOffset + prgOffset, ": ", (uint32_t)value);
         value += prgStart;
+        verboseHex(" -> ", (uint32_t)value, '\n');
         value.set(&buf[relOffset]);
-
-        verboseHex("Patching at offset ", relOffset + prgOffset, '\n');
 
         // Load more relocation info if needed
 loadRelocationInfo:
         if(relTableIndex == relTableSize) {
           // Need to load more relocation info
           relTableSize = relFile.read(relTableCache, sizeof(relTableCache));
+          relTableIndex = 0;
+          verbose("Loaded ", relTableSize, " bytes of relocation info\n");
           if(relTableSize < 0)
             goto relocationFailed;
-          if(!relTableSize) {
+          else if(!relTableSize) {
             // End of relocation info
             relOffset = -1;
             break;
@@ -1093,7 +1090,7 @@ void GemDrive::onBoot() {
       setCurDrive(drives[d].id);
       _bootdev(curDriveId);
       Dsetdrv(curDriveId);
-      verbose("Set boot drive to ", drives[d].letter(), ":\n");
+      dbg("Set boot drive to ", drives[d].letter(), ":\n");
       break;
     }
   }
@@ -1179,6 +1176,10 @@ void GemDrive::onGemdos() {
     notVerboseDump(&p, sizeof(p)); \
     dbg("): "); \
   } break
+#else
+#undef DECLARE_CALLBACK
+#define DECLARE_CALLBACK(name) \
+  case Tos::name ## _op: break
 #endif
 
   DECLARE_CALLBACK(Cconin);
@@ -1207,7 +1208,7 @@ void GemDrive::onGemdos() {
 
   default:
     dbgHex((uint32_t)op, ' ');
-
+    break;
   }
   forward();
 }
