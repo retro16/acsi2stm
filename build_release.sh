@@ -37,7 +37,7 @@ outdir="$(readlink -fs "$PWD")"
 
 export KEEP_BUILD
 builddir="$outdir/build.release~"
-zipfile="$outdir/acsi2stm-$VERSION.zip"
+zipfile="$outdir/acsi2stm-$VERSION-release.zip"
 
 rm -rf "$builddir"
 mkdir "$builddir"
