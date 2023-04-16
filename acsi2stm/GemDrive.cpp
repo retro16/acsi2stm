@@ -26,7 +26,7 @@
 #include "BlockDev.h"
 
 const
-#include "syshook.boot.h"
+#include "gemdrive.boot.h"
 
 struct GemFile: public TinyFD {
   uint32_t mediaId;
@@ -167,6 +167,33 @@ char Drive::letter() const {
 
 void GemDrive::process(uint8_t cmd) {
   switch(cmd) {
+    case 0x02:
+      {
+        // Identify
+        dbg("GemDrive identify command\n");
+        buf[0] = 0;
+        buf[31] = 0;
+        for(int i = 0; i < 8; ++i) {
+          buf[1] = 0;
+          if(i >= Devices::acsiFirstId && i < Devices::acsiFirstId + driveCount) {
+            auto &sd = Devices::sdSlots[i - Devices::acsiFirstId];
+            if(sd.mode != sd.DISABLED) {
+              if(sd.mode == sd.ACSI)
+                buf[1] = 1;
+              else
+                buf[1] = 2;
+              sd.getDeviceString((char *)&buf[2]);
+              DmaPort::sendDma(0, 32);
+              continue;
+            }
+          }
+          // No drive for this ID: fill with 0
+          DmaPort::fillDma(0, 32);
+        }
+
+        DmaPort::sendIrq(0);
+      }
+      break;
     case 0x08:
       {
         // Read command: inject syshook driver into a boot sector
@@ -182,7 +209,7 @@ void GemDrive::process(uint8_t cmd) {
         }
 
         // Build a boot sector
-        memcpy(buf, syshook_boot_bin, syshook_boot_bin_len);
+        memcpy(buf, gemdrive_boot_bin, gemdrive_boot_bin_len);
 
         // Patch ACSI id
         buf[3] = SdDev::gemBootDrive << 5;
@@ -266,9 +293,67 @@ bool GemDrive::onTsettime(const Tos::Tsettime_p &p) {
 }
 
 bool GemDrive::onDfree(const Tos::Dfree_p &p) {
-  // TODO
-  (void)p;
-  return false;
+  int driveNo = p.driveno;
+  if(!driveNo)
+    driveNo = Dgetdrv();
+  else
+    --driveNo;
+
+  int driveIndex = getDrive(driveNo);
+  if(driveIndex < 0)
+    return false; // Unknown device: forward
+
+  if(!checkMedium(driveIndex)) {
+    rte(EDRIVE);
+    return true;
+  }
+
+  auto &sd = Devices::sdSlots[driveIndex];
+  FsVolume &volume = sd.fs;
+
+  uint32_t clsiz = volume.sectorsPerCluster();
+  uint32_t total = volume.clusterCount();
+  uint32_t free = volume.freeClusterCount();
+
+  // Unsurprisingly, the ST can't really handle gigabytes, so we have to cap
+  // these values. As long as there is more free space than what a ST operating
+  // system could imagine, we should be fine
+  uint64_t realSize = (uint64_t)total * clsiz * 512;
+  uint64_t realFree = (uint64_t)free * clsiz * 512;
+  uint64_t realUsed = realSize - realFree;
+
+  // Cap to 120MB
+  const uint64_t sizeCap = 120 * 1024 * 1024;
+  const int clCap = 8; // Cap clusters to 4096 bytes
+
+  if(realSize > sizeCap || clsiz > clCap) {
+    realSize = sizeCap;
+
+    // Any used space below half cap is shown, any free space lacking below half
+    // cap is shown too
+    if(realFree < sizeCap / 2)
+      realUsed = realSize - realFree;
+    else if(realUsed > sizeCap / 2)
+      realUsed = sizeCap / 2;
+    realFree = realSize - realUsed;
+
+    if(clsiz > clCap)
+      clsiz = clCap;
+
+    total = realSize / clsiz / 512;
+    free = realFree / clsiz / 512;
+  }
+
+  DISKINFO di;
+  di.b_free = free;
+  di.b_total = total;
+  di.b_secsiz = 512;
+  di.b_clsiz = clsiz;
+
+  sendAt(di, p.buf);
+
+  rte(E_OK);
+  return true;
 }
 
 bool GemDrive::onDcreate(const Tos::Dcreate_p &p) {
@@ -978,9 +1063,53 @@ bool GemDrive::onFrename(const Tos::Frename_p &p) {
 }
 
 bool GemDrive::onFdatime(const Tos::Fdatime_p &p) {
-  // TODO
-  (void)p;
-  return false;
+  GemFile *fd = getFile(p.handle);
+  if(!fd)
+    return false;
+
+  if(!checkMedium(fd->drive)) {
+    rte(EMEDIA);
+    return true;
+  }
+
+  auto &sd = Devices::sdSlots[fd->drive];
+  FsVolume &volume = sd.fs;
+
+  if(sd.mediaId() != fd->mediaId) {
+    rte(E_CHNG);
+    return true;
+  }
+
+  if(p.wflag) {
+    // Set time
+    FsFile *file = fd->acquire(volume, O_RDONLY);
+    DOSTIME dt;
+    readAt(dt, p.timeptr);
+
+    // SdFat provides a way to get DOS time, but not set it. Too bad, we need
+    // to parse the time value even if it will be reprocessed to the exact same
+    // value in the library.
+    file->timestamp(T_WRITE,
+        (dt.date >> 9) + 1980,
+        ((dt.date >> 5) & 0x7) + 1,
+        (dt.date & 0xf) + 1,
+        (dt.time >> 11) & 0xf,
+        (dt.time >> 5) & 0x3f,
+        (dt.time & 0x1f) * 2);
+  } else {
+    // Get time
+    FsFile *file = fd->acquire(volume, O_RDONLY);
+    uint16_t time;
+    uint16_t date;
+    file->getModifyDateTime(&date, &time);
+    DOSTIME dt;
+    dt.time = time;
+    dt.date = date;
+    sendAt(dt, p.timeptr);
+  }
+
+  rte(E_OK);
+  return true;
 }
 
 void GemDrive::onBoot() {
@@ -991,7 +1120,7 @@ void GemDrive::onBoot() {
   SysHook::phystop = phystop();
 
   // Prepare the driver binary
-  memcpy(buf, syshook_boot_bin, syshook_boot_bin_len);
+  memcpy(buf, gemdrive_boot_bin, gemdrive_boot_bin_len);
 
   // Patch ACSI id
   buf[3] = SdDev::gemBootDrive << 5;
@@ -1004,7 +1133,7 @@ void GemDrive::onBoot() {
   verbose("Allocate driver memory\n");
 
 #if ACSI_GEMDRIVE_TOPRAM
-  uint32_t driverSize = (syshook_boot_bin_len + 0xff) & 0xffffff00;
+  uint32_t driverSize = (gemdrive_boot_bin_len + 0xff) & 0xffffff00;
 
   // Shift memory to allocate the driver
   ToLong physScreenMem = Physbase() - driverSize;
@@ -1017,7 +1146,7 @@ void GemDrive::onBoot() {
   ToLong driverMem = SysHook::phystop - driverSize;
   phystop(driverMem);
 #else
-  uint32_t driverSize = (syshook_boot_bin_len + 0xf) & 0xfffffff0;
+  uint32_t driverSize = (gemdrive_boot_bin_len + 0xf) & 0xfffffff0;
   ToLong driverMem = Malloc(driverSize);
 #endif
 
@@ -1026,7 +1155,7 @@ void GemDrive::onBoot() {
   delay(21); // Let enough time for the screen to be refresh
 
   verbose("Upload driver code\n");
-  sendAt(driverMem, buf, syshook_boot_bin_len);
+  sendAt(driverMem, buf, gemdrive_boot_bin_len);
 
   // Install system call hooks
   verbose("Install hooks\n");
@@ -1338,10 +1467,10 @@ void GemDrive::installHook(uint32_t driverMem, ToLong vector) {
   static const Long xbra = ToLong('X', 'B', 'R', 'A');
   static const Long a2st = ToLong('A', '2', 'S', 'T');
 
-  for(unsigned int i = 0; i < syshook_boot_bin_len - 14; i += 2) {
+  for(unsigned int i = 0; i < gemdrive_boot_bin_len - 14; i += 2) {
     // Scan XBRA/A2ST marker
-    if(syshook_boot_bin[i] == 'X') {
-      Long *lbin = (Long *)(&syshook_boot_bin[i]);
+    if(gemdrive_boot_bin[i] == 'X') {
+      Long *lbin = (Long *)(&gemdrive_boot_bin[i]);
       if(lbin[0] == xbra && lbin[1] == a2st && lbin[2] == vector) {
         // Marker found: install the hook to ST RAM
         Long oldVector = readLongAt(vector);

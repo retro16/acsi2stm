@@ -24,7 +24,6 @@ dmahigh	equ	dma+5
 dmamid	equ	dma+7
 dmalow	equ	dma+9
 gpip	equ	$fffffa01
-flock	equ	$43e                    ; Floppy access semaphore
 
 savereg	macro
 	; Save registers on stack
@@ -307,4 +306,4 @@ syshook.dmareg	dc.w	dma,dmactrl     ; DMA port addresses
 syshook.oldd0	ds.w	0               ; Temporary storage for d0
 	
 
-; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm tw=80
+; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm68k tw=80

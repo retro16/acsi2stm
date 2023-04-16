@@ -14,49 +14,23 @@
 ; You should have received a copy of the GNU General Public License
 ; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-	org	0
+drvmask	ds.l	1                       ; Available drives
 
-; Microprograms injected by the GemDrive driver
-; All programs are 4 bytes long
-; a4 points at the current DMA address
+; Drive selection
+drive	ds.w	1                       ; Drive to apply the test to
 
-PGM_NOP:
-	nop
-	nop
+; Statistics
+success	ds.w	1                       ; Successful tests
+failed	ds.w	1                       ; Failed tests
 
-PGM_TRAP:
-	trap	#0
-	move.l	d0,-(sp)
+; Stack pointer at the beginning of main, used by abort
+mainsp	ds.l	1
 
-PGM_PUSHSP:
-        move.l	sp,-(sp)
-	nop
+; Startup status
+strtdrv	ds.w	1                       ; Startup drive
+exepath	ds.b	1024                    ; Path of the current executable
 
-PGM_ADDSP:
-	lea	0(sp),sp
-
-PGM_READSPB:
-	move.l	(sp)+,a0
-	move.b	(a0),-(sp)
-
-PGM_READSPW:
-	move.l	(sp)+,a0
-	move.w	(a0),-(sp)
-
-PGM_READSPL:
-	move.l	(sp)+,a0
-	move.l	(a0),-(sp)
-
-PGM_WRITESPB:
-	move.l	(sp)+,a0
-	move.b	(sp)+,(a0)
-
-PGM_WRITESPW:
-	move.l	(sp)+,a0
-	move.w	(sp)+,(a0)
-
-PGM_WRITESPL:
-	move.l	(sp)+,a0
-	move.l	(sp)+,(a0)
+; Buffer
+buffer	ds.b	65536+4                 ; Big buffer for file operations
 
 ; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm68k tw=80

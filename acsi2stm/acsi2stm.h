@@ -22,7 +22,7 @@
 
 // acsi2stm global configuration
 
-#define ACSI2STM_VERSION "4.0b"
+#define ACSI2STM_VERSION "4.0c"
 
 // Set to 1 to enable debug output on the serial port
 #define ACSI_DEBUG 0
@@ -154,7 +154,7 @@
 #define ACSI_GEMDRIVE_TOPRAM 0
 
 // Size in bytes for the relocation table cache. Bigger means faster Pexec,
-// smaller means less memory used by Pexec.
+// smaller means less memory used by Pexec on the STM32.
 #define ACSI_GEMDRIVE_RELTABLE_CACHE_SIZE 512
 
 // Maximum number of files that can be opened at the same time. Consumes static

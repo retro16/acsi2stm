@@ -32,12 +32,13 @@ if ! [ "$FORCE" ]; then
   fi
 fi
 
-rm -f acsi2stm-$VERSION.zip
 outdir="$(readlink -fs "$PWD")"
 
 export KEEP_BUILD
 builddir="$outdir/build.release~"
-zipfile="$outdir/acsi2stm-$VERSION-release.zip"
+zipdir="acsi2stm-$VERSION-release"
+zipfile="$outdir/$zipdir.zip"
+rm -f "$zipfile"
 
 rm -rf "$builddir"
 mkdir "$builddir"
@@ -50,8 +51,8 @@ cd "$builddir"
 
 echo "Copy all the stuff in the packaging directory"
 
-mkdir "acsi2stm-$VERSION"
-cp -r acsi2stm-$VERSION*.ino.bin *.tos "$srcdir"/*.md "$srcdir"/doc "$srcdir"/pcb "$srcdir"/LICENSE "$srcdir"/VERSION "acsi2stm-$VERSION"
+mkdir "$zipdir"
+cp -r acsi2stm-$VERSION*.ino.bin *.tos "$srcdir"/*.md "$srcdir"/doc "$srcdir"/pcb "$srcdir"/LICENSE "$srcdir"/VERSION "$zipdir"
 
 echo "... and the legal stuff"
 
@@ -77,12 +78,14 @@ software, see its GitHub page:
 
     https://github.com/retro16/acsi2stm
 
+See README.md for more information.
+
 You can open README.md as well as other files in "doc" as text files.
 EOF
 
 echo "Create release zip package"
 
-zip -r "$zipfile" "acsi2stm-$VERSION"
+zip -r "$zipfile" "$zipdir"
 )
 
 if ! [ "$KEEP_BUILD" ]; then
