@@ -31,6 +31,7 @@ buildbin() {
       echo "Compile $name BIN program"
       vasmm68k_mot $VASMFLAGS -Fbin -L "$builddir/$name.bin.lst" -o "$builddir/$name/$name.bin" "$srcdir/$name/bin.s" || exit $?
       [ -e "$builddir/$name/$name.bin" ] || exit $?
+      echo
     fi
   )
 }
@@ -50,6 +51,7 @@ buildasm() {
       xxd -i "$name.boot.bin" > "$name.boot.h"
     )
     cp "$builddir/$name.boot.h" "$srcdir/../acsi2stm/"
+    echo
   fi
 
   if [ -e "$1/tos.s" ]; then
@@ -59,6 +61,7 @@ buildasm() {
     [ -e "$tosdir" ] || mkdir "$tosdir"
     vasmm68k_mot $VASMFLAGS -monst -Ftos -I"$builddir/$name" -L "$builddir/$name.lst" -o "$tosdir/$name.tos" "$srcdir/$name/tos.s" || exit $?
     [ -e "$tosdir/$name.tos" ] || exit $?
+    echo
   fi
 }
 

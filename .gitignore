@@ -1,6 +1,9 @@
 build.*
 acsi2stm-*
 *.tos
+*.prg
+*.TOS
+*.PRG
 *.exe
 *.bin
 .DS_Store

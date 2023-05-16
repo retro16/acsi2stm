@@ -30,14 +30,20 @@ public:
   enum ScsiErr {
     ERR_OK = 0x000000,
     ERR_READERR = 0x001103,
-    ERR_WRITEERR = 0x020303,
+    ERR_WRITEERR = 0x000c03,
     ERR_WRITEPROT = 0x002707,
     ERR_OPCODE = 0x002005,
     ERR_INVADDR = 0x002105,
     ERR_INVARG = 0x002405,
     ERR_INVLUN = 0x002505,
     ERR_MEDIUMCHANGE = 0x002806,
-    ERR_NOMEDIUM = 0x003a06,
+    ERR_NOMEDIUM = 0x003a02,
+  };
+
+  enum MediumState {
+    MEDIUM_OK = 0,
+    MEDIUM_REMOVED,
+    MEDIUM_CHANGED,
   };
 
   Acsi(SdDev &card_): blockDev(card_) {}
@@ -66,8 +72,10 @@ public:
   int getLun();
 
   // Send a status and get ready for the next command.
-  // Also updates lastErr with the error passed in parameter.
+  // Also updates lastErr, lastSeek and lastBlock.
+  void commandStatus(ScsiErr err, uint32_t lastBlock);
   void commandStatus(ScsiErr err);
+  void sendCommandStatus();
 
   // Process block I/O requests
   ScsiErr processBlockRead(uint32_t block, int count);
@@ -89,6 +97,7 @@ public:
   // SCSI status variables
   ScsiErr lastErr;
   bool lastSeek;
+  MediumState lastMediumState = MEDIUM_OK;
   uint32_t lastBlock;
 
   // Present the device as removable

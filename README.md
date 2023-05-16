@@ -20,10 +20,12 @@ It can work in 3 ways:
 It also provides an UltraSatan compatible real-time clock if you add a simple
 3V lithium battery such as a CR2032.
 
+See [RELEASE NOTES](release_notes.md) for details about the current version.
+
 **WARNING**, the pinout has changed for version 3.xx and above. If you built or
-bought a unit for older 1.xx or 2.xx firmware, you need to make changes or use
-the "legacy" firmware image. See the last section of
-[hardware.md](doc/hardware.md) for more information.
+bought a unit for older 1.xxyou need to make changes. If you have a 2.xx unit,
+use the "legacy" firmware image or make hardware changes. See the last section
+of [hardware.md](doc/hardware.md) for more information.
 
 
 Documentation

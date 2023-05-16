@@ -22,7 +22,7 @@
 
 // acsi2stm global configuration
 
-#define ACSI2STM_VERSION "4.0c"
+#define ACSI2STM_VERSION "4.0d"
 
 // Set to 1 to enable debug output on the serial port
 #define ACSI_DEBUG 0
@@ -120,7 +120,7 @@
 // The code supposes that an SD card operation is always long enough so this
 // delay is only applied for write operations or synthesized replies.
 // Delay in microseconds.
-#define ACSI_DMA_START_DELAY 1
+#define ACSI_DMA_START_DELAY 4
 
 // Activity LED pin. Leave undefined to remove activity LED.
 #define ACSI_ACTIVITY_LED LED_BUILTIN

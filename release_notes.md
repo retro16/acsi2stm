@@ -1,4 +1,4 @@
-**4.0c: ALPHA VERSION**: unfinished, unstable. Do not use in production.
+**4.0d: ALPHA VERSION**: unfinished, unstable. Do not use in production.
 
 TODO before 4.0:
 
@@ -6,6 +6,7 @@ GemDrive mode:
 
  * Fix the code so tostest passes 100%
  * Fix / refactor code that breaks folder navigation in TOS 2.06
+ * Reproduce 2.06 breakage and create non-regression tests for it
  * Pexec (running PRG files) still needs a lot of testing
  * Implement garbage file filter (non 8.3, dot files)
  * Fix top RAM allocation. I missed something. Need help.
@@ -13,10 +14,16 @@ GemDrive mode:
  * Set date/time correctly on all created files
  * Implement date/time functions with RTC
 
-ACSI mode:
+Other:
 
- * Implement autotests just like GemDrive mode
- * Pass tests with flying colors
+ * Implement STM32 flash access from the ST, using READ/WRITE BUFFER
+  * Create a hard disk flashing program for the ST
+
+Changes since 4.0c:
+
+ * Fixed so many oddities and quirks in the ACSI/SCSI implementation.
+ * ACSI tests completed and 100% working on the ACSI2STM. Hatari fails on some
+   of them, maybe I could file a pull request.
 
 4.0: A giant leap for ST-kind
 =============================

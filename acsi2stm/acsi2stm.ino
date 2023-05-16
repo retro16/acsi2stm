@@ -100,7 +100,14 @@ void loop() {
 #endif
       if(cmd == 0x08 && deviceIndex != SdDev::gemBootDrive)
         Monitor::dbg("not the boot device\n");
+      else if(cmd == 0x1f)
+        // Extended commands allow accessing the device in ACSI mode while
+        // keeping it reasonably hidden from other tools.
+        // Can be used for example to probe the device using INQUIRY or testing
+        // with READ BUFFER.
+        Devices::acsi[deviceIndex].process(cmd);
       else
+        // Handles GEMDOS trap as well as boot sector loader
         GemDrive::process(cmd);
     } else
 #endif

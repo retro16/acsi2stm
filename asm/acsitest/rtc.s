@@ -49,7 +49,7 @@ readrtc	; Read time from an UltraSatan compatible RTC clock
 	moveq	#1,d0
 	move.l	a0,d1
 	lea	.cmd(pc),a0
-	bsr.w	acsicmd
+	bsr	acsicmd
 
 	move.l	(sp)+,a0
 

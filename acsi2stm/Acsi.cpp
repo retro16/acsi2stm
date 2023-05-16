@@ -46,7 +46,7 @@ void Acsi::refresh() {
     dbg("Non-removable SD", blockDev.slot, " removed: disable slot\n");
     blockDev.disable();
     onReset();
-    lastErr = ERR_NOMEDIUM;
+    lastMediumState = MEDIUM_REMOVED;
     return;
   }
 
@@ -54,26 +54,23 @@ void Acsi::refresh() {
 
   if(mediaId) {
     dbg("New SD card\n");
-    lastErr = ERR_MEDIUMCHANGE;
+    lastMediumState = MEDIUM_CHANGED;
     return;
   }
 
   dbg("No SD card\n");
-  lastErr = ERR_NOMEDIUM;
+  lastMediumState = MEDIUM_REMOVED;
 }
 
 void Acsi::process(uint8_t cmd) {
-  if(cmd != 0x03)
-    refresh();
-
   if(blockDev.slot < 0)
     // Slot disabled: unplug the device completely
     return;
 
-  if(cmd == 0x1f) {
-    // Read extended command
-    cmd = DmaPort::readIrq();
-  }
+  refresh();
+  if(blockDev.slot < 0)
+    // Slot may have been disabled by refresh()
+    return;
 
   if(!readCmdBuf(cmd)) {
     dbg("Unknown command\n");
@@ -99,33 +96,38 @@ void Acsi::process(uint8_t cmd) {
   case 0x2a: // Write blocks
     if(!validLun()) {
       dbg("Invalid LUN\n");
-      lastErr = ERR_INVLUN;
-    }
-
-    // Fall through next case
-
-  // Commands that need to be executed even if the card is not available
-  case 0x00: // Test unit ready
-  case 0x12: // Inquiry
-  case 0x3b: // Write buffer
-  case 0x3c: // Read buffer
-  case 0x20: // UltraSatan commands
-    if(lastErr) {
-      commandStatus(lastErr);
+      commandStatus(ERR_INVLUN);
       return;
     }
-    break;
+    // Fall through next case
 
-  // Request sense is executed unconditionally
+  // Commands with no LUN but medium dependent
+  case 0x00: // Test unit ready
+    if(lastMediumState == MEDIUM_REMOVED) {
+      commandStatus(ERR_NOMEDIUM);
+      return;
+    } else if(lastMediumState == MEDIUM_CHANGED) {
+      lastMediumState = MEDIUM_OK;
+      commandStatus(ERR_MEDIUMCHANGE);
+      return;
+    }
+    // Fall through next case
+
+  // Unconditional commands
   case 0x03: // Request sense
+  case 0x12: // Inquiry
+  case 0x20: // UltraSatan commands
+  case 0x3b: // Write buffer
+  case 0x3c: // Read buffer
     break;
 
   default: // Unknown command
     dbg("Unknown command\n");
-    lastSeek = false;
     commandStatus(ERR_OPCODE);
     return;
   }
+
+  uint32_t block = lastBlock;
 
   // Execute the command
   switch(cmdBuf[0]) {
@@ -133,8 +135,8 @@ void Acsi::process(uint8_t cmd) {
     commandStatus(ERR_OK);
     return;
   case 0x03: // Request Sense
-    if(!validLun())
-      lastErr = ERR_INVLUN;
+    if(cmdBuf[4] < 4)
+      cmdBuf[4] = 4;
 
     for(int b = 0; b < cmdBuf[4]; ++b)
       buf[b] = 0;
@@ -153,41 +155,39 @@ void Acsi::process(uint8_t cmd) {
         write24(&buf[4], lastBlock);
       }
       buf[2] = (lastErr) & 0xFF;
-      buf[3] = (lastErr >> 16) & 0xFF;
       buf[7] = 14;
       buf[12] = (lastErr >> 8) & 0xFF;
+      buf[13] = (lastErr >> 16) & 0xFF;
       write24(&buf[19], lastBlock);
     }
+
     // Send the response
     DmaPort::dmaStartDelay();
-    DmaPort::sendDma(buf, cmdBuf[4] < 4 ? 4 : cmdBuf[4]);
+    DmaPort::sendDma(buf, cmdBuf[4]);
 
     commandStatus(ERR_OK);
     return;
   case 0x08: // Read block
     // Compute the block number
-    lastBlock = (((int)cmdBuf[1]) << 16) | (((int)cmdBuf[2]) << 8) | (cmdBuf[3]);
-    lastSeek = true;
+    block = (((int)cmdBuf[1] & 0x1f) << 16) | (((int)cmdBuf[2]) << 8) | (cmdBuf[3]);
 
     // Do the actual read operation
-    commandStatus(processBlockRead(lastBlock, cmdBuf[4]));
+    commandStatus(processBlockRead(block, cmdBuf[4]), block);
     break;
   case 0x0a: // Write block
     // Compute the block number
-    lastBlock = (((int)cmdBuf[1]) << 16) | (((int)cmdBuf[2]) << 8) | (cmdBuf[3]);
-    lastSeek = true;
+    block = (((int)cmdBuf[1] & 0x1f) << 16) | (((int)cmdBuf[2]) << 8) | (cmdBuf[3]);
 
     // Do the actual write operation
     DmaPort::dmaStartDelay();
-    commandStatus(processBlockWrite(lastBlock, cmdBuf[4]));
+    commandStatus(processBlockWrite(block, cmdBuf[4]), block);
     break;
   case 0x0b: // Seek
-    lastBlock = (((int)cmdBuf[1]) << 16) | (((int)cmdBuf[2]) << 8) | (cmdBuf[3]);
-    lastSeek = true;
-    if(lastBlock >= blockDev->blocks)
-      commandStatus(ERR_INVADDR);
+    block = (((int)cmdBuf[1] & 0x1f) << 16) | (((int)cmdBuf[2]) << 8) | (cmdBuf[3]);
+    if(block >= blockDev->blocks)
+      commandStatus(ERR_INVADDR, block);
     else
-      commandStatus(ERR_OK);
+      commandStatus(ERR_OK, block);
     break;
   case 0x12: // Inquiry
     // Adjust size to 4 if 0
@@ -195,7 +195,7 @@ void Acsi::process(uint8_t cmd) {
       cmdBuf[4] = 4;
 
     // Fill the response with zero bytes
-    for(uint8_t b = 0; b <= cmdBuf[4]; ++b)
+    for(uint8_t b = 0; b < cmdBuf[4]; ++b)
       buf[b] = 0;
 
     if(!validLun()) {
@@ -212,15 +212,12 @@ void Acsi::process(uint8_t cmd) {
     DmaPort::dmaStartDelay();
     DmaPort::sendDma(buf, cmdBuf[4]);
 
-    lastSeek = false;
-
     // Do not overwrite lastErr
     dbg("Success\n");
     DmaPort::sendIrq(0);
     return;
   case 0x1a: // Mode sense
     {
-      lastSeek = false;
       DmaPort::dmaStartDelay();
       switch(cmdBuf[2]) { // Sub-command
       case 0x00:
@@ -228,13 +225,17 @@ void Acsi::process(uint8_t cmd) {
         DmaPort::sendDma(buf, 16);
         break;
       case 0x04:
-        modeSense4(buf);
-        DmaPort::sendDma(buf, 24);
+        buf[0] = 27;
+        buf[1] = 0;
+        buf[2] = blockDev->isWritable() ? 0x00 : 0x80;
+        buf[3] = 0;
+        modeSense4(buf + 4);
+        DmaPort::sendDma(buf, 28);
         break;
       case 0x3f:
-        buf[0] = 44;
+        buf[0] = 43;
         buf[1] = 0;
-        buf[2] = 0;
+        buf[2] = blockDev->isWritable() ? 0x00 : 0x80;
         buf[3] = 0;
         modeSense4(buf + 4);
         modeSense0(buf + 28);
@@ -335,7 +336,7 @@ void Acsi::process(uint8_t cmd) {
       int count = (((int)cmdBuf[7]) << 8) | (cmdBuf[8]);
 
       // Do the actual read operation
-      commandStatus(processBlockRead(block, count));
+      commandStatus(processBlockRead(block, count), block);
     }
     break;
   case 0x2a: // Write blocks
@@ -346,7 +347,7 @@ void Acsi::process(uint8_t cmd) {
 
       // Do the actual write operation
       DmaPort::dmaStartDelay();
-      commandStatus(processBlockWrite(block, count));
+      commandStatus(processBlockWrite(block, count), block);
     }
     break;
   case 0x3b: // Write buffer
@@ -385,6 +386,17 @@ void Acsi::process(uint8_t cmd) {
       uint32_t length = (((uint32_t)cmdBuf[6]) << 16) | (((uint32_t)cmdBuf[7]) << 8) | (uint32_t)(cmdBuf[8]);
       DmaPort::dmaStartDelay();
       switch(cmdBuf[1]) {
+      case 0x00: // Descriptor + data read
+        if(offset >= bufSize || offset + length > bufSize || length < 4) {
+          dbg("Out of range\n");
+          commandStatus(ERR_INVARG);
+          return;
+        }
+
+        // This is not 100% correct as it overwrites data instead of shifting it
+        buf[offset] = 0;
+        write24(&buf[offset + 1], bufSize);
+
       case 0x02: // Data buffer read
         if(cmdBuf[2] != 0) {
           verbose("Invalid buffer id\n");
@@ -404,11 +416,7 @@ void Acsi::process(uint8_t cmd) {
         commandStatus(ERR_OK);
         return;
       case 0x03: // Data buffer descriptor read
-        if(cmdBuf[2])
-          // Pattern match buffer has 4 bytes boundary
-          buf[0] = 2;
-        else
-          buf[0] = 0;
+        buf[0] = 0;
 
         write24(&buf[1], bufSize);
 
@@ -461,8 +469,20 @@ int Acsi::getLun() {
   return cmdBuf[1] >> 5;
 }
 
+void Acsi::commandStatus(ScsiErr err, uint32_t block) {
+  lastErr = err;
+  lastBlock = block;
+  lastSeek = true;
+  sendCommandStatus();
+}
+
 void Acsi::commandStatus(ScsiErr err) {
   lastErr = err;
+  lastSeek = false;
+  sendCommandStatus();
+}
+
+void Acsi::sendCommandStatus() {
   if(lastErr == ERR_OK) {
     dbg("Success\n");
     DmaPort::sendIrq(0);
@@ -550,6 +570,10 @@ Acsi::ScsiErr Acsi::processBlockWrite(uint32_t block, int count) {
 
 void Acsi::modeSense0(uint8_t *outBuf) {
   uint32_t blocks = blockDev->blocks;
+  if(blocks > 0xffffff) {
+    dbg("Truncated block count in mode sense ", "0\n");
+    blocks = 0xffffff;
+  }
   for(uint8_t b = 0; b < 16; ++b)
     outBuf[b] = 0;
 
@@ -566,18 +590,30 @@ void Acsi::modeSense0(uint8_t *outBuf) {
 
 void Acsi::modeSense4(uint8_t *outBuf) {
   uint32_t blocks = blockDev->blocks;
+
+  int heads;
+  int cylinders;
+  for(heads = 255; heads >= 1; --heads) {
+    cylinders = blocks / heads;
+    if(cylinders > 0xffffff || (blocks % heads) == 0) {
+      if((blocks % heads) != 0)
+        dbg("Truncated block count in mode sense ", "4\n");
+      break;
+    }
+  }
+
   for(uint8_t b = 0; b < 24; ++b)
     outBuf[b] = 0;
 
-  // Values got from the Hatari emulator
-  outBuf[0] = 4;
-  outBuf[1] = 22;
+  // Rigid drive geometry
+  outBuf[0] = 4; // Page code
+  outBuf[1] = 22; // Page length
+
   // Send the number of blocks in CHS format
-  outBuf[2] = (blocks >> 23) & 0xFF;
-  outBuf[3] = (blocks >> 15) & 0xFF;
-  outBuf[4] = (blocks >> 7) & 0xFF;
-  // Hardcode 128 heads
-  outBuf[5] = 128;
+  outBuf[2] = (cylinders >> 16) & 0xFF;
+  outBuf[3] = (cylinders >> 8) & 0xFF;
+  outBuf[4] = (cylinders) & 0xFF;
+  outBuf[5] = heads;
 }
 
 // Static variables

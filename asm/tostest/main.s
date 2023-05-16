@@ -115,7 +115,7 @@ main:
 	and.w	#$00ff,d0               ;
 
 	cmp.w	#26,d0                  ; Check if it is a valid letter
-	bhs	.ltrq                   ; Not a letter: try again
+	bhi	.ltrq                   ; Not a letter: try again
 
 	move.l	drvmask,d1              ; Check if the drive actually exists
 	btst	d0,d1                   ;

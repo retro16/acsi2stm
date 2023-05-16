@@ -86,12 +86,12 @@ syshook	macro
 	endm
 
 	; XBIOS hook
-	syshook	$10,$b8
-	bra.b	syshook.start
+	;syshook	$10,$b8
+	;bra.b	syshook.start
 
 	; BIOS hook
-	syshook	$0f,$b4
-	bra.b	syshook.start
+	;syshook	$0f,$b4
+	;bra.b	syshook.start
 
 	; GEMDOS hook
 	syshook	$0e,$84
@@ -240,10 +240,11 @@ syshook.rcmd:
 	; This sends a command byte $00 to signal the STM32 that we are ready.
 	bsr.b	syshook.setdmaaddr      ; Set DMA address to a2
 
-	move.w	#$0090,(a1)             ; Set block count.
-	move.l	#$00ff008a,(a0)         ; Send 255 blocks. Switch to command.
-	moveq	#0,d1                   ;
-	move.l	d1,(a0)                 ; Send zero command byte and enable DMA
+	move.w	#$0090,(a1)             ; Set block count
+	move.w	#$00ff,(a0)             ; Send 255 blocks
+	move.w	#$008a,(a1)             ; Switch to command
+	clr.w	(a0)                    ; Send zero command byte
+	clr.w	(a1)                    ; Enable DMA
 
 	bra.w	syshook.reply
 
@@ -274,11 +275,13 @@ syshook.byteread:
 
 syshook.wcmd:
 	; Continue the command stream in DMA write mode
-	; This sends a command byte $00 to signal the STM32 that we are ready.
+	; This sends a command byte $88 to signal the STM32 that we are ready.
 	bsr.b	syshook.setdmaaddr      ; Set DMA address to a2
 
-	move.l	#$00ff018a,(a0)         ; Send 255 blocks. Switch to command.
-	move.l	#$00880100,(a0)         ; Send $88 command byte and enable DMA
+	move.w	#$00ff,(a0)             ; Send 255 blocks
+	move.w	#$018a,(a1)             ; Switch to command
+	move.w	#$0088,(a0)             ; Send $88 command byte
+	move.w	#$0100,(a1)             ; Enable DMA
 
 	bra.w	syshook.reply
 
@@ -302,7 +305,7 @@ syshook.setdmaaddr:
 	rts
 
 ; Variables
-syshook.dmareg	dc.w	dma,dmactrl     ; DMA port addresses
+syshook.dmareg	dc.w	dmadata,dmactrl ; DMA port addresses
 syshook.oldd0	ds.w	0               ; Temporary storage for d0
 	
 

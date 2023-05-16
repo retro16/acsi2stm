@@ -59,6 +59,13 @@ pchar	macro	; Print a character
 	addq.l	#4,sp
 	endm
 
+pchar2	macro
+	movem.l	d0-d2/a0-a2,-(sp)
+	pchar	\1
+	pchar	\2
+	movem.l	(sp)+,d0-d2/a0-a2
+	endm
+
 crlf	macro
 	movem.l	d0-d2/a0-a2,-(sp)
 	pchar	$0d

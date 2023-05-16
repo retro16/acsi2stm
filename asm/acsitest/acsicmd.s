@@ -14,6 +14,14 @@
 ; You should have received a copy of the GNU General Public License
 ; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+; DMA port hardware registers
+dma	equ	$ffff8604
+dmadata	equ	dma
+dmactrl	equ	dma+2
+dmahigh	equ	dma+5
+dmamid	equ	dma+7
+dmalow	equ	dma+9
+gpip	equ	$fffffa01
 
 acsicmd	; Execute an ACSI command
 	; Input:
@@ -28,7 +36,7 @@ acsicmd	; Execute an ACSI command
 	st	flock.w                 ; Lock floppy drive
 
 	lea	dmactrl.w,a1            ; a1 = DMA control register
-	lea	dma.w,a2                ; a2 = DMA data register
+	lea	dmadata.w,a2            ; a2 = DMA data register
 
 	moveq	#0,d2                   ; d2 = command/data
 
@@ -40,18 +48,17 @@ acsicmd	; Execute an ACSI command
 	bne.b	.dmarst                 ;
 	move.w	#$100,d2                ; Read mode: set write flag
 
-.dmarst	move.b	#$90,d2                 ; DMA initialization
-
-	btst	#9,d0                   ; Check command chain flag
+.dmarst	btst	#9,d0                   ; Check command chain flag
 	bne.b	.nreset                 ;
 
 	move.w	d2,(a1)                 ; d2 = Command with inverted write flag
+	move.b	#$90,d2                 ; DMA initialization
 
 .nreset	eor.w	#$100,d2                ; Switch write flag
-	move.w	d2,(a1)                 ; d2 = Command to set transfer size
-
 	btst	#9,d0                   ; Check command chain flag
-	bne.b	.naddr                  ;
+	bne.b	.nodma                  ;
+
+	move.w	d2,(a1)                 ; d2 = Command to set transfer size
 
 	; DMA transfer address
 	move.b	d1,dmalow.w             ; Set DMA address low
@@ -66,56 +73,68 @@ acsicmd	; Execute an ACSI command
 .nodma	move.b	#$88,d2                 ;
 	move.w	d2,(a1)                 ; Assert A1
 
-	move.b	#$8a,d2                 ; d2 = $0w8a = write command byte
-
 	swap	d0                      ; Keep DMA length for later
 
 	move.b	(a0)+,d0                ; d0 = Command byte counter
 	and.w	#$00ff,d0               ;
 
-	swap	d2                      ;
-	move.b	(a0)+,d2                ; Read first command byte
-	or.b	d7,d2                   ; Patch in device id
+	moveq	#0,d1                   ; Read first command byte
+	move.b	(a0)+,d1                ;
+	or.b	d7,d1                   ; Patch in device id
 
-.next	swap	d2                      ;
-	move.l	d2,(a2)                 ; Send $00xx0w8a to DMA
+	move.w	d1,(a2)                 ; Send first command byte
 
-	bsr.b	acsisak                 ; Wait for ack
+	move.b	#$8a,d2                 ; Disable A1
+	move.w	d2,(a1)                 ;
 
-	swap	d2                      ;
-	move.b	(a0)+,d2                ; Read next command byte
+	bsr.b	.sak                    ; Wait for ack
+	
+.next	moveq	#0,d1                   ; Read command byte
+	move.b	(a0)+,d1                ;
+	move.w	d1,(a2)                 ; Send command byte
+	
+	bsr.b	.sak                    ; Wait for ack
 
 	dbra	d0,.next                ; Next byte
 
 	; Send last command byte and trigger DMA
-	swap	d2                      ;
 
 	swap	d0                      ; Restore d0 = DMA length
 	tst.b	d0                      ; If no DMA,
-	beq.b	.lstcmd                 ;  don't switch DMA flag
+	bne.b	.lstdma                 ;  don't switch DMA flag
 
-	and.w	#$0100,d2               ; Keep only the write flag
-.lstcmd	move.l	d2,(a2)                 ;
+	moveq	#0,d1                   ; Read last command byte
+	move.b	(a0)+,d1                ;
+	move.w	d1,(a2)                 ; Send last command byte
+
+	bra.b	.rstat
+
+.lstdma	and.w	#$0100,d2               ; Keep only the write flag
+	moveq	#0,d1                   ; Read last command byte
+	move.b	(a0)+,d1                ;
+	move.w	d1,(a2)                 ; Send last command byte
+	move.w	d2,(a1)                 ; Enable DMA
 
 	; Read status byte
-	bsr.b	acsiack                 ; Wait for status byte
-	move.w	#$008a,(a1)             ; Acknowledge status byte
+.rstat	bsr.b	.ack                    ; Wait for status byte
+	move.b	#$8a,d2                 ; Disable DMA
+	move.w	d2,(a1)                 ;
 	move.w	(a2),d0                 ; Read status to d1
-	and.w	#$00ff,d0               ; Keep only the byte value
+	and.l	#$000000ff,d0           ; Keep only the byte value
 
-acsiret	sf	flock.w                 ; Unlock floppy drive
+.ret	sf	flock.w                 ; Unlock floppy drive
 
 	rts	                        ; Exit acsicmd
 
 	; Wait until DMA ack (IRQ pulse)
-acsiack	move.l	#600,d1                 ; 3 second timeout
-	bra.b	acsidak                 ;
+.ack	move.l	#600,d1                 ; 3 second timeout
+	bra.b	.dak                    ;
 
-acsisak	moveq	#20,d1                  ; 100ms timeout
+.sak	move.l	#20,d1                  ; 100ms timeout
 
-acsidak	add.l	hz200.w,d1              ;
+.dak	add.l	hz200.w,d1              ;
 .await	cmp.l	hz200.w,d1              ; Test timeout
-	bmi.b	.timout                 ;
+	blo.b	.timout                 ;
 	btst.b	#5,gpip.w               ; Test command acknowledge
 	bne.b	.await                  ;
 	rts
@@ -123,6 +142,96 @@ acsidak	add.l	hz200.w,d1              ;
 .timout	moveq	#-1,d0                  ; Return -1
 	addq.l	#4,sp                   ; to the caller of acsicmd
 
-	bra.b	acsiret                 ; Uninitialize and return
+	bra.b	.ret                    ; Uninitialize and return
+
+acsicmd.sense
+	; Execute an ACSI command and fetch sense key if failed
+	; Input:
+	;  d0.w: write flag in [8], chain flag in [9], block count in [0..7]
+	;  d1.l: Target DMA address
+	;  d7.b: Device id in [5..7], other bits 0
+	;  a0  : Command buffer address
+	; Returns:
+	;  d0.l: ASCQ (MSB), ASC, SENSE KEY, status byte (LSB) or -1 if timeout
+	;  a0  : points after the command buffer if d0 is not -1
+
+	bsr	acsicmd
+
+	moveq	#-1,d1                  ; Check for timeout
+	cmp.l	d0,d1                   ;
+	bne.b	.ntime                  ;
+
+	rts	                        ; Return timeout
+
+.ntime	tst.b	d0                      ; Check for success
+	bne.b	.sense                  ;
+
+	moveq	#0,d0                   ; Clear MSB
+	rts	                        ; Return success
+
+.sense	and.l	#$000000ff,d0           ; Keep only status code in d0
+	move.l	d0,-(sp)                ; Store current d0
+
+	cmp.b	#2,d0                   ; Check for "CHECK CONDITION" ret code
+	bne.b	.ret                    ; If not, just return
+
+	moveq	#$0001,d0               ; Read 1 block
+	move.l	#sensbuf,d1             ;
+	lea	.rqsnse,a0              ; Send REQUEST SENSE
+	bsr	acsicmd.flush           ;
+
+	moveq	#-1,d1                  ; Check for sense timeout
+	cmp.l	d0,d1                   ;
+	bne.b	.nsnsto                 ;
+
+	addq	#4,sp                   ; Cancel current d0
+	rts	                        ; Return sense timeout
+
+.nsnsto	lea	sensbuf,a0              ; Analyze sense values
+
+	bclr	#7,(a0)                 ; Check sense value
+	cmp.b	#$70,(a0)               ;
+	beq.b	.sensok                 ;
+
+	moveq	#-1,d0                  ; Return invalid sense format
+	addq	#4,sp                   ; Cancel current d0
+	rts	                        ;
+
+.sensok	move.b	2(a0),2(sp)             ; Extract KEY
+	and.b	#$0f,2(sp)              ;
+
+	cmp.b	#4,7(a0)                ; Extract ASC
+	bls.b	.ret                    ;
+	move.b	12(a0),1(sp)            ;
+
+	cmp.b	#5,7(a0)                ; Extract ASCQ
+	bls.b	.ret                    ;
+	move.b	13(a0),(sp)             ;
+
+.ret	move.l	(sp)+,d0                ; Return final value
+	rts	                        ;
+
+.rqsnse	dc.b	3                       ;
+	dc.b	$03,$00,$00,$00,$12,$00 ;
+
+	even
+
+acsicmd.flush
+	; Call acsicmd, then flush the DMA FIFO
+	; Required to read data that is not a multiple of 16 bytes in size
+	; Will write up to 32 bytes in RAM, past the current DMA buffer position
+	bsr	acsicmd                 ; Do the actual call
+
+	moveq	#-1,d1                  ; Return if timed out
+	cmp.l	d1,d0                   ;
+	bne.b	.ntout                  ;
+	rts
+
+.ntout	move.w	#$0201,d0               ; Append inquiry data to flush DMA FIFO
+	lea	.inqry,a0               ;
+	bra	acsicmd                 ;
+
+.inqry	dc.b	3                       ; Inquiry (best command to flush buffer)
+	dc.b	$12,$00,$00,$00,$ff,$00 ;
 
 ; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm68k tw=80
