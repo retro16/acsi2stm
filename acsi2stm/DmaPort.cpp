@@ -507,7 +507,7 @@ void DmaPort::readDma(uint8_t *bytes, int count) {
 void DmaPort::readDmaString(char *bytes, int count) {
   resetTimeout();
 
-  Acsi::verbose("DMA read ", '\'');
+  Acsi::verbose("DMA string read ", '\'');
 
   // Disable systick that introduces jitter.
   systick_disable();
@@ -938,7 +938,11 @@ void DmaPort::armCs() {
   waitCsUp();
   CS_TIMER->CNT = 0;
   CS_TIMER->CR1 |= TIMER_CR1_OPM | TIMER_CR1_CEN;
+#if ACSI_A1_WORKAROUND
+  DMA1_BASE->IFCR = DMA_IFCR_CTCIF5 | DMA_IFCR_CTCIF7; // Clear A1+CS received flags
+#else
   DMA1_BASE->IFCR = DMA_IFCR_CTCIF7; // Clear CS received flag
+#endif
 }
 
 void DmaPort::pullIrq() {
@@ -1004,7 +1008,15 @@ void DmaPort::waitCsUp() {
 }
 
 bool DmaPort::checkCs() {
+#if ACSI_A1_WORKAROUND
+  return DMA1_BASE->ISR & (DMA_ISR_TCIF5 | DMA_ISR_TCIF7);
+#else
+  if(checkCommand())
+    // Spurious A1 pulse: reset
+    quickReset();
+
   return DMA1_BASE->ISR & DMA_ISR_TCIF7;
+#endif
 }
 
 void DmaPort::waitCs() {

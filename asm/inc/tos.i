@@ -183,6 +183,7 @@ mediach.vector=$47e
 ; From emuTOS
 E_OK=0          ; OK, no error
 ERR=-1          ; basic, fundamental error
+EBADRQ=-5       ; bad request
 ESECNF=-8       ; sector not found
 EWRITF=-10      ; write fault
 EREADF=-11      ; read fault

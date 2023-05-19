@@ -25,6 +25,7 @@
 	include	tfdatime.s
 	include	tfsfirst.s
 	include	tpexec.s
+	include	tmx.s
 
 	include	tui.s
 
@@ -32,8 +33,8 @@ main:
 	move.l	sp,mainsp               ; Used for abort
 
 	gemdos	Dgetdrv,2               ; Get startup drive
-	move.w	d0,-(sp)                ;
 	move.w	d0,strtdrv              ; Store startup drive
+	move.w	d0,-(sp)                ;
 	gemdos	Dsetdrv,4               ;
 	move.l	d0,drvmask              ; Store drive mask
 
@@ -61,13 +62,16 @@ main:
 .execpy	move.b	(a1)+,(a0)+             ;
 	bne.b	.execpy                 ;
 
-	print	.drvlrq                 ; Welcome screen. Ask for a drive letter
-	bsr	.ltrq                   ;
-	move.w	d0,drive                ; Store wanted drive letter
+	print	.welcom                 ; Welcome screen
 
 	print	.expth                  ; Print startup path
 	print	exepath                 ;
 	crlf	                        ;
+	crlf	                        ;
+
+	print	.drvlrq                 ; Welcome screen. Ask for a drive letter
+	bsr	.ltrq                   ;
+	move.w	d0,drive                ; Store wanted drive letter
 	crlf	                        ;
 
 	; Do the actual tests
@@ -81,6 +85,7 @@ main:
 	bsr	tfdatime
 	bsr	tfsfirst
 	bsr	tpexec
+	bsr	tmx                     ; The final boss: test matrix
 
 	; End of tests
 	print	.reslt1
@@ -105,7 +110,7 @@ main:
 .ltrq	gemdos	Cnecin,2                ; Read drive letter
 
 	cmp.b	#$1b,d0                 ; Exit if pressed Esc
-	beq	abort                   ;
+	beq	exit                    ;
 
 .nesc	cmp.b	#'a',d0                 ; Change to upper case
 	bmi.b	.upper                  ;
@@ -131,7 +136,7 @@ main:
 
 	rts	                        ; Success
 
-.drvlrq	dc.b	$1b,'E','GEMDOS file functions tester v'
+.welcom	dc.b	$1b,'E','GEMDOS file functions tester v'
 	incbin	..\..\VERSION
 	dc.b	$0d,$0a,'by Jean-Matthieu Coulon',$0d,$0a
 	dc.b	'https://github.com/retro16/acsi2stm',$0d,$0a
@@ -139,7 +144,9 @@ main:
 	dc.b	$0d,$0a
 	dc.b	'Tests file system functions on a drive.',$0d,$0a
 	dc.b	$0d,$0a
-	dc.b	'Please input the drive letter to test:',$0d,$0a
+	dc.b	0
+
+.drvlrq	dc.b	'Please input the drive letter to test:',$0d,$0a
 	dc.b	$1b,'e'
 	dc.b	0
 
@@ -147,7 +154,7 @@ main:
 .usedr2	dc.b	':',$0d,$0a,$0a
 	dc.b	0
 
-.expth	dc.b	'Test path: ',0
+.expth	dc.b	'Test executable path: ',0
 
 .reslt1	dc.b	'________________________________________',$0d,$0a,$0a
 	dc.b	'Test results:',$0d,$0a,$0a
@@ -160,6 +167,17 @@ main:
 .exefil	dc.b	'TOSTEST.TOS',0
 
 	even
+
+clrbuf	; Clear the buffer
+	moveq	#0,d0
+	; Fall through fillbuf
+
+fillbuf	; Fill the buffer with a long word pattern in d0
+	lea	buffer,a0
+	move.w	#65536/4,d1
+.clr	move.l	d0,(a0)+
+	dbra	d1,.clr
+	rts
 
 testok:
 	move.l	mainsp,sp               ; Adjust stack for the test return addr
@@ -191,6 +209,9 @@ testfailed:
 	dc.b	0
 
 	even
+
+exit:	move.l	mainsp,sp
+	rts
 
 abort:
 	move.l	mainsp,sp               ; Restore main stack pointer

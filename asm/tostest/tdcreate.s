@@ -58,6 +58,18 @@ tdcreate:
 	bsr	.cd                     ;
 	bne	testfailed              ;
 
+	lea	.topdir,a0              ; Test dot files
+	bsr	.cd                     ;
+
+	moveq	#EPTHNF,d5              ; Test stupid directory names
+
+	lea	.dot1,a0                ; Create '.'
+	bsr	.create                 ;
+	lea	.dot2,a0                ; Create '..'
+	bsr	.create                 ;
+
+	; Note: other file names starting with a dot will crash original TOS
+
 
 	moveq	#EACCDN,d5              ;
 
@@ -197,6 +209,9 @@ tdcreate:
 .subbs	dc.b	'SUBDIR2\',0
 .up	dc.b	'..\SUBDIR3',0
 .sublc	dc.b	'subDir4',0
+
+.dot1	dc.b	'.',0
+.dot2	dc.b	'..',0
 
 .sdir2	dc.b	'\TDCREATE.TMP\SUBDIR2',0
 .sdir3	dc.b	'\TDCREATE.TMP\SUBDIR3',0

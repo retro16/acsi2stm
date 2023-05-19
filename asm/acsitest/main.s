@@ -40,6 +40,8 @@
 	even
 	include	surftest.s
 	even
+	include	cmdtest.s
+	even
 
 main:
 	move.l	sp,mainsp               ; Used for abort
@@ -108,7 +110,12 @@ main:
 	bsr	buftest                 ;
 	bra	main                    ;
 
-.nbuft	cmp.b	#'T',d0                 ; Go back to the beginning
+.nbuft	cmp.b	#'C',d0                 ; Command load test
+	bne.b	.ncmdt                  ;
+	bsr	cmdtest                 ;
+	bra	main                    ;
+
+.ncmdt	cmp.b	#'T',d0                 ; Go back to the beginning
 	beq	main                    ;
 
 .exit	rts
@@ -131,6 +138,7 @@ main:
 .reslt3	dc.b	' failed tests',$0d,$0a
 	dc.b	$0d,$0a
 	dc.b	'Press B for buffer load test,',$0d,$0a
+	dc.b	'      C for command load test,',$0d,$0a
 	dc.b	'      S for surface scan test,',$0d,$0a
 	dc.b	'      T to restart basic test,',$0d,$0a
 	dc.b	'or any other key to exit.',$0d,$0a

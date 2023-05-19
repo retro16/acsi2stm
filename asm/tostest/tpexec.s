@@ -104,9 +104,14 @@ tpexec:
 
 	lea	.fdleak,a5              ; If we got the same FD: no leak
 	cmp.w	d3,d4                   ;
+	beq	.fdlkok                 ;
+
+	move.w	d3,-(sp)                ; If old FD can't be closed: no leak
+	gemdos	Fclose,4                ;
+	cmp.w	#EBADF,d0               ;
 	bne	testfailed              ;
 
-	bsr	.clean                  ; Final cleanup
+.fdlkok	bsr	.clean                  ; Final cleanup
 	bra	testok
 
 .clean	; Cleanup routine

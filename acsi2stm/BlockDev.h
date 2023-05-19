@@ -56,7 +56,7 @@ public:
   void close();
 
   operator bool() const {
-    return sdMediaId;
+    return sdMediaId && image;
   }
 
   // BlockDev interface

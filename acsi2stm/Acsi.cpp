@@ -132,7 +132,12 @@ void Acsi::process(uint8_t cmd) {
   // Execute the command
   switch(cmdBuf[0]) {
   case 0x00: // Test unit ready
-    commandStatus(ERR_OK);
+    if(cmdBuf[1] || cmdBuf[2] || cmdBuf[3] || cmdBuf[4] || cmdBuf[5])
+      // Normally ERR_OK should always be returned, but this helps ACSITEST
+      // command load testing
+      commandStatus(ERR_INVARG);
+    else
+      commandStatus(ERR_OK);
     return;
   case 0x03: // Request Sense
     if(cmdBuf[4] < 4)

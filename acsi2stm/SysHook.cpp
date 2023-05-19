@@ -114,8 +114,8 @@ void SysHook::sendAt(uint32_t address, const uint8_t *bytes, int count)
     --count;
   }
 
-  while(count >= 16) {
-    int blockSize = (count > 0x1fe00 ? 0x1fe00 : count) & 0x1fff0;
+  if(count >= 16) {
+    int blockSize = count & 0x1fff0;
 
     setDmaRead(address);
     DmaPort::sendDma(bytes, blockSize);
@@ -148,15 +148,9 @@ void SysHook::readAt(uint8_t *bytes, uint32_t source, int count)
     --count;
   }
 
-  while(count > 0) {
-    int blockSize = (count > 0x1fe00 ? 0x1fe00 : count);
-
+  if(count > 0) {
     setDmaWrite(source);
-    DmaPort::readDma(bytes, blockSize);
-
-    bytes += blockSize;
-    source += blockSize;
-    count -= blockSize;
+    DmaPort::readDma(bytes, count);
   }
 }
 
@@ -164,6 +158,13 @@ uint8_t SysHook::readByteAt(ToLong address)
 {
   if(!isDma(address))
     return readByteAtIndirect(address);
+
+  if(address & 1) {
+    Word data;
+    setDmaWrite(address - 1);
+    DmaPort::readDma((uint8_t *)&data, sizeof(data));
+    return data.bytes[1];
+  }
 
   uint8_t data;
   setDmaWrite(address);
@@ -206,10 +207,12 @@ void SysHook::readStringAt(char *bytes, ToLong address, int count)
     if(!*bytes)
       return;
 
-    ++bytes;
     --count;
     if(!count)
       return;
+
+    ++address;
+    ++bytes;
   }
   setDmaWrite(address);
   DmaPort::readDmaString(bytes, count);
@@ -281,7 +284,7 @@ void SysHook::readAtIndirect(uint8_t *bytes, ToLong source, int count) {
 
     // Fetch data
     DmaPort::readDma(bytes, l);
-    
+
     count -= l;
     bytes += l;
     source += l;
@@ -329,7 +332,7 @@ void SysHook::readStringAtIndirect(char *bytes, ToLong source, int count) {
           goto end_of_string;
       }
     }
-    
+
     count -= l;
     bytes += l;
     source += l;
@@ -343,8 +346,8 @@ uint8_t SysHook::readByteAtIndirect(ToLong source) {
   push(source);
   execThenDmaWrite(getProgram(PGM_READSPB));
   read(result);
-  shiftStack(16 - sizeof(source) + sizeof(Word));
-  return result;
+  shiftStack(16 - sizeof(source) + sizeof(result));
+  return result.bytes[0];
 }
 
 Word SysHook::readWordAtIndirect(ToLong source) {

@@ -1,4 +1,8 @@
-**ALPHA VERSION**
+**4.0e: ALPHA VERSION**
+
+ACSI mode / strict firmware variant is release quality.
+
+GemDrive is still alpha quality.
 
 ACSI2STM: Atari ST ACSI hard drive emulator
 ===========================================
@@ -23,7 +27,7 @@ It also provides an UltraSatan compatible real-time clock if you add a simple
 See [RELEASE NOTES](release_notes.md) for details about the current version.
 
 **WARNING**, the pinout has changed for version 3.xx and above. If you built or
-bought a unit for older 1.xxyou need to make changes. If you have a 2.xx unit,
+bought a unit for older 1.xx, you need to make changes. If you have a 2.xx unit,
 use the "legacy" firmware image or make hardware changes. See the last section
 of [hardware.md](doc/hardware.md) for more information.
 
@@ -80,17 +84,22 @@ some implications:
  * The name ACSI2STM is not protected. You can reuse it as you wish. Making a
    clear distinction between this code and your product will be greatly
    appreciated (most sellers do).
+ * The code is provided without warranty, so hardware troubleshooting is best
+   effort. If you bought a unit and you have issues, you should contact the
+   seller first. Anyway, constructive feedback (including bug reports) is always
+   appreciated.
 
-**Note**: the Mega STE PCB is copyrighted by Olivier Jan and is released under the
-MIT license so it does not have the same restrictions.
+**Note**: the Mega STE PCB is copyrighted by Olivier Jan and is released under
+the MIT license so it does not have the same restrictions.
 
 
 Credits
 -------
 
-I would like to thanks the people that put invaluable information online that
+I would like to thank the people that put invaluable information online that
 made this project possible in a finite amount of time. Without them, this
-project would have not existed.
+project would have not existed. I would also like to thank people giving
+feedback, contributing to make the project better.
 
  * Bill Greiman for the SdFat library. It's really fantastic.
  * The http://atari.8bitchip.info website and his author, who also contributes
@@ -103,10 +112,10 @@ project would have not existed.
  * Uwe Seimet for his SCSI testing tool.
  * Jean-Louis Guérin (DrCoolZic) for his excellent "Atari Hard Disk File Systems
    Reference Guide".
- * Sr Antonio, Edu Arana, Frederick321, Ulises74, Maciej G., Olivier Gossuin,
-   Marcel Prisi and Tomasz Orczyk for their very detailed feedback that helped
-   me a lot for fine tuning the DRQ/ACK signals and other various aspects of the
-   projects.
+ * mamejay, Ben Leggett, S0urceror, Sr Antonio, Edu Arana, Frederick321,
+   Ulises74, Maciej G., Olivier Gossuin, Marcel Prisi and Tomasz Orczyk for
+   their very detailed feedback that helped me a lot for fine tuning the DRQ/ACK
+   signals and other various aspects of the projects.
  * All people contributing on GitHub, for their code, their ideas, the issues
    they submit, and their patience when things fail !
  * Olivier Jan for the Mega STE PCB.

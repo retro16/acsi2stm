@@ -38,8 +38,10 @@ buftest:
 	move.l	#$10000,d3              ;
 .bfszok	and.l	#$1fff0,d3              ; Align to 16 bytes
 
-	move.l	d3,buftest.read.len     ; Update ACSI commands
-	move.l	d3,buftest.write.len    ;
+	move.l	d3,d0                   ; Update ACSI commands
+	lsl.l	#8,d0                   ;
+	move.l	d0,buftest.read.len     ;
+	move.l	d0,buftest.write.len    ;
 
 	lsr.l	#2,d3                   ; Adjust for long words
 	subq	#1,d3                   ; Adjust for dbra
@@ -56,7 +58,8 @@ buftest:
 	tst.l	d0                      ;
 	bne	.exit                   ;
 
-	move.w	#.patcnt-1,d4           ; d4 = buffer r/w pass count
+	moveq	#.patcnt-1,d4           ; d4. = buffer r/w pass count
+		                        ; d4 bit 16: error flag
 
 .pass	move.w	#$01ff,d0               ; Write pass
 	move.l	#buffer,d1              ;
@@ -86,11 +89,14 @@ buftest:
 .pnext	tst.l	(a3)+                   ; Next pattern if not null
 	bne	.pat
 
-	crlf
+	btst	#16,d4                  ; Display CRLF only if there was some
+	beq	.loop                   ; errors
+	crlf	                        ;
 
 	bra	.loop
 
 .perr	pchar	'X'                     ; Fill the line with an X
+	bset	#16,d4                  ; Set error flag
 	bra	.pnext                  ; Next pattern
 
 .exit	gemdos	Cnecin,2                ; Flush keyboard buffer / wait for a key

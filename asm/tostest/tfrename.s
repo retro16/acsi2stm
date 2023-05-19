@@ -83,12 +83,26 @@ tfrename:
 	lea	.cln1,a3                ;
 	bsr	.rename                 ;
 
+	moveq	#EFILNF,d5              ; Invalid file
+
+	lea	.cln4,a4                ; From non-existing file
+	lea	.cln5,a3                ;
+	bsr	.rename                 ;
+
 
 	moveq	#ENSAME,d5              ; Other drive
 
 	lea	.cln1,a4                ; Move to other drive
 	lea	.file7,a3               ;
 	bsr	.rename                 ;
+
+	; Note about moving to other drive:
+	; In TOS, moving to an existing path of a different drive returns ENSAME
+	; but moving to a non-existing path of a different drive returns EPTHNF.
+	; This case is not tested, because in an alternative GEMDOS
+	; implementation you may not have access to the other drive so it has to
+	; return ENSAME preemptively. But again, who cares ? ENSAME is already a
+	; very rare error anyway.
 
 	bsr	.clean                  ; Cleanup before leaving
 
@@ -114,8 +128,16 @@ tfrename:
 	gemdos	Frename,12              ;
 
 	cmp.l	d0,d5                   ; Check return value
-	bne	testfailed              ;
+	beq.b	.renok                  ;
 
+	move.l	d0,d5                   ; Print returned error value
+	print	.errret                 ;
+	move.l	d5,d0                   ;
+	bsr	tui.phlong              ;
+	crlf	                        ;
+
+	bra	testfailed              ;
+.renok
 	tst.l	d0
 	beq.b	.renamd
 
@@ -253,6 +275,8 @@ tfrename:
 
 .ncreat	dc.b	'Could not create path',$0d,$0a
 	dc.b	0
+
+.errret	dc.b	'Error: returned ',0
 
 .rening	dc.b	'Renaming ',0
 .to	dc.b	$0d,$0a

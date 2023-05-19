@@ -168,10 +168,6 @@ void SdDev::init() {
       continue;
     }
 
-    // Open the file system
-    if(fs.begin(&card))
-      image.open(ACSI_IMAGE_FILE);
-
     // Get writable pin status
 #if !ACSI_SD_WRITE_LOCK
     writable = true;
@@ -182,6 +178,10 @@ void SdDev::init() {
 #endif
 
     mediaId(true);
+
+    // Open the file system
+    if(fs.begin(&card))
+      image.open(ACSI_IMAGE_FILE);
 
     // Check if bootable
     if(!(*this)->updateBootable()) {
@@ -228,6 +228,7 @@ bool SdDev::readStop() {
 
 bool SdDev::writeStart(uint32_t block) {
 #if ACSI_READONLY
+  (void)block;
 #if ACSI_READONLY == 2
   return true;
 #else
@@ -242,6 +243,8 @@ bool SdDev::writeStart(uint32_t block) {
 
 bool SdDev::writeData(const uint8_t *data, int count) {
 #if ACSI_READONLY
+  (void)data;
+  (void)count;
 #if ACSI_READONLY == 2
   return true;
 #else
@@ -388,7 +391,9 @@ ImageDev::ImageDev(SdDev &sd_): sd(sd_), sdMediaId(0) {}
 bool ImageDev::open(const char *path) {
   close();
 
-  if(!sd.mediaId())
+  sdMediaId = sd.mediaId();
+
+  if(!sdMediaId)
     return false;
 
   if(!sd.fs.fatType())
@@ -402,13 +407,24 @@ bool ImageDev::open(const char *path) {
     oflag = O_RDWR;
 #endif
   if(!image.open(&sd.fs, path, oflag)) {
-    blocks = 0;
+    close();
+#if ! ACSI_READONLY
+    if(!image.open(&sd.fs, path, O_RDONLY)) {
+      verbose("read-only\n");
+    } else {
+      close();
+      verbose("not found\n");
+      return false;
+    }
+#else
     verbose("not found\n");
     return false;
+#endif
   }
 
   blocks = image.fileSize() / ACSI_BLOCKSIZE;
   verbose("opened\n");
+
   return true;
 }
 
@@ -433,6 +449,7 @@ bool ImageDev::readStop() {
 
 bool ImageDev::writeStart(uint32_t block) {
 #if ACSI_READONLY
+  (void)block;
 #if ACSI_READONLY == 2
   return true;
 #else
@@ -447,6 +464,8 @@ bool ImageDev::writeStart(uint32_t block) {
 
 bool ImageDev::writeData(const uint8_t *data, int count) {
 #if ACSI_READONLY
+  (void)data;
+  (void)count;
 #if ACSI_READONLY == 2
   return true;
 #else

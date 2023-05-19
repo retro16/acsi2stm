@@ -65,11 +65,67 @@ tfcropen:
 	bsr	.open                   ;
 	bsr	.close                  ;
 
+	moveq	#EFILNF,d5              ; Try to open a directory as a file
+	lea	.root,a4                ;
+	bsr	.open                   ;
+	lea	.topdir,a4              ;
+	bsr	.open                   ;
+
+	lea	.dot1,a4                ;
+	bsr	.open                   ;
+	lea	.dot2,a4                ;
+	bsr	.open                   ;
+	lea	.dot3,a4                ;
+	bsr	.open                   ;
+	lea	.dot4,a4                ;
+	bsr	.open                   ;
+
+	lea	.dirfil,a4              ; Open a file as a directory
+	bsr	.open                   ;
+
+	lea	.sddot,a4               ;
+	bsr	.open                   ;
+	lea	.sdslsh,a4              ;
+	bsr	.open                   ;
+
+	moveq	#EACCDN,d5              ; Create a file over a directory
+	lea	.topdir,a4              ;
+	bsr	.create                 ;
+	lea	.subdir,a4              ;
+	bsr	.create                 ;
+
+	moveq	#EPTHNF,d5              ; Create '\', '.' and '..' doesn't
+	lea	.root,a4                ; return the same error code !
+	bsr	.create                 ;
+	lea	.dot1,a4                ;
+	bsr	.create                 ;
+	lea	.dot2,a4                ;
+	bsr	.create                 ;
+	lea	.dot3,a4                ;
+	bsr	.create                 ;
+	lea	.dot4,a4                ;
+	bsr	.create                 ;
+
+	lea	.dirfil,a4              ; Create a file in another file
+	bsr	.create                 ;
+
+	lea	.sddot,a4               ; TOS, you aren't making things easy
+	bsr	.create                 ;
+	lea	.sdslsh,a4              ;
+	bsr	.create                 ;
+
+	; Note: file names with leading dot such as '.TMP' crash TOS, so they
+	; are excluded from tests
+
 	bsr	.clean                  ; Remove everything
 
 	moveq	#EFILNF,d5              ; Try to open a file in a non-existing
 	lea	.file1,a4               ; path
 	bsr	.open                   ;
+
+	moveq	#EPTHNF,d5              ; Try to create a file in a non-existing
+	lea	.file1,a4               ; path
+	bsr	.create                 ;
 
 	bra	testok
 
@@ -256,6 +312,9 @@ tfcropen:
 	dc.b	0
 .dlting	dc.b	'Deleting file ',0
 
+.opndir	dc.b	'Could open a directory',$0d,$0a
+	dc.b	0
+
 .ncrdir	dc.b	'Could not create dir structure',$0d,$0a
 	dc.b	0
 
@@ -278,22 +337,31 @@ tfcropen:
 	dc.b	0
 
 .root	dc.b	'\',0
-.topdir	dc.b	'\TDCROPEN.TMP',0
-.subdir	dc.b	'\TDCROPEN.TMP\'
+.topdir	dc.b	'\TFCROPEN.TMP',0
+.subdir	dc.b	'\TFCROPEN.TMP\'
 .subrel	dc.b	'SUBDIR',0
+.sddot	dc.b	'\TFCROPEN.TMP\SUBDIR\.',0
+.sdslsh	dc.b	'\TFCROPEN.TMP\SUBDIR\',0
 
-.file1	dc.b	'\TDCROPEN.TMP\FILE1.TMP',0
+.file1	dc.b	'\TFCROPEN.TMP\FILE1.TMP',0
 .file2	dc.b	'FILE2.TMP',0
 .file3	dc.b	'.\FILE3.TMP',0
 .file4	dc.b	'SUBDIR\FILE4.TMP',0
 .file5	dc.b	'..\FILE5.TMP',0
-.file6	dc.b	'\TDCROPEN.TMP\FILE6',0
-.file6x	dc.b	'\TDCROPEN.TMP\FILE6.',0
+.file6	dc.b	'\TFCROPEN.TMP\FILE6',0
+.file6x	dc.b	'\TFCROPEN.TMP\FILE6.',0
 
-.file2a	dc.b	'\TDCROPEN.TMP\FILE2.TMP',0
-.file3a	dc.b	'\TDCROPEN.TMP\FILE3.TMP',0
-.file4a	dc.b	'\TDCROPEN.TMP\FILE4.TMP',0
-.file5a	dc.b	'\TDCROPEN.TMP\SUBDIR\FILE5.TMP',0
+.dot1	dc.b	'.',0
+.dot2	dc.b	'..',0
+.dot3	dc.b	'.\',0
+.dot4	dc.b	'..\',0
+
+.dirfil	dc.b	'\TFCROPEN.TMP\FILE1.TMP\NOTAFILE.TMP',0
+
+.file2a	dc.b	'\TFCROPEN.TMP\FILE2.TMP',0
+.file3a	dc.b	'\TFCROPEN.TMP\FILE3.TMP',0
+.file4a	dc.b	'\TFCROPEN.TMP\FILE4.TMP',0
+.file5a	dc.b	'\TFCROPEN.TMP\SUBDIR\FILE5.TMP',0
 
 	even
 

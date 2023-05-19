@@ -272,6 +272,16 @@ bool GemDrive::onPterm0(const Tos::Pterm0_p &) {
   return false;
 }
 
+bool GemDrive::onCconws(const Tos::Cconws_p &p) {
+#if ACSI_DEBUG || ACSI_GEMDOS_SNIFFER
+  readStringAt((char *)buf, p.buf, sizeof(buf));
+  dbg("buf='", (const char *)buf, "' ");
+#else
+  (void)p;
+#endif
+  return false;
+}
+
 bool GemDrive::onDsetdrv(const Tos::Dsetdrv_p &p) {
   // Track current drive
 
@@ -386,14 +396,14 @@ bool GemDrive::onDdelete(const Tos::Ddelete_p &p) {
   }
 
   if(!sd.isWritable()) {
-    rte(EWRPRO);
+    rte(EACCDN);
     return true;
   }
 
   FsFile file;
   path.open(volume, &file);
   if(!file.rmdir()) {
-    rte(EWRPRO);
+    rte(EACCDN);
     return true;
   }
 
@@ -412,14 +422,14 @@ bool GemDrive::onDsetpath(const Tos::Dsetpath_p &p) {
   }
 
   readStringAt((char *)buf, p.path, sizeof(buf));
-  dbg("path=", (const char *)buf, ' ');
+  dbg("path='", (const char *)buf, "' ");
   int result = drives[curDrive].curPath.set(Devices::sdSlots[curDrive].fs, (const char *)buf);
   rte(result == 0 ? E_OK : EPTHNF);
   return true;
 }
 
 bool GemDrive::onFcreate(const Tos::Fcreate_p &p) {
-  return onFcreateopen(1, p.fname, O_RDWR | O_CREAT, p.attr.bytes[1]);
+  return onFcreateopen(1, p.fname, O_RDWR | O_CREAT | O_TRUNC, p.attr.bytes[1]);
 }
 
 bool GemDrive::onFopen(const Tos::Fopen_p &p) {
@@ -427,9 +437,16 @@ bool GemDrive::onFopen(const Tos::Fopen_p &p) {
 }
 
 bool GemDrive::onFclose(const Tos::Fclose_p &p) {
-  GemFile *file = getFile(p.handle);
-  if(!file)
+  // Check ACSI2STM marker
+  if(p.handle.bytes[0] != 0x32 + Devices::acsiFirstId)
     return false;
+
+  GemFile *file = getFile(p.handle);
+  if(!file) {
+    // Bad file descriptor
+    rte(EIHNDL);
+    return true;
+  }
 
   file->close();
   rte(E_OK);
@@ -454,10 +471,14 @@ bool GemDrive::onFread(const Tos::Fread_p &p) {
     return true;
   }
 
-  int size = p.count;
   int done = 0;
   int bufSize;
   uint32_t ptr = p.buf;
+  int size = p.count;
+  if(size < 0) {
+    rte(ERANGE);
+    return true;
+  }
 
   while(size > 0) {
     if(size > (int)sizeof(buf))
@@ -474,6 +495,9 @@ bool GemDrive::onFread(const Tos::Fread_p &p) {
       done += readBytes;
       ptr += readBytes;
       size -= readBytes;
+      if(readBytes < bufSize)
+        // Reached end of file
+        break;
     } else if(readBytes < 0) {
       // Return error
       rte(EREADF);
@@ -510,14 +534,18 @@ bool GemDrive::onFwrite(const Tos::Fwrite_p &p) {
   }
 
   if(!sd.isWritable()) {
-    rte(EWRPRO);
+    rte(EACCDN);
     return true;
   }
 
-  uint32_t ptr = p.buf;
-  int size = p.count;
   int done = 0;
   int bufSize;
+  uint32_t ptr = p.buf;
+  int size = p.count;
+  if(size < 0) {
+    rte(ERANGE);
+    return true;
+  }
 
   while(size > 0) {
     if(size > (int)sizeof(buf))
@@ -528,6 +556,9 @@ bool GemDrive::onFwrite(const Tos::Fwrite_p &p) {
     // Read data from Atari
     readAt(buf, ptr, bufSize);
 
+ verbose("///");
+ verboseDump(buf, bufSize);
+ verbose("\\\\\\\n");
     // Write data onto SD
     int writtenBytes = fd->write(volume, buf, bufSize);
 
@@ -535,6 +566,9 @@ bool GemDrive::onFwrite(const Tos::Fwrite_p &p) {
       done += writtenBytes;
       ptr += writtenBytes;
       size -= writtenBytes;
+      if(writtenBytes < bufSize)
+        // Reached end of file
+        break;
     } else if(writtenBytes < 0) {
       rte(EWRITF);
       return true;
@@ -558,7 +592,7 @@ bool GemDrive::onFdelete(const Tos::Fdelete_p &p) {
 
   FsVolume &volume = Devices::sdSlots[driveIndex].fs;
   if(!Devices::sdSlots[driveIndex].isWritable()) {
-    rte(EWRPRO);
+    rte(EACCDN);
     return true;
   }
 
@@ -568,7 +602,7 @@ bool GemDrive::onFdelete(const Tos::Fdelete_p &p) {
   for(int i = 0; i < filesMax; ++i) {
     if(files[i] && files[i] == tf) {
       verbose("File opened\n");
-      rte(EWRPRO);
+      rte(EACCDN);
       return true;
     }
   }
@@ -577,7 +611,11 @@ bool GemDrive::onFdelete(const Tos::Fdelete_p &p) {
   path.open(volume, &file, O_RDWR);
 
   if(!file) {
-    rte(EFILNF);
+    path.open(volume, &file, O_RDONLY);
+    if(file)
+      rte(EACCDN);
+    else
+      rte(EFILNF);
     return true;
   }
 
@@ -617,7 +655,7 @@ bool GemDrive::onFseek(const Tos::Fseek_p &p) {
 
   auto pos = fd->seek(volume, p.offset, p.seekmode.bytes[1]);
   if(pos < 0) {
-    rte(ERROR);
+    rte(ERANGE);
     return true;
   }
 
@@ -638,13 +676,18 @@ bool GemDrive::onFattrib(const Tos::Fattrib_p &p) {
   path.open(volume, &file);
 
   if(!file) {
-    rte(ERROR);
+    rte(EACCDN);
+    return true;
+  }
+
+  if(file.isDirectory()) {
+    rte(EFILNF);
     return true;
   }
 
   if(p.wflag.bytes[1]) {
     if(!Devices::sdSlots[driveIndex].isWritable()) {
-      rte(EWRPRO);
+      rte(EACCDN);
       return true;
     }
     if(!file.attrib(p.attrib.bytes[1])) {
@@ -1000,7 +1043,7 @@ bool GemDrive::onFsnext(const Tos::Fsnext_p &) {
 bool GemDrive::onFrename(const Tos::Frename_p &p) {
   int driveIndex;
   TinyPath path;
-  if(openPath(0, p.oldname, 0x1f, driveIndex, path))
+  if(openPath(0, p.oldname, 0x1f, driveIndex, path, EPTHNF))
     return true;
   if(driveIndex < 0)
     return false;
@@ -1016,7 +1059,7 @@ bool GemDrive::onFrename(const Tos::Frename_p &p) {
     rte(ENSAME);
     return true;
   }
-  
+
   char *lastsep = (char *)filename;
   for(char *c = (char *)filename; *c; ++c)
     if(*c == '\\')
@@ -1045,7 +1088,7 @@ bool GemDrive::onFrename(const Tos::Frename_p &p) {
   newPath.open(volume, &targetDir);
 
   if(!source || !targetDir) {
-    rte(ERROR);
+    rte(EACCDN);
     return true;
   }
 
@@ -1054,7 +1097,7 @@ bool GemDrive::onFrename(const Tos::Frename_p &p) {
   TinyPath::patternToUnicode((char *)buf, sizeof(buf));
 
   if(!source.rename(&targetDir, (const char *)buf)) {
-    rte(EWRPRO);
+    rte(EACCDN);
     return true;
   }
 
@@ -1160,8 +1203,6 @@ void GemDrive::onBoot() {
   // Install system call hooks
   verbose("Install hooks\n");
   installHook(driverMem, 0x84); // GEMDOS
-  //installHook(driverMem, 0xb4); // BIOS
-  //installHook(driverMem, 0xb8); // XBIOS
 
   // Driver splash screen
   tosPrint("\eE" "ACSI2STM " ACSI2STM_VERSION " by Jean-Matthieu Coulon\r\n",
@@ -1281,6 +1322,7 @@ void GemDrive::onGemdos() {
 #endif
 
   DECLARE_CALLBACK(Pterm0);
+  DECLARE_CALLBACK(Cconws);
   DECLARE_CALLBACK(Dsetdrv);
   DECLARE_CALLBACK(Tsetdate);
   DECLARE_CALLBACK(Tsettime);
@@ -1338,7 +1380,6 @@ void GemDrive::onGemdos() {
   DECLARE_CALLBACK(Crawio);
   DECLARE_CALLBACK(Crawcin);
   DECLARE_CALLBACK(Cnecin);
-  DECLARE_CALLBACK(Cconws);
   DECLARE_CALLBACK(Cconrs);
   DECLARE_CALLBACK(Cconis);
   DECLARE_CALLBACK(Cconos);
@@ -1385,7 +1426,7 @@ void GemDrive::onExtCmd() {
   dbgHex(cmd, '(', param, ")\n");
 }
 
-bool GemDrive::openPath(int create, ToLong fname, uint8_t attr, int &driveIndex, TinyPath &path) {
+bool GemDrive::openPath(int create, ToLong fname, uint8_t attr, int &driveIndex, TinyPath &path, int8_t pathErr) {
   readStringAt((char *)buf, fname, sizeof(buf));
   dbg("path='", (char *)buf, "' ");
 
@@ -1405,7 +1446,7 @@ bool GemDrive::openPath(int create, ToLong fname, uint8_t attr, int &driveIndex,
   FsVolume &volume = sd.fs;
 
   if(create && !sd.isWritable()) {
-    rte(EWRPRO);
+    rte(EACCDN);
     return true;
   }
 
@@ -1416,11 +1457,11 @@ bool GemDrive::openPath(int create, ToLong fname, uint8_t attr, int &driveIndex,
     case 0:
       break;
     case 1:
-      rte(create ? EWRPRO : EFILNF);
+      rte(create ? EACCDN : EFILNF);
       return true;
     case 2:
     case 3:
-      rte(EPTHNF);
+      rte(create ? EPTHNF : pathErr);
       return true;
   }
 
@@ -1446,16 +1487,17 @@ bool GemDrive::onFcreateopen(int create, ToLong fname, oflag_t oflag, uint8_t at
   }
 
   FsFile *file = fd->open(volume, path, oflag);
-  if(!file) {
-    // File exists but cannot be opened: the only possible case is opening
-    // read-write a readonly file.
-    rte(EWRPRO);
+  if(!file || !*file) {
+    // File exists but cannot be opened. Access denied (probably read-only).
+    fd->close();
+    rte(EACCDN);
     return true;
   }
 
   if(file->isDirectory()) {
     // Cannot open directories
-    rte(EPTHNF);
+    fd->close();
+    rte(create ? EACCDN : EFILNF);
     return true;
   }
 
@@ -1528,11 +1570,14 @@ void GemDrive::setCurDrive(int driveId) {
 GemFile * GemDrive::getFile(ToWord fd) {
   // Check ACSI2STM marker
   if(fd.bytes[0] != 0x32 + Devices::acsiFirstId)
-    return false;
+    return nullptr;
 
   uint8_t fi = fd.bytes[1];
   if(fi >= filesMax)
-    return false;
+    return nullptr;
+
+  if(!files[fi])
+    return nullptr;
 
   return &files[fi];
 }

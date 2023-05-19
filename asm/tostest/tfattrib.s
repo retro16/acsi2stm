@@ -42,6 +42,7 @@ tfattrib:
 	pea	(a4)                    ;
 	gemdos	Fopen,8                 ;
 
+	lea	.opendw,a5              ;
 	cmp.w	#EACCDN,d0              ; Must return "access denied"
 	bne	testfailed              ;
 
@@ -109,6 +110,11 @@ tfattrib:
 	pea	.root                   ; Dsetpath '\'
 	gemdos	Dsetpath,6              ;
 
+	clr.w	-(sp)                   ; Remove read-only attribute
+	move.w	#1,-(sp)                ;
+	pea	.file                   ;
+	gemdos	Fattrib,10              ;
+
 	pea	.file                   ;
 	gemdos	Fdelete,6               ;
 
@@ -158,6 +164,9 @@ tfattrib:
 	dc.b	0
 
 .ncreat	dc.b	'Could not create path',$0d,$0a
+	dc.b	0
+
+.opendw	dc.b	'Could open read-only for writing',$0d,$0a
 	dc.b	0
 
 .root	dc.b	'\',0

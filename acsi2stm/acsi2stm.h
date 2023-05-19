@@ -22,7 +22,7 @@
 
 // acsi2stm global configuration
 
-#define ACSI2STM_VERSION "4.0d"
+#define ACSI2STM_VERSION "4.0e"
 
 // Set to 1 to enable debug output on the serial port
 #define ACSI_DEBUG 0
@@ -98,7 +98,7 @@
 // Set this to 2 to sample 41.6ns later
 // Set this to 3 to sample 97.1ns later
 // Only impacts command transfers
-#define ACSI_CS_FILTER 2
+#define ACSI_CS_FILTER 1
 
 // Push data faster in DMA transfers
 // Setting to non-zero unrolls the DMA transfer code but may be less compatible
@@ -130,6 +130,11 @@
 
 // Set to 1 to enable UltraSatan-compatible RTC
 #define ACSI_RTC 1
+
+// Workaround bad drivers that trigger A1 mid-command.
+// The 2008 PP driver, as well as the TOS 1.00 boot loader need this.
+// If disabled, any A1 issue will trigger a quick reset, which is safer.
+#define ACSI_A1_WORKAROUND 1
 
 // Stack canary
 // Used to check that RAM was not overwritten. Set to 0 for normal operation,

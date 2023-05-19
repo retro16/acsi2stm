@@ -191,6 +191,11 @@ int TinyPath::set(FsVolume &volume, const char *path, int create, uint8_t attr) 
       return 2;
     }
 
+    if(lastPath && create == 1 && child && child.isDirectory()) {
+      clear();
+      return 1;
+    }
+
 #if ACSI_VERBOSE
     verbose(pattern, "->" , name);
     if(child) {
@@ -202,7 +207,7 @@ int TinyPath::set(FsVolume &volume, const char *path, int create, uint8_t attr) 
     verbose('\n');
 #endif
 
-    if(!child && create) {
+    if(!child && lastPath && create) {
       // Check that the name is not a pattern
       for(int i = 0; i < 11; ++i)
         if(pattern[i] == '?') {
@@ -217,7 +222,7 @@ int TinyPath::set(FsVolume &volume, const char *path, int create, uint8_t attr) 
 
       if(create == 1) {
         verbose("Create file ", unicodeName, '\n');
-        if(!child.open(&parent, unicodeName, O_RDWR | O_CREAT)) {
+        if(!child.open(&parent, unicodeName, O_RDWR | O_CREAT | O_TRUNC)) {
           clear();
           return 1;
         }
@@ -690,14 +695,14 @@ int32_t TinyFD::seek(FsVolume &volume, int32_t offset, int whence) {
       position = offset;
       break;
     case 1:
-      if(!f->seekSet(f->fileSize() + offset))
-        return -1;
-      position = f->fileSize() + offset;
-      break;
-    case 2:
       if(!f->seekSet(position + offset))
         return -1;
       position = position + offset;
+      break;
+    case 2:
+      if(!f->seekSet(f->fileSize() + offset))
+        return -1;
+      position = f->fileSize() + offset;
       break;
     default:
       return -1;

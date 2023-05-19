@@ -1,14 +1,22 @@
-**4.0d: ALPHA VERSION**: unfinished, unstable. Do not use in production.
+**4.0e: ALPHA VERSION**
 
-TODO before 4.0:
+ACSI mode is release quality.
 
-GemDrive mode:
+GemDrive is still alpha quality.
 
- * Fix the code so tostest passes 100%
- * Fix / refactor code that breaks folder navigation in TOS 2.06
- * Reproduce 2.06 breakage and create non-regression tests for it
- * Pexec (running PRG files) still needs a lot of testing
+TODO before 4.0
+---------------
+
+GemDrive mode (still alpha level):
+
+ * Rewrite TinyFS and pars of GemDrive so tostest passes 100%. This is HUGE.
+ * Fix long filenames bug generating ghost files on SD cards
+ * Fix Pexec command-line that seems to be broken (1 / 2 extra bytes header)
  * Implement garbage file filter (non 8.3, dot files)
+ * Implement filesystem label in Fsfirst/Fsnext
+ * Implement filesystem label in Fsfirst/Fsnext tests in tostest
+ * Implement file attributes in Fsfirst/Fsnext tests in tostest
+ * Add archive bit tests for Fattrib in tostest
  * Fix top RAM allocation. I missed something. Need help.
  * Fix gemdrive.tos loader that releases its hooks memory !
  * Set date/time correctly on all created files
@@ -16,8 +24,15 @@ GemDrive mode:
 
 Other:
 
- * Implement STM32 flash access from the ST, using READ/WRITE BUFFER
+ * Implement STM32 flash access from the ST, using WRITE BUFFER
   * Create a hard disk flashing program for the ST
+
+Changes since 4.0d:
+ * Added ACSI_A1_WORKAROUND to increase compatibility with TOS 1.0 and the 2008
+   PP driver.
+ * Fixed ACSI image loading.
+ * Some work on GemDrive.
+ * Added a huge amount of tests in tostest.
 
 Changes since 4.0c:
 
@@ -113,6 +128,10 @@ GemDrive uses a heuristic to try to select the best mode (GemDrive or ACSI),
 but if all you want is good old ACSI only, just turn on strict mode using the
 second jumper on the STM32.
 
+Also, a "clean" (at least, as clean as possible) workaround has been implemented
+for drivers that retrigger the A1 line mid-command, among them the TOS 1.00
+bootloader.
+
 
 Your hardware is safe
 ---------------------
@@ -130,7 +149,7 @@ The documentation was entirely verified and updated. In fact, the whole ACSI2STM
 project exists mainly for its documentation.
 
 
-Changes since 3.02
+Changes since 3.01
 ------------------
 
 * Reworked DMA to try to work around some rare STM32 quirks

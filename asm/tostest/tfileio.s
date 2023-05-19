@@ -24,33 +24,57 @@ tfileio:
 	lea	.file,a4                ; Create test file
 	bsr	.create                 ;
 
-	lea	buffer,a4               ;
+	move.l	#' ._,',d0              ; Fill the buffer with spacing patterns
+	bsr	fillbuf                 ;
+	lea	buffer,a4               ; a4 = buffer
 
 	move.l	#'TEST',(a4)            ; Normal write test
-	move.l	#'TEST',512-4(a4)       ;
+	move.l	#'EOF!',512-4(a4)       ;
+	move.l	#'ZZZZ',512(a4)         ; End of buffer marker
 	move.l	#512,d3                 ;
 	move.l	d3,d5                   ;
 	bsr	.write                  ;
 
 	bsr	.seek0                  ; Normal read test
-	clr.l	(a4)                    ;
-	clr.l	512-4(a4)               ;
-	move.l	#'OUT.',512(a4)         ;
-	move.l	#512,d3                 ;
-	move.l	d3,d5                   ;
-	bsr	.read                   ;
+	move.l	#512,d3                 ; Read 512 bytes
+	bsr	.readat                 ;
 	lea	.normal,a5              ;
 	cmp.l	#'TEST',(a4)            ; Check data
 	bne	testfailed              ;
-	cmp.l	#'TEST',512-4(a4)       ;
+	cmp.l	#'EOF!',512-4(a4)       ;
 	bne	testfailed              ;
-	cmp.l	#'OUT.',512(a4)         ;
+	cmp.l	#'XXXX',512(a4)         ;
+	bne	testfailed              ;
+
+	bsr	.seek0                  ; Read more than the file size
+	move.l	#'XXXX',d0              ;
+	bsr	fillbuf                 ;
+	move.l	#516,d3                 ; Read 516 bytes
+	move.l	#512,d5                 ; Expect 512 bytes read, hitting EOF
+	bsr	.read                   ;
+	lea	.rdmore,a5              ;
+	cmp.l	#'TEST',(a4)            ; Check data
+	bne	testfailed              ;
+	cmp.l	#'EOF!',512-4(a4)       ;
+	bne	testfailed              ;
+	cmp.l	#'XXXX',512(a4)         ;
 	bne	testfailed              ;
 
 	moveq	#2,d0                   ; Test seek from end of file
-	moveq	#-2,d3                  ;
-	move.l	#510,d5                 ;
+	moveq	#-8,d3                  ;
+	move.l	#512-8,d5               ;
 	bsr	.seek                   ;
+
+	move.l	#'SK-8',(a4)            ; Check actual seek using write and read
+	move.l	#4,d3                   ;
+	bsr	.writat                 ;
+	bsr	.seek0                  ;
+	move.l	#512,d3                 ; Read whole file from the beginning
+	bsr	.readat                 ;
+	cmp.l	#'SK-8',512-8(a4)       ;
+	bne	testfailed              ;
+	cmp.l	#'EOF!',512-4(a4)       ;
+	bne	testfailed              ;
 
 	moveq	#2,d0                   ; Test file size query
 	moveq	#0,d3                   ;
@@ -58,74 +82,101 @@ tfileio:
 	bsr	.seek                   ;
 
 	moveq	#1,d0                   ; Test seek from current position
-	moveq	#-2,d3                  ;
-	move.l	#510,d5                 ;
+	moveq	#-12,d3                 ;
+	move.l	#512-12,d5              ;
 	bsr	.seek                   ;
+
+	move.l	#'S-12',(a4)            ; Check actual seek using write and read
+	move.l	#4,d3                   ;
+	bsr	.writat                 ;
+	bsr	.seek0                  ;
+	move.l	#512,d3                 ; Read whole file from the beginning
+	bsr	.readat                 ;
+	cmp.l	#'S-12',512-12(a4)      ;
+	bne	testfailed              ;
+	cmp.l	#'SK-8',512-8(a4)       ;
+	bne	testfailed              ;
 
 	moveq	#2,d0                   ; Test seek outside the file
 	moveq	#2,d3                   ;
 	move.l	#ERANGE,d5              ;
 	bsr	.seek                   ;
 
-	moveq	#0,d0                   ; Test "precision" seek and small read
-	move.l	#512-4,d3               ;
-	move.l	d3,d5                   ;
-	bsr	.seek                   ;
-	clr.l	(a4)                    ;
-	clr.l	4(a4)                   ;
-	move.l	#'OUT.',8(a4)           ;
-	moveq	#4,d3                   ;
-	move.l	d3,d5                   ;
-	bsr	.read                   ;
-	lea	.small,a5               ;
-	cmp.l	#'TEST',(a4)            ;
-	bne	testfailed              ;
-	tst.l	4(a4)                   ;
-	bne	testfailed              ;
-	cmp.l	#'OUT.',8(a4)           ;
-	bne	testfailed              ;
+	bsr	.precis                 ; Precision tests
 
-	moveq	#0,d0                   ; Seek back to file beginning
-	moveq	#0,d3                   ;
-	moveq	#0,d5                   ;
-	bsr	.seek                   ;
+	print	.unalgn                 ; Precision tests on an unaligned buffer
+	lea	buffer+1,a4             ;
+	bsr	.precis                 ;
 
-	move.l	#'TEST',buffer+65536-4  ; Big write test
+	print	.realgn                 ; Realign buffer for performance
+	lea	buffer,a4               ;
+
+	; Big file test
+
+	bsr	clrbuf                  ; Create a buffer with meaningful
+	move.l	#'TEST',buffer          ; content
+	move.l	#'EOF/',buffer+65536-4  ;
+	move.l	#'ZZZZ',buffer+65536    ; End of buffer marker
+
+	bsr	.seek0                  ; Write 64k at once
 	move.l	#65536,d3               ;
-	move.l	d3,d5                   ;
-	bsr	.write                  ; Write 64k at once
-	bsr	.seek0                  ;
-	clr.l	buffer+65536-4          ; Big read test
+	bsr	.writat                 ;
+
+	bsr	.seek0                  ; Read 64k at once
 	move.l	#65536,d3               ;
-	move.l	d3,d5                   ;
-	bsr	.read                   ;
+	bsr	.readat                 ;
 	lea	.big,a5                 ;
-	cmp.l	#'TEST',buffer+65536-4  ;
-	bne	testfailed              ;
-
-	lea	1(a4),a4                ; Test unaligned buffers
-
-	bsr	.seek0                  ; Unaligned write
-	move.l	#'_EST',buffer          ;
-	move.l	#'OUT.',buffer+65536    ;
-	move.l	#'TEST',buffer+65532    ;
-	move.l	#65535,d3               ;
-	move.l	d3,d5                   ;
-	bsr	.write                  ;
-
-	bsr	.seek0                  ; Unaligned read
-	move.l	#'TTTT',buffer          ;
-	clr.l	buffer+65532            ;
-	move.l	#'XXXX',buffer+65536    ;
-	move.l	#65535,d3               ;
-	move.l	d3,d5                   ;
-	bsr.w	.read                   ;
-	lea	.unalrd,a5              ;
 	cmp.l	#'TEST',buffer          ;
 	bne	testfailed              ;
-	cmp.l	#'TEST',buffer+65532    ;
+	cmp.l	#'EOF/',buffer+65536-4  ;
 	bne	testfailed              ;
 	cmp.l	#'XXXX',buffer+65536    ;
+	bne	testfailed              ;
+
+	print	.unalgn                 ; Big file tests on an unaligned buffer
+	lea	buffer+1,a4             ;
+
+	move.l	#'XXXX',d0              ; Read 65535 bytes with EOF at 65534
+	bsr	fillbuf                 ;
+	moveq	#0,d0                   ;
+	moveq	#2,d3                   ;
+	move.l	d3,d5                   ;
+	bsr	.seek                   ;
+	move.l	#65535,d3               ;
+	move.l	#65534,d5               ;
+	bsr	.read                   ;
+	lea	.unalrd,a5              ;
+	cmp.l	#'OF',buffer+65536-4    ;
+	cmp.l	#'/XXX',buffer+65536-2  ;
+	bne	testfailed              ;
+
+	bsr	.seek0                  ; Read 65535 bytes, unaligned
+	move.l	#65535,d3               ;
+	bsr	.readat                 ;
+	lea	.unalrd,a5              ;
+	cmp.l	#'XTES',buffer          ;
+	bne	testfailed              ;
+	cmp.w	#'OF',buffer+65536-2    ;
+	bne	testfailed              ;
+	cmp.l	#'XXXX',buffer+65536    ;
+	bne	testfailed              ;
+
+	move.l	#'CRES',buffer          ; Generate data for unaligned write
+	move.b	#'T',buffer+65536-1     ;
+	move.l	#'ZZZZ',buffer+65536    ;
+
+	lea	.unalwr,a5              ; Write 65535 bytes, unaligned
+	bsr	.seek0                  ;
+	move.l	#65535,d3               ;
+	bsr	.writat                 ;
+
+	lea	buffer,a4               ; Read the whole file back in an aligned
+	bsr	.seek0                  ; buffer to check its content
+	move.l	#65536,d3               ;
+	bsr	.readat                 ;
+	cmp.l	#'REST',buffer          ;
+	bne	testfailed              ;
+	cmp.l	#'EOT/',buffer+65536-4  ;
 	bne	testfailed              ;
 
 	bsr	.close                  ; Test file truncate
@@ -141,6 +192,72 @@ tfileio:
 
 	bra	testok
 
+.precis	; Precision tests. This is done on a file containing the following:
+	; 0-3: 'TEST'
+	; 4-499: ' ._,' pattern repeating
+	; 500-503: 'S-12'
+	; 504-507: 'SK-8'
+	; 508-511: 'EOF!'
+	;
+	; Uses a4 as a local buffer. a4 may be unaligned
+
+	lea	.small,a5               ;
+
+	move.l	#509,d3                 ; Seek at offset 509
+	bsr	.seekat                 ;
+
+	moveq	#1,d3                   ; Read 1 byte
+	bsr	.readat                 ;
+
+	cmp.b	#'O',(a4)               ; Check read byte
+	bne	testfailed              ;
+	cmp.b	#'X',1(a4)              ; Check byte after the read
+	bne	testfailed              ;
+
+
+	move.l	#512-16,d3              ; 16 bytes transfer
+	bsr	.seekat                 ;
+
+	moveq	#16,d3                  ; Read 16 bytes
+	bsr	.readat                 ;
+
+	cmp.b	#' ',(a4)               ; Check read values
+	bne	testfailed              ;
+	cmp.b	#'F',14(a4)             ;
+	bne	testfailed              ;
+	cmp.b	#'!',15(a4)             ;
+	bne	testfailed              ;
+	cmp.b	#'X',16(a4)             ;
+	bne	testfailed              ;
+
+
+	move.l	#512-19,d3              ; 19 bytes transfer
+	bsr	.seekat                 ;
+
+	moveq	#19,d3                  ; Read 19 bytes
+	bsr	.readat                 ;
+
+	cmp.b	#'.',(a4)               ; Check read values
+	bne	testfailed              ;
+	cmp.b	#'_',1(a4)              ;
+	bne	testfailed              ;
+	cmp.b	#',',2(a4)              ;
+	bne	testfailed              ;
+	cmp.b	#' ',3(a4)              ;
+	bne	testfailed              ;
+	cmp.b	#'E',15(a4)             ;
+	bne	testfailed              ;
+	cmp.b	#'O',16(a4)             ;
+	bne	testfailed              ;
+	cmp.b	#'F',17(a4)             ;
+	bne	testfailed              ;
+	cmp.b	#'!',18(a4)             ;
+	bne	testfailed              ;
+	cmp.b	#'X',19(a4)             ;
+	bne	testfailed              ;
+
+	rts
+
 .clean	; Cleanup routine
 	; Must converge to a clean state if executed multiple times
 
@@ -154,6 +271,19 @@ tfileio:
 	gemdos	Fdelete,6               ;
 
 	rts
+
+.readat	; Do a Fread that is supposed to work
+	; Clears the buffer with X before doing the read
+	; Input:
+	;  a4: data pointer
+	;  d4.w: File descriptor
+	;  d3.l: Length
+
+	move.l	#'XXXX',d0              ; Fill buffer with X
+	bsr	fillbuf                 ;
+
+	move.l	d3,d5                   ; Expect success
+	; Fall through .read
 
 .read	; Do a Fread, testing everything
 	; Input:
@@ -184,6 +314,15 @@ tfileio:
 
 	rts
 
+.writat	; Do a Fwrite, expected to work
+	; Input:
+	;  a4: data pointer
+	;  d4.w: File descriptor
+	;  d3.l: Length
+
+	move.l	d3,d5
+	; Fall through .write
+
 .write	; Do a Fwrite, testing everything
 	; Input:
 	;  a4: data pointer
@@ -197,7 +336,7 @@ tfileio:
 	move.l	d3,d0                   ;
 	bsr	tui.phlong              ;
 
-	pea	(a4)                    ; Do Fread
+	pea	(a4)                    ; Do Fwrite
 	move.l	d3,-(sp)                ;
 	move.w	d4,-(sp)                ;
 	gemdos	Fwrite,12               ;
@@ -214,9 +353,11 @@ tfileio:
 	rts
 
 .seek0	; Seek at the beginning of the file
-	moveq	#0,d0                   ;
 	moveq	#0,d3                   ;
-	moveq	#0,d5                   ;
+
+.seekat	; Seek at an offset in d3
+	moveq	#0,d0                   ;
+	move.l	d3,d5                   ;
 
 	; Fall through .seek
 
@@ -379,6 +520,11 @@ tfileio:
 .sk1	dc.b	'current at ',0
 .sk2	dc.b	'end at ',0
 
+.unalgn	dc.b	'Unalign buffer',$0d,$0a
+	dc.b	0
+.realgn	dc.b	'Realign buffer',$0d,$0a
+	dc.b	0
+
 .got	dc.b	$0d,$0a
 	dc.b	' returned ',0
 
@@ -388,11 +534,15 @@ tfileio:
 
 .normal	dc.b	'Error in normal read test',$0d,$0a
 	dc.b	0
+.rdmore	dc.b	'Error when hitting EOF',$0d,$0a
+	dc.b	0
 .small	dc.b	'Error in small read test',$0d,$0a
 	dc.b	0
 .big	dc.b	'Error in big write/read test',$0d,$0a
 	dc.b	0
 .eof	dc.b	'Error in EOF read test',$0d,$0a
+	dc.b	0
+.unalwr	dc.b	'Error in unaligned write test',$0d,$0a
 	dc.b	0
 .unalrd	dc.b	'Error in unaligned read test',$0d,$0a
 	dc.b	0

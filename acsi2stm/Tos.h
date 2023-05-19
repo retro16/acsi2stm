@@ -127,10 +127,10 @@ struct Tos: public SysHook {
   static const int8_t EOTHER = -17; // Insert other floppy (trigger Drive B: emulator).
 
   static const int8_t EINVFN = -32; // Unknown function number
-  static const int8_t EFILNF = -33; // File not found
-  static const int8_t EPTHNF = -34; // Directory (folder) not found
+  static const int8_t EFILNF = -33; // DF: File not found
+  static const int8_t EPTHNF = -34; // DE: Directory (folder) not found
   static const int8_t ENHNDL = -35; // No more handles available
-  static const int8_t EACCDN = -36; // Access denied
+  static const int8_t EACCDN = -36; // DC: Access denied
   static const int8_t EIHNDL = -37; // Invalid file handle
   static const int8_t ENSMEM = -39; // Insufficient memory
   static const int8_t EIMBA = -40; // Invalid memory block address
@@ -138,7 +138,7 @@ struct Tos: public SysHook {
   static const int8_t ECWD = -47; // Current directory cannot be deleted
   static const int8_t ENSAME = -48; // Files on different logical drives
   static const int8_t ENMFIL = -49; // No more files can be opened
-                                    //
+
   static const int8_t ELOCKED = -58; // Segment of a file is protected (network)
   static const int8_t ENSLOCK = -59; // Invalid lock removal request
   static const int8_t ERANGE = -64; // File pointer in invalid segment (see also FreeMiNT message -88)

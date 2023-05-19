@@ -15,6 +15,8 @@
 ; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ; Tests Fsfirst and Fsnext
+; TODO: file attributes
+; TODO: volume label
 
 tfsfirst:
 	print	.desc
@@ -89,8 +91,12 @@ tfsfirst:
 	bsr	.test                   ;
 	lea	.pat3e,a4               ;
 	bsr	.test                   ;
+	lea	.pat3f,a4               ;
+	moveq	#1,d5                   ;
+	moveq	#1,d4                   ;
+	bsr	.test                   ;
 
-	lea	.pat4a,a4               ; Subdirectory wildcard matching '.'
+	lea	.pat4a,a4               ; Subdirectory wildcards
 	moveq	#4,d5                   ;
 	moveq	#1,d4                   ;
 	bsr	.test                   ;
@@ -99,6 +105,28 @@ tfsfirst:
 	moveq	#2,d4                   ;
 	bsr	.test                   ;
 	lea	.pat4c,a4               ;
+	moveq	#5,d5                   ;
+	moveq	#2,d4                   ;
+	bsr	.test                   ;
+	lea	.pat4e,a4               ;
+	moveq	#5,d5                   ;
+	moveq	#2,d4                   ;
+	bsr	.test                   ;
+	lea	.pat4g,a4               ;
+	moveq	#4,d5                   ;
+	moveq	#1,d4                   ;
+	bsr	.test                   ;
+	lea	.pat4h,a4               ;
+	moveq	#4,d5                   ;
+	moveq	#1,d4                   ;
+	bsr	.test                   ;
+	lea	.pat4i,a4               ;
+	moveq	#4,d5                   ;
+	moveq	#1,d4                   ;
+	bsr	.test                   ;
+	lea	.pat4j,a4               ;
+	moveq	#4,d5                   ;
+	moveq	#1,d4                   ;
 	bsr	.test                   ;
 
 	lea	.pat5a,a4               ; Path traversal pattern
@@ -132,6 +160,22 @@ tfsfirst:
 	lea	.pat7a,a4               ;
 	bsr	.first                  ;
 	lea	.pat7b,a4               ;
+	bsr	.first                  ;
+	lea	.pat7c,a4               ;
+	bsr	.first                  ;
+	lea	.pat7d,a4               ;
+	bsr	.first                  ;
+
+	moveq	#EFILNF,d5              ; Directories
+	lea	.pat8a,a4               ;
+	bsr	.first                  ;
+	lea	.pat8b,a4               ;
+	bsr	.first                  ;
+	lea	.pat8c,a4               ;
+	bsr	.first                  ;
+	lea	.pat8d,a4               ;
+	bsr	.first                  ;
+	lea	.pat8e,a4               ;
 	bsr	.first                  ;
 
 	bsr	.clean                  ; Cleanup before leaving
@@ -332,10 +376,16 @@ tfsfirst:
 .pat3c	dc.b	'SUB?.??',0
 .pat3d	dc.b	'SUB?.???',0
 .pat3e	dc.b	'SUB?.*',0
+.pat3f	dc.b	'SUB1',0
 
 .pat4a	dc.b	'SUB1\?',0
 .pat4b	dc.b	'SUB1\*',0
 .pat4c	dc.b	'SUB1\*.',0
+.pat4e	dc.b	'SUB1\??',0
+.pat4g	dc.b	'SUB1\?.',0
+.pat4h	dc.b	'SUB1\?.?',0
+.pat4i	dc.b	'SUB1\?.???',0
+.pat4j	dc.b	'SUB1\?.*',0
 
 .pat5a	dc.b	'.\SUB?',0
 .pat5b	dc.b	'..\TFSFIRST.TMP\SUB?',0
@@ -350,6 +400,14 @@ tfsfirst:
 
 .pat7a	dc.b	'SUB?\1',0
 .pat7b	dc.b	'*\1',0
+.pat7c	dc.b	'SUB1\.?\SUB1\*.*',0
+.pat7d	dc.b	'SUB1\.*\*.*',0
+
+.pat8a	dc.b	'SUB1\',0
+.pat8b	dc.b	'SUB1\.',0
+.pat8c	dc.b	'SUB1\..',0
+.pat8d	dc.b	'SUB1\.\',0
+.pat8e	dc.b	'SUB1\..\',0
 
 
 	even

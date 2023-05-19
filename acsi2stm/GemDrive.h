@@ -36,6 +36,7 @@ struct GemDrive: public Devices, public Tos {
   static void sniff ## name(const Tos::name ## _p &)
 
   DECLARE_CALLBACK(Pterm0);
+  DECLARE_CALLBACK(Cconws);
   DECLARE_CALLBACK(Dsetdrv);
   DECLARE_CALLBACK(Fsetdta);
   DECLARE_CALLBACK(Tsetdate);
@@ -70,7 +71,7 @@ struct GemDrive: public Devices, public Tos {
   static void onExtCmd();
 
   // Extra methods
-  static bool openPath(int create, ToLong fname, uint8_t attr, int &driveIndex, TinyPath &path);
+  static bool openPath(int create, ToLong fname, uint8_t attr, int &driveIndex, TinyPath &path, int8_t pathErr = EFILNF);
   static bool onFcreateopen(int create, ToLong fname, oflag_t oflag, uint8_t attr);
   static void installHook(uint32_t driverMem, ToLong vector);
   static Long getBasePage();

@@ -7,6 +7,9 @@ GEMDOS drive functionality provided by the Hatari emulator: hook high level
 filesystem calls and implement them directly in the STM32, using modern SD
 card libraries.
 
+It tries to imitate the behavior of GEMDOS as implemented in TOS versions 1.04,
+1.62 and 2.06 on a floppy disk.
+
 
 Benefits
 --------
@@ -18,6 +21,8 @@ Benefits
 * Can be combined with a normal hard drive or a floppy drive.
 * Fully supports medium swap.
 * Everything that runs on Hatari GEMDOS drives should run on GemDrive.
+* Imitates GEMDOS much more closely than Hatari, especially weird error codes.
+  It is even closer to TOS than EmuTOS in some unimportant areas.
 
 
 Limitations
@@ -34,17 +39,19 @@ Limitations
   properly, meaning that running a program will leak a small amount of RAM.
   This is also the case in Hatari.
 * Not compatible with EmuTOS, MiNT, or any other TOS replacement.
+* Mimics TOS 1.04, TOS 1.62 and TOS 2.06 behavior (and some of its bugs), so
+  software relying on other TOS versions can have issues.
 
 
 How to use
 ----------
 
-When the ST boots (cold boot or reset), ACSI2STM scans all SD cards, then
+When the ST boots (cold boot or reset), ACSI2STM scans all SD cards then
 decide whether each SD card slot is in ACSI mode, GemDrive mode or disabled,
 in that order:
 
-* If the slot doesn't exist, it is completely disabled.
-* If strict mode is enabled (via dumper or "strict" firmware variant), ACSI
+* If the slot doesn't exist, it is completely disabled and the ACSI id is freed.
+* If strict mode is enabled (via jumper or "strict" firmware variant), ACSI
   mode is enabled.
 * If the SD card contains an ACSI disk image, ACSI mode is enabled.
 * If the SD card is Atari bootable, ACSI mode is enabled.

@@ -86,12 +86,12 @@ syshook	macro
 	endm
 
 	; XBIOS hook
-	;syshook	$10,$b8
-	;bra.b	syshook.start
+	syshook	$10,$b8
+	bra.b	syshook.start
 
 	; BIOS hook
-	;syshook	$0f,$b4
-	;bra.b	syshook.start
+	syshook	$0f,$b4
+	bra.b	syshook.start
 
 	; GEMDOS hook
 	syshook	$0e,$84
@@ -252,13 +252,13 @@ syshook.byteop:
 	; Commands $81/$80: Byte copy operations
 	move.l	sp,a1                   ; Use a1 to leave sp untouched
 	move.w	(a1)+,d2                ; Pop byte count and point a1 at data
-	move.l	a1,a2                   ; Set DMA on data
+	move.l	a1,a2                   ; Set DMA on stack data
 	move.l	d1,a0                   ; Memory address
 
 	btst	#0,d0                   ; Check if read or write
 	beq.b	syshook.byteread        ;
 
-	; Command $80: Copy from stack to memory
+	; Command $81: Copy from stack to memory
 
 .cpy    move.b	(a1)+,(a0)+             ; Byte copy from stack to memory
 	dbra	d2,.cpy                 ;
@@ -266,7 +266,7 @@ syshook.byteop:
 	bra.b	syshook.rcmd
 
 syshook.byteread:
-	; Command $81: Copy from memory to stack
+	; Command $80: Copy from memory to stack
 
 .cpy    move.b	(a0)+,(a1)+             ; Byte copy from memory to stack
 	dbra	d2,.cpy                 ;

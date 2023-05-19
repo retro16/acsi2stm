@@ -14,14 +14,14 @@
 ; You should have received a copy of the GNU General Public License
 ; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-; Tests Dsetpath
+; Tests Dsetpath and Dgetpath
 
 tdsetpth:
 	print	.desc
 
 	bsr	.clean                  ; Cleanup and set drive
 
-	lea	.unknwn,a0              ; Dsetpath to an unknown directory
+	lea	.unknwn,a4              ; Dsetpath to an unknown directory
 	bsr	.cd                     ;
 
 	lea	.npthnf,a5              ; Must return EPTHNF
@@ -37,43 +37,60 @@ tdsetpth:
 	gemdos	Dcreate,6               ;
 	tst.w	d0                      ;
 	bne	abort                   ;
+	clr.w	-(sp)                   ;
+	pea	.file                   ;
+	gemdos	Fcreate,8               ;
+	tst.w	d0                      ;
+	bmi	abort                   ;
 
 	; Start actual tests
 
-	lea	.topdir,a0              ; Top-level directory
+	lea	.topdir,a4              ; Top-level directory
+	lea	.topdir,a3              ;
 	bsr	.cd                     ;
 	lea	.nok,a5                 ;
 	tst.w	d0                      ;
 	bne	testfailed              ;
 
-	lea	.subdir,a0              ; Subdirectory
+	lea	.subdir,a4              ; Subdirectory
+	lea	.subdir,a3              ;
 	bsr	.cd                     ;
 	lea	.nok,a5                 ;
 	tst.w	d0                      ;
 	bne	testfailed              ;
 
-	lea	.up,a0                  ; Back to top directory
+	lea	.up,a4                  ; Back to top directory
+	lea	.root+1,a3              ;
 	bsr	.cd                     ;
 	lea	.nok,a5                 ;
 	tst.w	d0                      ;
 	bne	testfailed              ;
 
-	lea	.subbs,a0               ; Subdirectory with trailing backspace
+	lea	.relbs,a4               ; Subdirectory with trailing backspace
+	lea	.subdir,a3              ;
 	bsr	.cd                     ;
 	lea	.nok,a5                 ;
 	tst.w	d0                      ;
 	bne	testfailed              ;
 
-	lea	.sublc,a0               ; Subdirectory with wrong case
+	lea	.sublc,a4               ; Subdirectory with wrong case
+	lea	.subdir,a3              ;
 	bsr	.cd                     ;
 	lea	.nok,a5                 ;
 	tst.w	d0                      ;
 	bne	testfailed              ;
 
-	lea	.root,a0                ; Go back to the root directory
+	lea	.root,a4                ; Go back to the root directory
+	lea	.root+1,a3              ;
 	bsr	.cd                     ;
 
-	lea	.invchr,a0              ; Invalid character
+	lea	.invchr,a4              ; Invalid character
+	bsr	.cd                     ;
+	lea	.nok,a5                 ;
+	cmp.w	#EPTHNF,d0              ;
+	bne	testfailed              ;
+
+	lea	.file,a4                ; Open file as directory
 	bsr	.cd                     ;
 	lea	.nok,a5                 ;
 	cmp.w	#EPTHNF,d0              ;
@@ -89,7 +106,8 @@ tdsetpth:
 	move.w	drive,-(sp)             ; Switch to test drive
 	gemdos	Dsetdrv,4               ;
 
-	lea	.root,a0                ; Dsetpath '\'
+	lea	.root,a4                ; Dsetpath '\'
+	lea	1(a4),a3                ;
 	bsr	.cd                     ;
 
 	lea	.nok,a5                 ; Must return OK
@@ -97,6 +115,8 @@ tdsetpth:
 	bne	testfailed              ;
 
 	lea	.nrmdir,a5              ; Delete temporary directories
+	pea	.file                   ;
+	gemdos	Fdelete,6               ;
 	pea	.subdir                 ;
 	gemdos	Ddelete,6               ; Ignore errors for cleanup
 	pea	.topdir                 ;
@@ -106,28 +126,45 @@ tdsetpth:
 
 .cd	; Set path, with a proper print
 	; Input:
-	;  a0: pointer to the path
-	; Alters: a5
+	;  a3: expected path after successful cd
+	;  a4: pointer to the path
+	; Alters: a3,a5
 
 	lea	.invval,a5
 
-	move.l	a0,-(sp)                ; Print path
+	move.l	a4,-(sp)                ; Print path
 	print	.cdin                   ;
 	gemdos	Cconws,2                ; Leave the path pointer on stack
 	crlf	                        ;
 
 	gemdos	Dsetpath,6              ; Set path
 	tst.w	d0                      ; Prepare for test
-	beq.b	.cdok
+	beq.b	.getpth                 ; If successful, check current path
 
 	cmp.w	#EPTHNF,d0              ; This is the only allowed error value
 	beq.b	.cdok
 
 	bra	testfailed              ; Wrong return value
 
+.getpth	move.l	#'||||',d0              ; Fill the buffer with garbage
+	bsr	fillbuf                 ;
+	clr.b	buffer+1024             ; Terminate the string to avoid issues
+
+	clr.w	-(sp)                   ; Get current path
+	pea	buffer                  ;
+	gemdos Dgetpath,8               ;
+
+	lea	.ptherr,a5              ; Compare with expected path
+	lea	buffer,a0               ;
+.cmppth	tst.b	(a3)                    ;
+	beq.b	.cdok                   ;
+	cmp.b	(a0)+,(a3)+             ;
+	beq	.cmppth                 ;
+	bra	testfailed              ;
+
 .cdok	rts
 
-.desc	dc.b	'Test Dsetpath',$0d,$0a
+.desc	dc.b	'Test Dsetpath and Dgetpath',$0d,$0a
 	dc.b	0
 
 .cdin	dc.b	'Set path to ',0
@@ -147,15 +184,19 @@ tdsetpth:
 .nrmdir	dc.b	'Could not delete temp directory',$0d,$0a
 	dc.b	0
 
+.ptherr	dc.b	'Dgetpath returned the wrong path',$0d,$0a
+	dc.b	0
+
 .root	dc.b	'\',0
 .unknwn	dc.b	'\NOTEXIST.ING',0
 .topdir	dc.b	'\TDSETPTH.TMP',0
 .subdir	dc.b	'\TDSETPTH.TMP\'
 .subrel	dc.b	'SUBDIR',0
-.subbs	dc.b	'SUBDIR\',0
+.relbs	dc.b	'SUBDIR\',0
 .up	dc.b	'..',0
 .invchr	dc.b	'/TDSETPTH.TMP',0
 .sublc	dc.b	'\TdSeTpTh.TMp\subDir',0
+.file	dc.b	'\TDSETPTH.TMP\FILE.TMP',0
 
 	even
 
