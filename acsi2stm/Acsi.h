@@ -63,7 +63,7 @@ public:
   void process(uint8_t cmd);
 
   // Read command bytes and updates cmdBuf and cmdLen.
-  bool readCmdBuf(uint8_t cmd);
+  void readCmdBuf(uint8_t cmd);
 
   // Return true if the LUN field is valid.
   bool validLun();

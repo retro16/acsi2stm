@@ -1,4 +1,4 @@
-**4.0e: ALPHA VERSION**
+**4.0f: ALPHA VERSION**
 
 ACSI mode is release quality.
 
@@ -9,25 +9,31 @@ TODO before 4.0
 
 GemDrive mode (still alpha level):
 
+ * Implement date/time functions with RTC
+ * Set date/time correctly on all created files
  * Rewrite TinyFS and pars of GemDrive so tostest passes 100%. This is HUGE.
  * Fix long filenames bug generating ghost files on SD cards
- * Fix Pexec command-line that seems to be broken (1 / 2 extra bytes header)
- * Implement garbage file filter (non 8.3, dot files)
- * Implement filesystem label in Fsfirst/Fsnext
+
+TOSTEST:
+
+ * Cleanup redundent tests because of test matrix
+ * Add tests for date/time on files
+ * Add archive bit tests for Fattrib in tostest
  * Implement filesystem label in Fsfirst/Fsnext tests in tostest
  * Implement file attributes in Fsfirst/Fsnext tests in tostest
- * Add archive bit tests for Fattrib in tostest
- * Fix top RAM allocation. I missed something. Need help.
- * Fix gemdrive.tos loader that releases its hooks memory !
- * Set date/time correctly on all created files
- * Implement date/time functions with RTC
 
 Other:
 
  * Implement STM32 flash access from the ST, using WRITE BUFFER
   * Create a hard disk flashing program for the ST
 
+Changes since 4.0e:
+
+ * Added support for flashing firmware.
+ * Added HDDFLASH utility to flash ACSI devices, including ACSI2STM.
+
 Changes since 4.0d:
+
  * Added ACSI_A1_WORKAROUND to increase compatibility with TOS 1.0 and the 2008
    PP driver.
  * Fixed ACSI image loading.
@@ -39,6 +45,17 @@ Changes since 4.0c:
  * Fixed so many oddities and quirks in the ACSI/SCSI implementation.
  * ACSI tests completed and 100% working on the ACSI2STM. Hatari fails on some
    of them, maybe I could file a pull request.
+
+Pushed back for a later release
+-------------------------------
+
+ * Fix Pexec command-line that seems to be broken (1 / 2 extra bytes header)
+ * Implement garbage file filter (non 8.3, dot files)
+ * Implement filesystem label in Fsfirst/Fsnext
+ * Fix top RAM allocation. I missed something. Need help.
+ * Fix gemdrive.tos loader that releases its hooks memory !
+ * Support for EmuTOS
+
 
 4.0: A giant leap for ST-kind
 =============================

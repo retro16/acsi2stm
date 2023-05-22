@@ -16,15 +16,6 @@
 
 ; Hooks TOS system calls into the STM32
 
-; DMA port hardware registers
-dma	equ	$ffff8604
-dmadata	equ	dma
-dmactrl	equ	dma+2
-dmahigh	equ	dma+5
-dmamid	equ	dma+7
-dmalow	equ	dma+9
-gpip	equ	$fffffa01
-
 savereg	macro
 	; Save registers on stack
 	; ... because some poorly written apps rely on scratch register being

@@ -203,6 +203,16 @@ ENMFIL=-49      ; no more files
 ERANGE=-64      ; seek out of range
 EPLFMT=-66      ; invalid program load format
 
+; DMA port hardware registers
+dma	equ	$ffff8604
+dmadata	equ	dma
+dmactrl	equ	dma+2
+dmahigh	equ	dma+5
+dmamid	equ	dma+7
+dmalow	equ	dma+9
+gpip	equ	$fffffa01
+
+
 ; Structures
 
 ; PD/BASEPAGE size

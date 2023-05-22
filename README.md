@@ -1,4 +1,4 @@
-**4.0e: ALPHA VERSION**
+**4.0f: ALPHA VERSION**
 
 ACSI mode / strict firmware variant is release quality.
 

@@ -17,6 +17,7 @@
 
 #include "Acsi.h"
 #include "DmaPort.h"
+#include "FlashFirmware.h"
 
 #if ACSI_STRICT && ACSI_READONLY > 1
 #error ACSI_READONLY == 2 and strict mode are incompatible
@@ -72,12 +73,7 @@ void Acsi::process(uint8_t cmd) {
     // Slot may have been disabled by refresh()
     return;
 
-  if(!readCmdBuf(cmd)) {
-    dbg("Unknown command\n");
-    lastSeek = false;
-    commandStatus(ERR_OPCODE);
-    return;
-  }
+  readCmdBuf(cmd);
 
 #if ACSI_VERBOSE
   dumpln(cmdBuf, cmdLen, 0);
@@ -360,18 +356,17 @@ void Acsi::process(uint8_t cmd) {
       uint32_t offset = (((uint32_t)cmdBuf[3]) << 16) | (((uint32_t)cmdBuf[4]) << 8) | (uint32_t)(cmdBuf[5]);
       uint32_t length = (((uint32_t)cmdBuf[6]) << 16) | (((uint32_t)cmdBuf[7]) << 8) | (uint32_t)(cmdBuf[8]);
       DmaPort::dmaStartDelay();
+      if(cmdBuf[2] != 0) {
+        verbose("Invalid buffer id\n");
+        commandStatus(ERR_INVARG);
+        return;
+      }
       switch(cmdBuf[1]) {
       case 0x02: // Data buffer write
-        if(cmdBuf[2] != 0) {
-          verbose("Invalid buffer id\n");
-          commandStatus(ERR_INVARG);
-          return;
-        }
-
         dbg("Write buffer: offset=", offset, " length=", length, '\n');
 
         if(offset >= bufSize || offset + length > bufSize) {
-          dbg("Out of range\n");
+          verbose("Out of range\n");
           commandStatus(ERR_INVARG);
           return;
         }
@@ -380,6 +375,17 @@ void Acsi::process(uint8_t cmd) {
 
         commandStatus(ERR_OK);
         return;
+      case 0x05: // Firmware write (YAY !)
+        if(offset || length > FLASH_SIZE) {
+          verbose("Firmware too big\n");
+          commandStatus(ERR_INVARG);
+          return;
+        }
+
+        dbg("Write firmware: length=", length, '\n');
+
+        flashFirmware(length);
+        // This function never returns !
       }
       verboseHex("Invalid buffer mode ", cmdBuf[1], '\n');
       commandStatus(ERR_INVARG);
@@ -436,10 +442,10 @@ void Acsi::process(uint8_t cmd) {
   }
 }
 
-bool Acsi::readCmdBuf(uint8_t cmd) {
+void Acsi::readCmdBuf(uint8_t cmd) {
   if(cmd == 0x1f)
     // ICD extended command marker
-    DmaPort::readIrq(cmdBuf, 1);
+    DmaPort::readIrq(&cmdBuf[0], 1);
   else
     // The first byte was the command
     cmdBuf[0] = cmd;
@@ -458,12 +464,9 @@ bool Acsi::readCmdBuf(uint8_t cmd) {
     cmdLen = 10;
   } else {
     // 6 bytes command
-    cmdBuf[0] = cmd;
     DmaPort::readIrq(&cmdBuf[1], 5);
     cmdLen = 6;
   }
-
-  return true;
 }
 
 bool Acsi::validLun() {

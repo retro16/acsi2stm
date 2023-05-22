@@ -11,6 +11,36 @@ There are many compile-time options, so if none of these variants match your
 needs (or your tastes), see the [compiling](compiling.md) section.
 
 
+Updating a 4.0 unit from the Atari ST
+-------------------------------------
+
+ACSI2STM supports firmware upload via the ACSI port. It uses the Seagate SCSI
+standard command to do that.
+
+Steps to update your firmware:
+
+ * Download the release package and unzip it.
+ * Choose which firmware variant you want to use (see below).
+ * Copy the firmware file (`acsi2stm-VERSION-VARIANT.ino.bin`) or rename it to
+   `HDDFLASH.BIN`
+ * Copy `HDDFLASH.TOS` and `HDDFLASH.BIN` files on any medium readable by the
+   ST (floppy, ACSI drive, GemDrive SD card, ...).
+ * On the ST, run `HDDFLASH.TOS`.
+ * When prompted, choose the hard drive to update (usually ID 0).
+ * Press Y to start flashing.
+ * When finished, the ST and the ACSI2STM unit will both restart.
+
+Note: when updatin an ACSI2STM unit with multiple SD slots, you can select any
+slot to update the firmware for the whole unit. No need to do the update
+procedure multiple times.
+
+Note: `HDDFLASH.TOS` works entirely in RAM, so you can start the program from
+the unit to update.
+
+Warning: If flashing fails or if the unit is bricked, you will have to upload
+the new firmware using a serial dongle. See below.
+
+
 Firmware variants in the release package
 ----------------------------------------
 
@@ -64,6 +94,8 @@ Compile-time options:
 
 Most users should use the standard firmware.
 
+If you want to use it as an ACSI drive only, you may prefer the strict variant.
+
 If you are building a unit, you may be interested in the debug firmware to
 diagnose potential issues with your hardware.
 
@@ -76,8 +108,8 @@ If your SD card is stuck in read-only mode, you need to do hardware
 modifications. If you cannot do that (or don't want to), use the legacy variant.
 
 
-Flashing the firmware
----------------------
+Flashing the firmware via serial port
+-------------------------------------
 
 If you want to flash using Arduino, it's simpler to just install everything and
 compile your own variant. See [compiling](compiling.md) for more details.

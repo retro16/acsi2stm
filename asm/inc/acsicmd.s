@@ -14,18 +14,12 @@
 ; You should have received a copy of the GNU General Public License
 ; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-; DMA port hardware registers
-dma	equ	$ffff8604
-dmadata	equ	dma
-dmactrl	equ	dma+2
-dmahigh	equ	dma+5
-dmamid	equ	dma+7
-dmalow	equ	dma+9
-gpip	equ	$fffffa01
-
 acsicmd	; Execute an ACSI command
 	; Input:
-	;  d0.w: write flag in [8], chain flag in [9], block count in [0..7]
+	;  d0.w: write flag in [8]
+	;        chain flag in [9]
+	;        disable DMA timeout flag in [10]
+	;        block count in [0..7]
 	;  d1.l: Target DMA address
 	;  d7.b: Device id in [5..7], other bits 0
 	;  a0  : Command buffer address
@@ -67,8 +61,9 @@ acsicmd	; Execute an ACSI command
 	lsr.w	#8,d1                   ;
 	move.b	d1,dmahigh.w            ; Set DMA address high
 
-.naddr	and.w	#$00ff,d0               ; Clear flags
-	move.w	d0,(a2)                 ; Set DMA length
+.naddr	move.w	d0,d1                   ; Clear flags
+	and.w	#$00ff,d1               ;
+	move.w	d1,(a2)                 ; Set DMA length
 
 .nodma	move.b	#$88,d2                 ;
 	move.w	d2,(a1)                 ; Assert A1
@@ -116,8 +111,12 @@ acsicmd	; Execute an ACSI command
 	move.w	d2,(a1)                 ; Enable DMA
 
 	; Read status byte
-.rstat	bsr.b	.ack                    ; Wait for status byte
-	move.b	#$8a,d2                 ; Disable DMA
+.rstat	btst	#10,d0                  ; Check infinite timeout flag
+	beq.b	.ninf                   ;
+.inf	btst.b	#5,gpip.w               ; Wait for command with no time limit
+	bne.b	.inf                    ;
+.ninf	bsr.b	.ack                    ; Wait for status byte
+.ackok	move.b	#$8a,d2                 ; Disable DMA
 	move.w	d2,(a1)                 ;
 	move.w	(a2),d0                 ; Read status to d1
 	and.l	#$000000ff,d0           ; Keep only the byte value

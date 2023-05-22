@@ -25,16 +25,20 @@
 class Monitor {
 public:
 
-#ifdef ACSI_ACTIVITY_LED
+#if ACSI_ACTIVITY_LED
   static void ledSet(int l) {
-    digitalWrite(ACSI_ACTIVITY_LED, !l);
-    pinMode(ACSI_ACTIVITY_LED, OUTPUT);
+    if(l)
+      ledOn();
+    else
+      ledOff();
   }
   static void ledOn() {
-    ledSet(1);
+    GPIOC->regs->CRH |= 0x00300000; // Set PC13 to 50MHz push-pull output
+    GPIOC->regs->BRR = 1 << 13;
   }
   static void ledOff() {
-    ledSet(0);
+    GPIOC->regs->CRH |= 0x00300000; // Set PC13 to 50MHz push-pull output
+    GPIOC->regs->BSRR = 1 << 13;
   }
 #else
   static void ledOn() {

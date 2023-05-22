@@ -1,0 +1,139 @@
+/* ACSI2STM Atari hard drive emulator
+ * Copyright (C) 2019-2022 by Jean-Matthieu Coulon
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+#include "acsi2stm.h"
+#include "FlashFirmware.h"
+#include "DmaPort.h"
+#include "Monitor.h"
+#include <libmaple/dma.h>
+#include <libmaple/flash.h>
+#include <libmaple/rcc.h>
+#include <libmaple/pwr.h>
+#include <libmaple/scb.h>
+
+#define DMA_TIMER TIMER1_BASE
+#define RESET_TIMER TIMER2_BASE
+#define TIMEOUT_TIMER TIMER3_BASE
+#define CS_TIMER TIMER4_BASE
+
+static const uint32_t FLASH_START = 0x08000000;
+
+// This function runs from RAM. It cannot access flash memory so it's all
+// low-level register manipulation.
+// Most of this code is copy-paste from DmaPort.
+// Because ramfunc seems to be broken, the function is copied by hand. DIRTY.
+void __attribute__((section(".data"))) updateFirmwareFromDMA(uint32_t address, uint32_t end_address) {
+  // Cache all indirect pointers and values to avoid flash access
+  auto *GPIOA_REGS_CRH = &GPIOA->regs->CRH;
+  auto *GPIOB_REGS_CRH = &GPIOB->regs->CRH;
+  auto *GPIOB_REGS_ODR = &GPIOB->regs->ODR;
+#if ACSI_ACTIVITY_LED
+  auto *GPIOC_REGS_BSRR = &GPIOC->regs->BSRR;
+  auto *GPIOC_REGS_BRR = &GPIOC->regs->BRR;
+  *GPIOC_REGS_BSRR = 1 << 13;
+#endif
+
+  // Erase flash
+  while(FLASH_BASE->SR & FLASH_SR_BSY);
+  FLASH_BASE->CR |= FLASH_CR_MER;
+  FLASH_BASE->CR |= FLASH_CR_STRT;
+  while(FLASH_BASE->SR & FLASH_SR_BSY);
+  FLASH_BASE->CR &= ~FLASH_CR_MER;
+
+#if ACSI_ACTIVITY_LED
+  *GPIOC_REGS_BRR = 1 << 13;
+#endif
+
+  // Write new flash data
+  for(; address < end_address; address += 2) {
+    uint16_t data = 0;
+
+#if ACSI_ACTIVITY_LED
+    *GPIOC_REGS_BSRR = 1 << 13;
+#endif
+
+    // Read first byte
+    DMA1_BASE->IFCR = DMA_IFCR_CTCIF6; // Reset DMA transfer flag
+    DMA_TIMER->CNT = 0; // Trigger DRQ
+    while(!(DMA1_BASE->ISR & DMA_ISR_TCIF6)); // Wait for DMA data
+    data = ((DMA_TIMER->CCR1) >> 8) & 0xff;
+
+#if ACSI_ACTIVITY_LED
+    *GPIOC_REGS_BRR = 1 << 13;
+#endif
+
+    // Read second byte
+    DMA1_BASE->IFCR = DMA_IFCR_CTCIF6; // Reset DMA transfer flag
+    DMA_TIMER->CNT = 0; // Trigger DRQ
+    while(!(DMA1_BASE->ISR & DMA_ISR_TCIF6)); // Wait for DMA data
+    data |= DMA_TIMER->CCR1 & 0xff00;
+
+    // Write halfword to flash
+    FLASH_BASE->CR |= FLASH_CR_PG;
+    *(__IO uint16_t*)(address) = data;
+    while(FLASH_BASE->SR & FLASH_SR_BSY);
+  }
+
+  // Send success byte to the ST and release the DMA port
+  *GPIOB_REGS_CRH = 0x33333333; // acquireDataBus()
+  *GPIOB_REGS_ODR = 0; // writeData(0)
+  CS_TIMER->CNT = 0; // armCs()
+  CS_TIMER->CR1 |= TIMER_CR1_OPM | TIMER_CR1_CEN;
+  DMA1_BASE->IFCR = DMA_IFCR_CTCIF5 | DMA_IFCR_CTCIF7;
+  *GPIOA_REGS_CRH = 0x84444BB3; // pullIrq()
+  while(!(DMA1_BASE->ISR & DMA_ISR_TCIF7)); // waitCs()
+  *GPIOA_REGS_CRH = 0x84444BB4; // releaseRq()
+  *GPIOB_REGS_CRH = 0x44444444; // releaseDataBus()
+
+  // Wait to be reset by the watchdog
+#if ACSI_ACTIVITY_LED
+  *GPIOC_REGS_BSRR = 1 << 13;
+#endif
+
+  // Enable the reset control register access
+  RCC_BASE->APB1ENR |= RCC_APB1ENR_PWREN;
+  PWR_BASE->CR |= PWR_CR_DBP;
+  // Set the system reset bit
+  SCB_BASE->AIRCR = 0x05FA0004;
+  for(;;);
+}
+
+// Flashes firmware from the DMA port, then reset.
+// Never returns.
+void flashFirmware(uint32_t size) {
+  Monitor::verbose("Flashing firmware ...\n");
+
+  DmaPort::resetTimeout();
+  systick_disable();
+  DmaPort::disableAckFilter();
+  DmaPort::enableDmaRead();
+  DmaPort::acquireDrq();
+
+#if ACSI_ACTIVITY_LED
+  GPIOC->regs->CRH |= 0x00300000; // Set PC13 to 50MHz push-pull output
+  GPIOC->regs->BRR = 1 << 13;
+#endif
+
+  // Unlock flash
+  FLASH_BASE->KEYR = 0x45670123;
+  FLASH_BASE->KEYR = 0xCDEF89AB;
+
+  // The rest must be executed from RAM
+  updateFirmwareFromDMA(FLASH_START, FLASH_START + size);
+}
+
+// vim: ts=2 sw=2 sts=2 et
