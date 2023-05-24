@@ -303,10 +303,10 @@ void SdDev::getDeviceString(char *target) {
   if(image) {
     memcpy(&target[13], "IMG", 3);
   }
- 
+
   // Write SD card size
   blocksToString((*this)->blocks, &target[17]);
- 
+
   // Add a + symbol if capacity is artificially capped
   if(!image && card.sectorCount() > blocks)
     target[21] = '+';
@@ -409,7 +409,7 @@ bool ImageDev::open(const char *path) {
   if(!image.open(&sd.fs, path, oflag)) {
     close();
 #if ! ACSI_READONLY
-    if(!image.open(&sd.fs, path, O_RDONLY)) {
+    if(image.open(&sd.fs, path, O_RDONLY)) {
       verbose("read-only\n");
     } else {
       close();

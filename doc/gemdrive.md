@@ -38,6 +38,8 @@ Limitations
 * TOS versions below 1.04 (Rainbow TOS) lack necessary APIs to implement Pexec
   properly, meaning that running a program will leak a small amount of RAM.
   This is also the case in Hatari.
+* File descriptors are leaked when terminating a process with Ctrl-C. There is
+  no system call to catch this event.
 * Not compatible with EmuTOS, MiNT, or any other TOS replacement.
 * Mimics TOS 1.04, TOS 1.62 and TOS 2.06 behavior (and some of its bugs), so
   software relying on other TOS versions can have issues.
@@ -95,6 +97,17 @@ To mix GemDrive with ICD PRO, you must proceed like this:
 The GemDrive driver will boot before the ICD PRO driver. GemDrive will use L:
 and above as drive letters.
 
+### Mixing GemDrive and theP PP driver
+
+To mix GemDrive with the PP driver, proceed like this:
+
+* Make sure ACSI2STM is configured to start at ACSI id 0.
+* Insert the card with the PP driver in the first slot.
+* Insert any other SD card in the extra slots.
+
+The GemDrive driver will load after the PP driver. GemDrive will use L: and
+above as drive letters.
+
 ### Mixing GemDrive and other ACSI drivers
 
 A few considerations should be made when mixing both kinds of drives:
@@ -102,7 +115,7 @@ A few considerations should be made when mixing both kinds of drives:
 * ACSI drivers that require ACSI id 0 and break the boot chain won't allow
   GemDrive loading itself.
 * GemDrive doesn't respond to any ACSI command, except reading the boot sector.
-  Most drivers will ignore such a strange behavior and should skip the drive
+  Most drivers will ignore such a strange behavior and will skip the drive
   successfully.
 * In general putting GemDrive first and the ACSI drives last is your best bet.
 
@@ -115,10 +128,10 @@ How it works
 
 GemDrive injects itself in the system by providing a boot sector. This boot
 sector takes over the whole operating system and the STM32 can access freely
-the whole ST RAM and operating system.
+to the whole ST RAM and hardware.
 
 When booted, the STM32 injects the driver in RAM, then installs a hook for all
-GEMDOS calls. The driver is just a small stub taking less than 500 bytes of
+GEMDOS calls. The driver is just a small stub taking less than 512 bytes of
 memory.
 
 Each GEMDOS trap sends a single byte command to the STM32, then waits for

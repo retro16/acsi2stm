@@ -8,28 +8,27 @@ simply want to build the official PCB, see [build_pcb.md](build_pcb.md)
 Hardware needed
 ---------------
 
- * A STM32F103C8T6 or compatible board. You can find them for a few dollars
-   online. The "blue pill" works out of the box and the older "black pill"
-   requires minor modifications. The newer STMF4 "black pill" is not
-   compatible.
- * A USB-serial dongle for programming the STM32 chip, with a 3.3V USART.
- * One or more SD card port(s) for your STM32. You can also solder wires on a SD
-   to microSD adapter.
- * One or more SD card(s).
- * A male DB19 port (you can modify a DB25 port to fit) with a ribbon cable.
- * One 10k-100k resistor if you need SD card hotplug capabilities or if you
-   have multiple SD card slots.
- * One 100nF decoupling capacitor for the SD card (optional but recommended).
- * Do *NOT* connect USB data lines on the STM32. Use the +5V or +3.3V pin to
-   power it if you are unsure. To power from USB, you need to modify the blue
-   pill itself (see below).
+* A STM32F103C8T6 or compatible board. You can find them for a few dollars
+  online. The "blue pill" works out of the box and the older "black pill"
+  requires minor modifications. The newer STMF4 "black pill" is not
+  compatible.
+* A USB-serial dongle for programming the STM32 chip, with a 3.3V USART.
+* One or more SD card port(s) for your STM32. You can also solder wires on a SD
+  to microSD adapter.
+* One or more SD card(s).
+* A male DB19 port (you can modify a DB25 port to fit) with a ribbon cable.
+* One 10k-100k resistor if you need SD card hotplug capabilities or if you
+  have multiple SD card slots.
+* One 100nF decoupling capacitor for the SD card (optional but recommended).
+* Do *NOT* connect USB data lines on the STM32. Use the +5V or +3.3V pin to
+  power it if you are unsure. To power from USB, you need to modify the blue
+  pill itself (see below).
 
 You can use the PCB design provided in the PCB folder. See
 [build_pcb.md](build_pcb.md) for more information.
 
 **Note:** If you build this project, please seriously think about putting
 multiple SD card slots. It quickly becomes a must have in many situations.
-
 
 
 Modifying the Blue Pill board
@@ -104,18 +103,17 @@ Use this table to match pins on the ACSI port and the STM32:
 
 **Notes**:
 
- * GND is soldered together on the ST side. You can use a single wire for
-   ground.
- * Reset is not needed as the STM32 resets itself if it stays in an inconsistent
-   state for more than 2.5 seconds.
- * Keep the wires short. I had strange behavior with cables longer than 10cm (4
-   inches).
- * The read/write pin is not needed.
- * You can build a DB19 out of a DB25 by cutting 6 pins on one side and part of
-   the external shielding. Male DB25 are easy to find because they were used for
-   parallel port cables or serial port sockets.
- * You will have to power the STM32 separately (if you use USB, don't use a
-   cable with data lines connected).
+* GND is soldered together on the ST side. You can use a single wire for
+  ground.
+* Reset is not strictly needed, but heavily recommended.
+* Keep the wires short. I had strange behavior with cables longer than 10cm (4
+  inches).
+* The read/write pin is not needed.
+* You can build a DB19 out of a DB25 by cutting 6 pins on one side and part of
+  the external shielding. Male DB25 are easy to find because they were used for
+  parallel port cables or serial port sockets.
+* You will have to power the STM32 separately (if you use USB, don't use a
+  cable with data lines connected).
 
 
 Connecting the SD cards
@@ -171,22 +169,22 @@ SD card CS pins *must not* be grounded anymore.
 
 **Notes**:
 
- * If you need to hot swap your SD card, or if you want multiple SD slots, you
-   need to put a 10k-100k pull-up resistor between +3.3V and PA6. A single
-   resistor is enough if you have multiple SD card slots.
- * The ACSI2STM module **will** respond to all ACSI IDs, whether a SD card is
-   inserted or not. Change ACSI_SD_CARDS and ACSI_FIRST_ID in
-   acsi2stm/acsi2stm.h to change ACSI IDs, or see the table below to disable IDs
-   by connecting pins to +3.3V.
- * The SD card had 2 GND pins. Connecting only one is enough.
- * You should put decoupling capacitors of about 100nF between VDD and VSS, as
-   close as possible from the SD card pins. If you use a pre-built SD slot
-   module it should be properly decoupled already.
- * Some microSD slot boards for Arduino have logic level adapters to allow using
-   SD cards on 5V Arduino boards. This will reduce speed and compatibility.
-   Connect SD card pins directly to the STM32 pins for best results.
- * microSD to SD adapters are a quick, cheap way to obtain a microSD reader.
-   Simply solder on the SD adapter pads. They aren't very reliable though.
+* If you need to hot swap your SD card, or if you want multiple SD slots, you
+  need to put a 10k-100k pull-up resistor between +3.3V and PA6. A single
+  resistor is enough if you have multiple SD card slots.
+* The ACSI2STM module **will** respond to all ACSI IDs, whether a SD card is
+  inserted or not. Change ACSI_SD_CARDS and ACSI_FIRST_ID in
+  `acsi2stm.h` to change ACSI IDs, or see the table below to disable IDs by
+  connecting pins to +3.3V.
+* The SD card had 2 GND pins. Connecting only one is enough.
+* You should put decoupling capacitors of about 100nF between VDD and VSS, as
+  close as possible from the SD card pins. If you use a pre-built SD slot
+  module it should be properly decoupled already.
+* Some microSD slot boards for Arduino have logic level adapters to allow using
+  SD cards on 5V Arduino boards. This will reduce speed and compatibility.
+  Connect SD card pins directly to the STM32 pins for best results.
+* microSD to SD adapters are a quick, cheap way to obtain a microSD reader.
+  Simply solder on the SD adapter pads. They aren't very reliable though.
 
 Some pins can be used to configure each SD card slot:
 
@@ -202,7 +200,7 @@ When the pin is connected to GND, the SD card will be writable. When the pin is
 left floating, the SD card will be read-only. You can connect this pin to the
 physical write lock switch if you have a full size SD card reader with this
 ability. This logic can be inverted or disabled using the ACSI_SD_WRITE_LOCK
-define in acsi2stm/acsi2stm.h.
+define in `acsi2stm.h`.
 
 When the pin is connected to +3.3V, the SD card is completely disabled (the ACSI
 ID is freed for other devices).

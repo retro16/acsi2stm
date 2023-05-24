@@ -1,66 +1,7 @@
-**4.0f: ALPHA VERSION**
-
-ACSI mode is release quality.
-
-GemDrive is still alpha quality.
-
-TODO before 4.0
----------------
-
-GemDrive mode (still alpha level):
-
- * Implement date/time functions with RTC
- * Set date/time correctly on all created files
- * Rewrite TinyFS and pars of GemDrive so tostest passes 100%. This is HUGE.
- * Fix long filenames bug generating ghost files on SD cards
-
-TOSTEST:
-
- * Cleanup redundent tests because of test matrix
- * Add tests for date/time on files
- * Add archive bit tests for Fattrib in tostest
- * Implement filesystem label in Fsfirst/Fsnext tests in tostest
- * Implement file attributes in Fsfirst/Fsnext tests in tostest
-
-Other:
-
- * Implement STM32 flash access from the ST, using WRITE BUFFER
-  * Create a hard disk flashing program for the ST
-
-Changes since 4.0e:
-
- * Added support for flashing firmware.
- * Added HDDFLASH utility to flash ACSI devices, including ACSI2STM.
-
-Changes since 4.0d:
-
- * Added ACSI_A1_WORKAROUND to increase compatibility with TOS 1.0 and the 2008
-   PP driver.
- * Fixed ACSI image loading.
- * Some work on GemDrive.
- * Added a huge amount of tests in tostest.
-
-Changes since 4.0c:
-
- * Fixed so many oddities and quirks in the ACSI/SCSI implementation.
- * ACSI tests completed and 100% working on the ACSI2STM. Hatari fails on some
-   of them, maybe I could file a pull request.
-
-Pushed back for a later release
--------------------------------
-
- * Fix Pexec command-line that seems to be broken (1 / 2 extra bytes header)
- * Implement garbage file filter (non 8.3, dot files)
- * Implement filesystem label in Fsfirst/Fsnext
- * Fix top RAM allocation. I missed something. Need help.
- * Fix gemdrive.tos loader that releases its hooks memory !
- * Support for EmuTOS
-
+**4.0f: RELEASE CANDIDATE**
 
 4.0: A giant leap for ST-kind
 =============================
-
-ACSI mode seems better than any 3.xx but needs testing. Feedback appreciated.
 
 Why version 4.0 ?
 -----------------
@@ -92,8 +33,7 @@ GEMDOS level, and not at BIOS level.
 
 Let me introduce GemDrive: a copycat of Hatari's GEMDOS drive, 100% in hardware.
 
-And ... this actually works ! (well, sort of, it's alpha software, it's very
-unfinished and full of bugs).
+And ... this actually works !
 
 The whole GEMDOS is hooked into the STM32 ! Each and every GEMDOS call will
 transit through a STM32 routine, then the STM32 decides if it should pass the
@@ -112,14 +52,15 @@ You can use FAT16, FAT32, and **ExFAT**, up to **2TB** standard SD cards.
 SD cards are mounted on the STM32 and directly exposed on the Atari.
 
 The driver is just a shim that implements a few remote-control commands. It uses
-only **512 bytes of top RAM** on the ST for maximum software compatibility.
+only **512 bytes of RAM** on the ST for maximum software compatibility.
 
 Hot swapping SD cards is supported, with a lot of checks to make sure SD cards
-aren't corrupted in case of issues.
+aren't corrupted if programs try to access files from the old SD card.
 
 The only limitation is that BIOS calls are unimplemented. The rule of thumb is:
 everything that works on Hatari's GEMDOS drives should work with the new
-GemDrive driver.
+GemDrive driver. And even more, since GemDrive mimics the weirdness of TOS
+much more closely than Hatari.
 
 A BIOS and XBIOS-level floppy emulator could be developed, but in these days of
 cheap hardware-level floppy emulators, I don't think it's worth the effort. I
@@ -134,9 +75,9 @@ than simply putting EMUTOS.PRG in the AUTO folder.
 ACSI hard drives aren't forgotten
 ---------------------------------
 
-Despite the new GemDrive feature, a few fixes and logic changes were made to the
+Besides the new GemDrive feature, a few fixes and logic changes were made to the
 ACSI block device emulation (i.e. "normal" Atari hard disk). This proved to be a
-very useful use case for most users, so I can't ditch it like that.
+very useful use case for most users, so I won't ditch it like that.
 
 Depending on your ACSI driver, it is possible to mix GemDrive and Atari SD
 cards if you have multiple SD card slots ...
@@ -159,6 +100,18 @@ not 100% compatible, keeping the necessity to power cycle the STM32 on each ST
 reboot (because no reset line :( ).
 
 
+Future-proof for end-users
+--------------------------
+
+The ACSI2STM firmware can now be updated from the Atari itself. This means that
+people buying units won't need fancy serial-USB adapters or fiddly Dupont wires
+to do a firmware upgrade procedure. Just provide the files and voilà, firmware
+updated.
+
+The tool uses generic ACSI commands from the Seagate specification to update the
+firmware, so it may work for other hard drives as well.
+
+
 Documentation revisited
 -----------------------
 
@@ -172,10 +125,42 @@ Changes since 3.01
 * Reworked DMA to try to work around some rare STM32 quirks
 * Reworked the whole ACSI layer, especially error handling
 * Removed the integrated block driver
- * Removed the setup tool
- * Removed the image creation tool
-* Added GemDrive mode (requires TOS >= 1.04 "rainbow TOS")
-* Added a tool to test TOS filesystem functions: tostest.tos
- * Uses TOS 2.06 floppy access as a reference implementation
- * Hatari is currently not fully compliant
+  * Removed the setup tool
+  * Removed the image creation tool
+* Added GemDrive mode (TOS >= 1.04 "rainbow TOS" recommended)
+* Added a tool to test TOS filesystem functions: `TOSTEST.TOS`
+  * Uses TOS 2.06 floppy access as a reference implementation
+  * Hatari is currently not fully compliant
+* Added a tool to stress test ACSI drives: `ACSITEST.TOS`
+* Added `ACSI_A1_WORKAROUND` to increase compatibility with TOS 1.0 and the
+  2008 PP driver.
+* Added support for flashing firmware.
+* Added the `HDDFLASH.TOS` utility to flash ACSI devices, including ACSI2STM.
+
+
+Pushed back for a later release
+-------------------------------
+
+* Cleanup redundent tests because of test matrix
+* Implement date/time functions with RTC in GemDrive mode
+* Set date/time correctly on all created files
+* Test/fix Pexec command-line that seems to be broken (1 / 2 extra bytes)
+* Fix top RAM allocation. I missed something. Need help.
+* Fix the `GEMDRIVE.TOS` loader that releases its hooks memory !
+* Support for using GemDrive from within EmuTOS.
+* SYS file loader (For EMUTOS and ICD driver).
+* Support for unicode file names. (may not fit in flash)
+* Work around long delay on boot (long timeout on ACSI id 1 by TOS)
+
+
+Features that can't be implemented / unfixable bugs
+---------------------------------------------------
+
+* Closing file descriptors on Ctrl-C: no GEMDOS callback for Ctrl-C.
+* Adding more fancy features: not enough flash memory.
+  * Floppy emulator
+  * RAM TOS loader and relocator
+* Implement filesystem label in Fsfirst/Fsnext: SdFat doesn't expose this.
+* The SdFat library has issues with 8.3 long file names. For example, lower case
+  file names aren't correctly handled.
 

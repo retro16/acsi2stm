@@ -100,9 +100,6 @@ public:
   MediumState lastMediumState = MEDIUM_OK;
   uint32_t lastBlock;
 
-  // Present the device as removable
-  static const bool removable = true;
-
   // Command buffer
   static int cmdLen;
   static uint8_t cmdBuf[16];

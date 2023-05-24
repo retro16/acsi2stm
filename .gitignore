@@ -4,8 +4,10 @@ acsi2stm-*
 *.prg
 *.TOS
 *.PRG
+DESKTOP.INF
 *.exe
 *.bin
+*.BIN
 .DS_Store
 pcb/MegaSTE Internal/fp-info-cache
 *.gbl

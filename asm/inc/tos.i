@@ -197,6 +197,7 @@ EFILNF=-33      ; file not found
 EPTHNF=-34      ; path not found
 EACCDN=-36      ; access denied
 EBADF=-37       ; bad file descriptor
+EDRIVE=-46      ; invalid drive specification
 ECWD=-47        ; current dir cannot be deleted
 ENSAME=-48      ; not the same drive
 ENMFIL=-49      ; no more files

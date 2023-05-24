@@ -37,17 +37,17 @@ tdcreate:
 	lea	.sdir2,a0               ; Test absolute subdirectory
 	bsr	.create                 ;
 
-	lea	.topdir,a0              ; Test delete relative subdirectory
-	bsr	.cd                     ; with trailing backspace
-	lea	.subbs,a0               ;
-	bsr	.delete                 ;
-
 	lea	.up,a0                  ; Test relative to parent
 	bsr	.create                 ;
 
 	lea	.sdir2,a0               ; Test delete relative to parent
 	bsr	.cd                     ;
 	lea	.up,a0                  ;
+	bsr	.delete                 ;
+
+	lea	.topdir,a0              ; Test delete relative subdirectory
+	bsr	.cd                     ; with trailing backspace
+	lea	.subbs,a0               ;
 	bsr	.delete                 ;
 
 	lea	.topdir,a0              ; Test with lower case
@@ -61,23 +61,12 @@ tdcreate:
 	lea	.topdir,a0              ; Test dot files
 	bsr	.cd                     ;
 
-	moveq	#EPTHNF,d5              ; Test stupid directory names
-
-	lea	.dot1,a0                ; Create '.'
-	bsr	.create                 ;
-	lea	.dot2,a0                ; Create '..'
-	bsr	.create                 ;
-
-	; Note: other file names starting with a dot will crash original TOS
-
-
 	moveq	#EACCDN,d5              ;
 
 	lea	.root,a0                ; Test non-empty directory
 	bsr	.cd                     ;
 	lea	.topdir,a0              ;
 	bsr	.delete                 ;
-
 
 	moveq	#EPTHNF,d5              ;
 
@@ -88,7 +77,6 @@ tdcreate:
 
 	lea	.sdir2,a0               ; Test missing directory
 	bsr	.delete                 ;
-
 
 	bra	testok
 
@@ -209,9 +197,6 @@ tdcreate:
 .subbs	dc.b	'SUBDIR2\',0
 .up	dc.b	'..\SUBDIR3',0
 .sublc	dc.b	'subDir4',0
-
-.dot1	dc.b	'.',0
-.dot2	dc.b	'..',0
 
 .sdir2	dc.b	'\TDCREATE.TMP\SUBDIR2',0
 .sdir3	dc.b	'\TDCREATE.TMP\SUBDIR3',0

@@ -153,6 +153,27 @@
 //#define ACSI_GEMDRIVE_FIRST_LETTER 'C'
 #define ACSI_GEMDRIVE_FIRST_LETTER 0
 
+// Set to 1 to convert all file names to upper case.
+// If disabled, filesystem operations will preserve case and will become case
+// insensitive.
+#define ACSI_GEMDRIVE_UPPER_CASE 1
+
+// If set, use a fallback character for characters that cannot be converted.
+// If not set, hide any file that contains incompatible characters in its name.
+// If not set, any unsupported character in Atari filenames will be skipped.
+#define ACSI_GEMDRIVE_FALLBACK_CHAR '_'
+
+// Hide files with names starting with '.'
+// This is a good idea because dot files are usually hidden in UNIX-like OSes.
+// These files can crash GEMDOS anyway. Leave this enabled.
+#define ACSI_GEMDRIVE_HIDE_DOT_FILES 1
+
+// Hide files that don't fit 8.3.
+// Contrary to MS-DOS that does the ~1 trick to avoid duplicates, here file
+// names are simply truncated, leaving possible duplicates (and their glitches).
+// Hiding any file not fitting the 8.3 standard is the safest option.
+#define ACSI_GEMDRIVE_HIDE_NON_8_3 1
+
 // If set to 1, allocate GemDrive in top RAM. As I don't know yet all the
 // details, and as I saw a few glitches, I must be doing something wrong
 // somewhere. So by setting this to 1 you can allocate GemDrive to top RAM,
@@ -169,17 +190,6 @@
 
 // Maximum depth of a path, in folders. Impacts RAM usage on the STM32.
 #define ACSI_GEMDRIVE_MAX_PATH 64
-
-// If set to 0 (disabled), try to convert all file names to the Atari 8.3 format.
-// If set to 1, hide files starting by a dot (the unix way to hide files).
-// If set to 2, hide any non-8.3 files or files with non-ASCII characters.
-#define ACSI_GEMDRIVE_HIDE_INCOMPATIBLE_FILES 1
-
-// GEMDOS sniffer
-// In GEMDOS sniffer mode, GemDrive is passthrough. Used to transparently log
-// GEMDOS calls for debugging purposes.
-// Does not make much sense if debug mode is not enabled.
-#define ACSI_GEMDOS_SNIFFER 0
 
 // vim: ts=2 sw=2 sts=2 et
 #endif

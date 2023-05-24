@@ -29,10 +29,16 @@
 
 struct SdDev;
 struct Acsi;
+#if ! ACSI_STRICT
+struct GemDrive;
+#endif
 
 struct Devices {
   static SdDev sdSlots[];
   static Acsi acsi[];
+#if ! ACSI_STRICT
+  static GemDrive drives[];
+#endif
 
   // Sense jumper settings
   static void sense();
@@ -81,9 +87,6 @@ struct Devices {
   // Output a human-readable string of a block count.
   // Updates the 4 first bytes of target.
   static void blocksToString(uint32_t blocks, char *target);
-
-  // Reboot the STM32
-  static void reboot();
 };
 
 // vim: ts=2 sw=2 sts=2 et

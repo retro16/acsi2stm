@@ -50,13 +50,20 @@ if [ "$1" = all ]; then
   sed -i 's/^#define ACSI_VERBOSE .$/#define ACSI_VERBOSE 1/' "$srcdir/acsi2stm/acsi2stm.h"
   sed -i 's/^#define ACSI_DEBUG .$/#define ACSI_DEBUG 1/' "$srcdir/acsi2stm/acsi2stm.h"
   sed -i 's/^#define ACSI_STACK_CANARY .*$/#define ACSI_STACK_CANARY 4096/' "$srcdir/acsi2stm/acsi2stm.h"
-  compile_arduino verbose
+  compile_arduino verbose 128
   mv "$builddir/Arduino-verbose/acsi2stm.ino.bin" ./acsi2stm-$VERSION-verbose.ino.bin
 
   echo
+  echo "Compile strict verbose binary"
+  sed -i 's/^#define ACSI_STRICT .$/#define ACSI_STRICT 1/' "$srcdir/acsi2stm/acsi2stm.h"
+  compile_arduino strictverbose
+  cp "$builddir/Arduino-strictverbose/acsi2stm.ino.bin" ./acsi2stm-$VERSION-strictverbose.ino.bin
+
+  echo
   echo "Compile debug binary"
+  sed -i 's/^#define ACSI_STRICT .$/#define ACSI_STRICT 0/' "$srcdir/acsi2stm/acsi2stm.h"
   sed -i 's/^#define ACSI_VERBOSE .$/#define ACSI_VERBOSE 0/' "$srcdir/acsi2stm/acsi2stm.h"
-  compile_arduino debug
+  compile_arduino debug 128
   mv "$builddir/Arduino-debug/acsi2stm.ino.bin" ./acsi2stm-$VERSION-debug.ino.bin
 
   echo

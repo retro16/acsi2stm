@@ -23,6 +23,10 @@ no soldering, the old chip can be pried out of the socket with a little effort
 place. Be sure to confirm the orientation of the chip is the same as the old
 one.
 
+**Update**: [recent research]()
+tend to indicate that a software workaround is possible. GemDrive implemented
+this workaround, so it may be immune to the issue. Only time will tell ...
+
 
 Writing errors in ACSI mode
 ---------------------------

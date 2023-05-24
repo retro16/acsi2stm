@@ -20,7 +20,6 @@ if ! [ "$FORCE" ]; then
   || ! grep 'ACSI_READONLY 0' "$srcdir/acsi2stm/acsi2stm.h" >/dev/null \
   || ! grep 'ACSI_SD_WRITE_LOCK 2' "$srcdir/acsi2stm/acsi2stm.h" >/dev/null \
   || ! grep 'ACSI_HAS_RESET 1' "$srcdir/acsi2stm/acsi2stm.h" >/dev/null \
-  || ! grep 'ACSI_GEMDOS_SNIFFER 0' "$srcdir/acsi2stm/acsi2stm.h" >/dev/null \
   || ! grep 'ACSI_STACK_CANARY 0' "$srcdir/acsi2stm/acsi2stm.h" >/dev/null \
   || ! grep 'ACSI_A1_WORKAROUND 1' "$srcdir/acsi2stm/acsi2stm.h" >/dev/null \
   || grep -ri 'deadbeef' "$srcdir/asm" >/dev/null \
@@ -54,11 +53,11 @@ cd "$builddir"
 echo "Copy all the stuff in the packaging directory"
 
 mkdir "$zipdir"
-cp -r acsi2stm-$VERSION*.ino.bin *.tos "$srcdir"/*.md "$srcdir"/doc "$srcdir"/pcb "$srcdir"/LICENSE "$srcdir"/VERSION "$zipdir"
+cp -r acsi2stm-$VERSION*.ino.bin *.TOS "$srcdir"/*.md "$srcdir"/doc "$srcdir"/pcb "$srcdir"/LICENSE "$srcdir"/VERSION "$zipdir"
 
 echo "... and the legal stuff"
 
-cat > "acsi2stm-$VERSION/README.txt" << EOF
+cat > "$zipdir/README.txt" << EOF
 ACSI2STM Atari hard drive emulator
 Copyright (C) 2019-2023 by Jean-Matthieu Coulon
 

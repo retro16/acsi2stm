@@ -30,7 +30,7 @@ buildbin() {
       [ -d "$builddir/$name" ] || mkdir -p "$builddir/$name" || exit $?
       echo "Compile $name BIN program"
       vasmm68k_mot $VASMFLAGS -Fbin -L "$builddir/$name.bin.lst" -o "$builddir/$name/$name.bin" "$srcdir/$name/bin.s" || exit $?
-      [ -e "$builddir/$name/$name.bin" ] || exit $?
+      [ -e "$builddir/$name/$name.BIN" ] || exit $?
       echo
     fi
   )
@@ -59,8 +59,8 @@ buildasm() {
     echo "Compile $name TOS program"
     [ -d "$builddir/$name" ] || mkdir -p "$builddir/$name" || exit $?
     [ -e "$tosdir" ] || mkdir "$tosdir"
-    vasmm68k_mot $VASMFLAGS -monst -Ftos -I"$builddir/$name" -L "$builddir/$name.lst" -o "$tosdir/$name.tos" "$srcdir/$name/tos.s" || exit $?
-    [ -e "$tosdir/$name.tos" ] || exit $?
+    vasmm68k_mot $VASMFLAGS -monst -Ftos -I"$builddir/$name" -L "$builddir/$name.lst" -o "$tosdir/$name.TOS" "$srcdir/$name/tos.s" || exit $?
+    [ -e "$tosdir/$name.TOS" ] || exit $?
     echo
   fi
 }

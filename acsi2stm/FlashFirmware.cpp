@@ -35,7 +35,7 @@ static const uint32_t FLASH_START = 0x08000000;
 // This function runs from RAM. It cannot access flash memory so it's all
 // low-level register manipulation.
 // Most of this code is copy-paste from DmaPort.
-// Because ramfunc seems to be broken, the function is copied by hand. DIRTY.
+// Because ramfunc seems to be broken, the function is put in the data section.
 void __attribute__((section(".data"))) updateFirmwareFromDMA(uint32_t address, uint32_t end_address) {
   // Cache all indirect pointers and values to avoid flash access
   auto *GPIOA_REGS_CRH = &GPIOA->regs->CRH;
@@ -67,20 +67,20 @@ void __attribute__((section(".data"))) updateFirmwareFromDMA(uint32_t address, u
 #endif
 
     // Read first byte
-    DMA1_BASE->IFCR = DMA_IFCR_CTCIF6; // Reset DMA transfer flag
-    DMA_TIMER->CNT = 0; // Trigger DRQ
-    while(!(DMA1_BASE->ISR & DMA_ISR_TCIF6)); // Wait for DMA data
-    data = ((DMA_TIMER->CCR1) >> 8) & 0xff;
+    DMA1_BASE->IFCR = DMA_IFCR_CTCIF6; // armDma()
+    DMA_TIMER->CNT = 0; // triggerDrq()
+    while(!(DMA1_BASE->ISR & DMA_ISR_TCIF6)); // while(!checkDma());
+    data = ((DMA_TIMER->CCR1) >> 8) & 0xff; // dmaData()
 
 #if ACSI_ACTIVITY_LED
     *GPIOC_REGS_BRR = 1 << 13;
 #endif
 
     // Read second byte
-    DMA1_BASE->IFCR = DMA_IFCR_CTCIF6; // Reset DMA transfer flag
-    DMA_TIMER->CNT = 0; // Trigger DRQ
-    while(!(DMA1_BASE->ISR & DMA_ISR_TCIF6)); // Wait for DMA data
-    data |= DMA_TIMER->CCR1 & 0xff00;
+    DMA1_BASE->IFCR = DMA_IFCR_CTCIF6; // armDma()
+    DMA_TIMER->CNT = 0; // triggerDrq()
+    while(!(DMA1_BASE->ISR & DMA_ISR_TCIF6)); // while(!checkDma());
+    data |= DMA_TIMER->CCR1 & 0xff00; // dmaData()
 
     // Write halfword to flash
     FLASH_BASE->CR |= FLASH_CR_PG;
@@ -115,8 +115,6 @@ void __attribute__((section(".data"))) updateFirmwareFromDMA(uint32_t address, u
 // Flashes firmware from the DMA port, then reset.
 // Never returns.
 void flashFirmware(uint32_t size) {
-  Monitor::verbose("Flashing firmware ...\n");
-
   DmaPort::resetTimeout();
   systick_disable();
   DmaPort::disableAckFilter();
@@ -131,6 +129,9 @@ void flashFirmware(uint32_t size) {
   // Unlock flash
   FLASH_BASE->KEYR = 0x45670123;
   FLASH_BASE->KEYR = 0xCDEF89AB;
+
+  Monitor::dbg("Flashing ", size, " bytes at ");
+  Monitor::dbgHex(FLASH_START, "\n");
 
   // The rest must be executed from RAM
   updateFirmwareFromDMA(FLASH_START, FLASH_START + size);

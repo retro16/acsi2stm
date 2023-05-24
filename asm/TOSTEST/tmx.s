@@ -267,6 +267,10 @@ tmx:
 ;	dc.l	ALOGD0,.pthfro
 ;	dc.l	ALOGD0,.pthne
 ;	dc.l	ALOGD0,.filne
+;	dc.l	ALOGD0,.invdrv
+;	dc.l	ALOGD0,.dirptn
+;	dc.l	ALOGD0,.filptn
+;	dc.l	ALOGD0,.nfilpt
 ;
 ;	dc.l	AEND,0
 
@@ -302,6 +306,10 @@ tmx:
 	dc.l	EPTHNF,.pthfro
 	dc.l	EPTHNF,.pthne
 	dc.l	ADDELE,.filne
+	dc.l	EPTHNF,.invdrv
+	dc.l	EPTHNF,.dirptn
+	dc.l	EACCDN,.filptn
+;	dc.l	$00000000,.nfilpt       ; Disabled: produces an invalid name
 
 	dc.l	AEND,0
 
@@ -337,6 +345,10 @@ tmx:
 	dc.l	EPTHNF,.pthfro
 	dc.l	EPTHNF,.pthne
 	dc.l	EPTHNF,.filne
+	dc.l	EPTHNF,.invdrv
+	dc.l	EPTHNF,.dirptn
+	dc.l	EPTHNF,.filptn
+	dc.l	EPTHNF,.nfilpt
 
 	dc.l	AEND,0
 
@@ -372,6 +384,10 @@ tmx:
 	dc.l	EPTHNF,.pthfro
 	dc.l	EPTHNF,.pthne
 	dc.l	EPTHNF,.filne
+	dc.l	$00000000,.invdrv
+	dc.l	EPTHNF,.dirptn
+	dc.l	EPTHNF,.filptn
+	dc.l	EPTHNF,.nfilpt
 
 	dc.l	AEND,0
 
@@ -409,6 +425,10 @@ tmx:
 	dc.l	EFILNF,.pthfro
 	dc.l	EFILNF,.pthne
 	dc.l	EFILNF,.filne
+	dc.l	EFILNF,.invdrv
+	dc.l	EFILNF,.dirptn
+	dc.l	$00000020,.filptn       ; Points at FILE.RW
+	dc.l	EFILNF,.nfilpt
 
 	dc.l	AEND,0
 
@@ -446,6 +466,11 @@ tmx:
 	dc.l	EFILNF,.pthfro
 	dc.l	EFILNF,.pthne
 	dc.l	EFILNF,.filne
+	dc.l	EFILNF,.invdrv
+	dc.l	EFILNF,.dirptn
+	dc.l	$00000020,.filptn
+	dc.l	EFILNF,.nfilpt
+
 
 	dc.l	AEND,0
 
@@ -482,6 +507,10 @@ tmx:
 	dc.l	EPTHNF,.pthfro
 	dc.l	EPTHNF,.pthne
 	dc.l	ACLDEL,.filne
+	dc.l	EPTHNF,.invdrv
+	dc.l	EPTHNF,.dirptn
+	dc.l	ACLOSE,.filptn          ; Truncates FILE.RW
+;	dc.l	ACLDEL,.nfilpt          ; Disabled: produces an invalid name
 
 	dc.l	AEND,0
 
@@ -518,6 +547,11 @@ tmx:
 	dc.l	EFILNF,.pthfro
 	dc.l	EFILNF,.pthne
 	dc.l	EFILNF,.filne
+	dc.l	EFILNF,.invdrv
+	dc.l	EFILNF,.dirptn
+	dc.l	ACLOSE,.filptn          ; Opens the first matching file
+	dc.l	EFILNF,.nfilpt
+
 
 	dc.l	AEND,0
 
@@ -564,6 +598,11 @@ tmx:
 	dc.l	EFILNF,.pthfro
 	dc.l	EFILNF,.pthne
 	dc.l	EFILNF,.filne
+	dc.l	EFILNF,.invdrv
+	dc.l	EFILNF,.dirptn
+	dc.l	ACLOSE,.filptn
+	dc.l	EFILNF,.nfilpt
+
 
 	dc.l	AEND,0
 
@@ -599,6 +638,11 @@ tmx:
 	dc.l	EFILNF,.pthfro
 	dc.l	EFILNF,.pthne
 	dc.l	EFILNF,.filne
+	dc.l	EFILNF,.invdrv
+	dc.l	EFILNF,.dirptn
+	dc.l	AFCREA,.filptn,.filerw
+	dc.l	EFILNF,.nfilpt
+
 
 	dc.l	AEND,0
 
@@ -641,6 +685,10 @@ tmx:
 	dc.l	EPTHNF,.pthfro
 	dc.l	EPTHNF,.pthne
 	dc.l	EFILNF,.filne
+	dc.l	EPTHNF,.invdrv
+	dc.l	EPTHNF,.dirptn
+;	dc.l	$00000000,.filptn       ; Disabled
+	dc.l	EFILNF,.nfilpt
 
 	dc.l	AEND,0
 
@@ -683,6 +731,10 @@ tmx:
 	dc.l	EPTHNF,.pthfro
 	dc.l	EPTHNF,.pthne
 	dc.l	EFILNF,.filne
+	dc.l	EPTHNF,.invdrv
+	dc.l	EPTHNF,.dirptn
+;	dc.l	$00000000,.filptn       ; Disabled
+	dc.l	EFILNF,.nfilpt
 
 	dc.l	AEND,0
 
@@ -725,6 +777,10 @@ tmx:
 	dc.l	EPTHNF,.pthfro
 	dc.l	EPTHNF,.pthne
 ;	dc.l	$00000000,.filne        ; Disabled
+;	dc.l	EPTHNF,.invdrv          ; Disabled: GemDrive returns ENSAME
+	dc.l	EPTHNF,.dirptn
+	dc.l	EACCDN,.filptn
+;	dc.l	$00000000,.nfilpt       ; Disabled: creates an invalid name
 
 	dc.l	AEND,0
 
@@ -767,6 +823,10 @@ tmx:
 	dc.l	EPTHNF,.pthfro
 	dc.l	EPTHNF,.pthne
 	dc.l	EFILNF,.filne
+	dc.l	EPTHNF,.invdrv
+	dc.l	EPTHNF,.dirptn
+	dc.l	EACCDN,.filptn
+	dc.l	EFILNF,.nfilpt
 
 	dc.l	AEND,0
 
@@ -809,6 +869,10 @@ tmx:
 	dc.l	EPTHNF,.pthfro
 	dc.l	EPTHNF,.pthne
 	dc.l	EFILNF,.filne
+	dc.l	EPTHNF,.invdrv
+	dc.l	EPTHNF,.dirptn
+	dc.l	EACCDN,.filptn
+	dc.l	EFILNF,.nfilpt
 
 	dc.l	AEND,0
 
@@ -874,6 +938,10 @@ tmx:
 .pthfro	dc.b	'\TOSTEST.TMP\FILE.RO\NONFILE',0
 .pthne	dc.b	'\TOSTEST.TMP\NOTEXIST.ING\NONFILE',0
 .filne	dc.b	'\TOSTEST.TMP\NONFILE',0
+.invdrv	dc.b	'I:\TOSTEST.TMP',0
+.dirptn	dc.b	'\TOSTEST.TMP\F*.*\SUBDIR',0
+.filptn	dc.b	'\TOSTEST.TMP\FILE.*',0
+.nfilpt	dc.b	'\TOSTEST.TMP\NONFILE.*',0
 
 	even
 

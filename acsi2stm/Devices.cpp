@@ -19,6 +19,7 @@
 #include "Devices.h"
 #include "BlockDev.h"
 #include "Acsi.h"
+#include "GemDrive.h"
 #include <libmaple/iwdg.h>
 
 // SD slots table, with physical slot ID, SD CS pin and SD write protect pin
@@ -56,6 +57,25 @@ Acsi Devices::acsi[] = {
 };
 
 #if ! ACSI_STRICT
+// GemDrive device table
+GemDrive Devices::drives[] = {
+  GemDrive(sdSlots[0]),
+#if ACSI_SD_CARDS >= 2
+  GemDrive(sdSlots[1]),
+#endif
+#if ACSI_SD_CARDS >= 3
+  GemDrive(sdSlots[2]),
+#endif
+#if ACSI_SD_CARDS >= 4
+  GemDrive(sdSlots[3]),
+#endif
+#if ACSI_SD_CARDS >= 5
+  GemDrive(sdSlots[4]),
+#endif
+};
+#endif
+
+#if ! ACSI_STRICT
 bool Devices::strict = false;
 #endif
 #if ACSI_ID_OFFSET_PINS
@@ -64,11 +84,7 @@ int Devices::acsiFirstId = ACSI_FIRST_ID;
 
 void Devices::sense() {
 #if ! ACSI_STRICT
-#if ACSI_GEMDOS_SNIFFER
-  strict = false;
-#else
   strict = digitalRead(PB2);
-#endif
 #endif
 
 #if ACSI_ID_OFFSET_PINS
@@ -101,6 +117,9 @@ end:
     sdSlots[c].onReset();
     acsi[c].onReset();
   }
+#if ! ACSI_STRICT
+  GemDrive::closeAll();
+#endif
 }
 
 void Devices::blocksToString(uint32_t blocks, char *target) {
@@ -140,12 +159,6 @@ int Devices::computeChecksum(uint8_t *block) {
     checksum += ((int)block[i] << 8) + (block[i+1]);
 
   return checksum & 0xffff;
-}
-
-void Devices::reboot() {
-  iwdg_init(IWDG_PRE_4, 1);
-  iwdg_feed();
-  for(;;);
 }
 
 uint8_t Devices::buf[ACSI_BLOCKSIZE * ACSI_BLOCKS];

@@ -20,12 +20,8 @@
 
 #include <Arduino.h>
 
-// Crude way of determining flash size at compile time
-#if defined(MCU_STM32F103CB)
-static const uint32_t FLASH_SIZE = 0x20000;
-#else
+// Flashing firmware above 64k is harder, so keep it simple
 static const uint32_t FLASH_SIZE = 0x10000;
-#endif
 
 // Flashes firmware from the DMA port.
 // Never returns.

@@ -23,10 +23,6 @@
 #include "GemDrive.h"
 #include <libmaple/gpio.h>
 
-#if ACSI_STRICT && ACSI_GEMDOS_SNIFFER
-#error ACSI_GEMDOS_SNIFFER and ACSI_STRICT are mutually exclusive.
-#endif
-
 // Main setup function
 void setup() {
 #if ACSI_ID_OFFSET_PINS
@@ -51,9 +47,10 @@ void setup() {
   delay(50);
 
   Monitor::dbg("ACSI2STM SD bridge v" ACSI2STM_VERSION "\n\n");
-  delay(20);
 #endif
 
+  // Delay to stabilize SD cards power
+  delay(100);
 }
 
 #if ACSI_STACK_CANARY
@@ -99,12 +96,13 @@ void loop() {
       Monitor::dbgHex("GDRV", deviceId, ':', cmd, ' ');
 #endif
       if(cmd == 0x08 && deviceIndex != SdDev::gemBootDrive)
-        Monitor::dbg("not the boot device\n");
+        Monitor::dbg("Ignore non-boot\n");
       else if(cmd == 0x1f)
         // Extended commands allow accessing the device in ACSI mode while
         // keeping it reasonably hidden from other tools.
-        // Can be used for example to probe the device using INQUIRY or testing
-        // with READ BUFFER.
+        // Can be used for example to probe the device using INQUIRY, testing
+        // with READ BUFFER or flashing firmware with WRITE BUFFER.
+        // Warning: don't alter the SD card while it is mounted !
         Devices::acsi[deviceIndex].process(cmd);
       else
         // Handles GEMDOS trap as well as boot sector loader
@@ -121,7 +119,7 @@ void loop() {
       Monitor::dbg("ACSI", deviceId, ':');
       Monitor::dbgHex(cmd);
 #endif
-      Monitor::dbg(" - Not for us\n");
+      Monitor::dbg(" Not for us\n");
     }
   }
 }

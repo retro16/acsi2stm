@@ -20,6 +20,7 @@
 	include	tdcreate.s
 	include	tfcropen.s
 	include	tfileio.s
+	include	tfilecpy.s
 	include	tfrename.s
 	include	tfattrib.s
 	include	tfdatime.s
@@ -80,6 +81,7 @@ main:
 	bsr	tdcreate
 	bsr	tfcropen
 	bsr	tfileio
+	bsr	tfilecpy
 	bsr	tfrename
 	bsr	tfattrib
 	bsr	tfdatime

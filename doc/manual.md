@@ -10,15 +10,6 @@ Two operating modes
 
 ACSI2STM can work in 2 different modes: ACSI and GemDrive.
 
-### ACSI mode
-
-ACSI mode tries to mimic an old ACSI hard drive as closely as possible. The SD
-card is accessed like a block device and must be specially formated for Atari.
-
-You need to install a hard disk driver to work in ACSI mode. This is detailed
-in the sections below.
-
-
 ### GemDrive mode
 
 Inspired by Hatari's GEMDOS drive, GemDrive mounts the SD card on the STM32,
@@ -29,17 +20,27 @@ some cases.
 GemDrive supports FAT16, FAT32 and ExFAT with no size limit. It supports only
 one partition per SD card.
 
+### ACSI mode
+
+ACSI mode tries to mimic an old ACSI hard drive as closely as possible. The SD
+card is accessed like a block device and must be specially formated for Atari.
+
+You need to install a hard disk driver to work in ACSI mode. This is detailed
+in the sections below.
+
+ACSI mode can work either directly on SD cards, or on hard disk images.
+
 
 Compatibility
 -------------
 
 ACSI2STM was successfully tested in ACSI mode on the following hardware:
 
- * Atari 520 STF, TOS 1.04
- * Atari 1040 STE, TOS 1.62
- * Atari 1040 STE, TOS 2.06
- * Atari 1040 STE, EmuTOS (no driver needed)
- * Atari TT030
+* Atari 520 STF, TOS 1.04
+* Atari 1040 STE, TOS 1.62
+* Atari 1040 STE, TOS 2.06
+* Atari 1040 STE, EmuTOS (no driver needed)
+* Atari TT030
 
 GemDrive mode is limited to Atari ST and STE (no TT or Falcon). Tos >= 1.04 is
 strongly recommended.
@@ -50,12 +51,12 @@ Quick start guide
 
 This will use GemDrive.
 
- * Plug the ACSI2STM module to the Atari ST's hard disk port.
- * Insert a standard SD card in the first SD slot.
- * Plug the power cable to the ACSI2STM.
- * Turn on the ST.
- * The SD card will show up as C: on the desktop.
- * If you have more than 1 SD card slot, they will show up as D:, E:, ...
+* Plug the ACSI2STM module to the Atari ST's hard disk port.
+* Insert a standard SD card in the first SD slot.
+* Plug the power cable to the ACSI2STM.
+* Turn on the ST.
+* The SD card will show up as C: on the desktop.
+* If you have more than 1 SD card slot, they will show up as D:, E:, ...
 
 
 Use a ready-made ACSI disk image
@@ -66,22 +67,22 @@ to use it.
 
 ### Using the image directly
 
- * Use a SD card formatted for PC (FAT32/ExFAT).
- * Create a folder named *acsi2stm* at the root of the SD card.
- * Copy your image inside that folder.
- * Rename your image *hd0.img*.
- * Insert the SD card in the ACSI2STM unit.
- * Turn everything on.
- * Enjoy.
+* Use a SD card formatted for PC (FAT32/ExFAT).
+* Create a folder named `acsi2stm` at the root of the SD card.
+* Copy your image inside that folder.
+* Rename your image `hd0.img`.
+* Insert the SD card in the ACSI2STM unit.
+* Turn everything on.
+* Enjoy.
 
 The file format is the same used by the Hatari emulator. You can test your image
 in Hatari: go to the menu, click *Hard disks*, then click *Browse* on the first
 line (*ACSI HD 0*) then reboot the emulated ST. You can even use the image
-directly on the SD card by opening hd0.img from within Hatari !
+directly on the SD card by opening `hd0.img` from within Hatari !
 
 When working with disk images, the SD card can be of any size, as long as it
 uses a standard filesystem (FAT, FAT32 or ExFAT). The ST only sees the content
-of the hd0.img file.
+of the `hd0.img` file.
 
 
 ### Read-only image
@@ -98,15 +99,15 @@ Using a raw SD card is a bit faster than copying the image file.
 To transfer images to the disk, you can use
 [Raspberry Pi Imager](https://www.raspberrypi.com/software/):
 
- * Open Raspberry Pi Imager.
- * Click *Choose Os* under *Operating System*.
- * Select *Use custom* in the list.
- * Select the image file you wish to transfer.
- * Under *Storage*, click *Choose storage*.
- * Select the SD card you want to write to.
- * Click *Write* to start writing. **Existing data on the SD card will be
-   erased**. Click *Yes* to confirm.
- * The SD card can now be used on the ST.
+* Open Raspberry Pi Imager.
+* Click *Choose Os* under *Operating System*.
+* Select *Use custom* in the list.
+* Select the image file you wish to transfer.
+* Under *Storage*, click *Choose storage*.
+* Select the SD card you want to write to.
+* Click *Write* to start writing. **Existing data on the SD card will be
+  erased**. Click *Yes* to confirm.
+* The SD card can now be used on the ST.
 
 
 ### Revert a SD card to the normal PC format
@@ -115,14 +116,14 @@ If you have a SD card formatted for the Atari (or any other weird format), the
 Raspberry Pi Imager can revert it back to the standard format so you can use it
 again on your PC or in GemDrive mode.
 
- * Open Raspberry Pi Imager.
- * Click *Choose Os* under *Operating System*.
- * Select *Erase* in the list.
- * Under *Storage*, click *Choose storage*.
- * Select the SD card you want to write to.
- * Click *Write* to start writing. **Existing data on the SD card will be
-   erased**. Click *Yes* to confirm.
- * The SD card is now formatted to the standard format.
+* Open Raspberry Pi Imager.
+* Click *Choose Os* under *Operating System*.
+* Select *Erase* in the list.
+* Under *Storage*, click *Choose storage*.
+* Select the SD card you want to write to.
+* Click *Write* to start writing. **Existing data on the SD card will be
+  erased**. Click *Yes* to confirm.
+* The SD card is now formatted to the standard format.
 
 
 Creating an ICD PRO image
@@ -173,42 +174,42 @@ Here is the list of the free drivers I'm aware of, in no particular order:
 Free (not open source) driver that works well and is very stable.
 
 Pros:
- * Officially supported by ACSI2STM. Tested before each release.
- * Good set of tools.
- * Supports SD card hot swapping (the new SD card must have the same number of
-   partitions).
+* Officially supported by ACSI2STM. Tested before each release.
+* Good set of tools.
+* Supports SD card hot swapping (the new SD card must have the same number of
+  partitions).
 
 Cons:
- * Incompatible with BigDOS.
- * Eats up memory like crazy if you leave cache enabled (disable cache, ACSI2STM
-   is nearly as fast as memcpy).
- * Not open source.
+* Incompatible with BigDOS.
+* Eats up memory like crazy if you leave cache enabled (disable cache, ACSI2STM
+  is nearly as fast as memcpy).
+* Not open source.
 
 
 ### P.Putnik's ACSID07 driver (free, 2008 version)
 
 Pros:
- * Supports MS-DOS partition tables.
- * Compatible with BigDOS.
+* Supports MS-DOS partition tables.
+* Compatible with BigDOS.
 
 Cons:
- * Supports only ACSI id 0.
- * Not 100% ACSI standard compliant, does funky stuff on boot (re-enables A1
-   mid-command).
+* Supports only ACSI id 0.
+* Not 100% ACSI standard compliant, does funky stuff on boot (re-enables A1
+  mid-command).
 
 ### Uwe Seimet's HDDriver
 
 Pros:
- * Fully supporting the SCSI command set.
- * Supports more than 1 LUN per drive.
- * Very high quality set of tools.
- * Supports MS-DOS partition tables.
- * Compatible with BigDOS.
+* Fully supporting the SCSI command set.
+* Supports more than 1 LUN per drive.
+* Very high quality set of tools.
+* Supports MS-DOS partition tables.
+* Compatible with BigDOS.
 
 Cons:
- * The free version is very limited in functionality.
- * Does not support ACSI2STM officially (later versions should work).
- * Not open source.
+* The free version is very limited in functionality.
+* Does not support ACSI2STM officially (later versions should work).
+* Not open source.
 
 ### AHDI
 
@@ -216,14 +217,14 @@ The antique driver provided by Atari. While it *should* work, nobody seem to use
 it anymore.
 
 Pros:
- * Authentic, "pure" Atari experience.
- * None, really.
+* Authentic, "pure" Atari experience.
+* None, really.
 
 Cons:
- * Unsupported by ACSI2STM. Meaning it is never tested, your mileage may vary.
- * Incompatible with BigDOS.
- * Supports only Atari partition tables.
- * Not open source.
+* Unsupported by ACSI2STM. Meaning it is never tested, your mileage may vary.
+* Incompatible with BigDOS.
+* Supports only Atari partition tables.
+* Not open source.
 
 
 Changing operation modes with jumpers

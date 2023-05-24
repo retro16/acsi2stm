@@ -30,19 +30,32 @@ tfdatime:
 	lea	.file,a4                ; Create FILE.TMP
 	bsr	.crfile                 ;
 
-	move.l	#(16>>1)!(55<<5)!(20<<11)!(23<<16)!(2<<21)!(39<<25),buffer
-	move.w	#1,-(sp)                ; Set file time
+	move.w	d4,-(sp)                ; Reopen read-only
+	gemdos	Fclose,4                ;
+	clr.w	-(sp)                   ;
+	pea	.file                   ;
+	gemdos	Fopen,8                 ;
+
+	tst.w	d0                      ;
+	bmi	testfailed              ;
+
+	; Sample date is 2019-02-23 20:55:16
+
+	lea	.nset,a5                ; Set file time
+	move.l	#((16/2)<<16)!(55<<21)!(20<<27)!(23)!(2<<5)!(39<<9),buffer
+	move.w	#1,-(sp)                ;
 	move.w	d4,-(sp)                ;
 	pea	buffer                  ;
 	gemdos	Fdatime,10              ;
 
 	clr.l	buffer                  ;
-	clr.w	-(sp)                   ; Get file time
+	lea	.nget,a5                ; Get file time
+	clr.w	-(sp)                   ;
 	move.w	d4,-(sp)                ;
 	pea	buffer                  ;
 	gemdos	Fdatime,10              ;
 
-	cmp.l	#(16>>1)!(55<<5)!(20<<11)!(23<<16)!(2<<21)!(39<<25),buffer
+	cmp.l	#((16/2)<<16)!(55<<21)!(20<<27)!(23)!(2<<5)!(39<<9),buffer
 	bne	testfailed              ; Check that date/time is correct
 
 	bsr	.close                  ; Close the file
@@ -89,7 +102,7 @@ tfdatime:
 	move.l	a4,-(sp)                ; Push path
 	gemdos	Fcreate,8               ; Create the file
 	cmp.w	#4,d0                   ; Check descriptor
-	blt	abort                   ; Cannot be a standard descriptor or an
+	blo	abort                   ; Cannot be a standard descriptor or an
 		                        ; error
 	move.w	d0,d4                   ; Store descriptor
 	rts

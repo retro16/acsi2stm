@@ -20,7 +20,7 @@
 #include "DmaPort.h"
 
 const
-#include "programs.boot.h"
+#include "PROGRAMS.boot.h"
 
 #if ACSI_VERBOSE
 void SysHook::pstack() {
@@ -34,10 +34,10 @@ void SysHook::pstack() {
 Long SysHook::getProgram(SysHook::Program p) {
   Long l;
   int pi = (int)p * 4;
-  l.bytes[0] = programs_boot_bin[pi++];
-  l.bytes[1] = programs_boot_bin[pi++];
-  l.bytes[2] = programs_boot_bin[pi++];
-  l.bytes[3] = programs_boot_bin[pi];
+  l.bytes[0] = PROGRAMS_boot_bin[pi++];
+  l.bytes[1] = PROGRAMS_boot_bin[pi++];
+  l.bytes[2] = PROGRAMS_boot_bin[pi++];
+  l.bytes[3] = PROGRAMS_boot_bin[pi];
 
   return l;
 }
@@ -415,37 +415,37 @@ void SysHook::pexec6ThenRte(ToLong pd) {
 
 void SysHook::execThenDmaRead(ToLong code)
 {
-  verbose("exec&read\n");
+  verbose("\nexec&read:");
   sendCommand(0x85, code);
 }
 
 void SysHook::execThenDmaWrite(ToLong code)
 {
-  verbose("exec&write\n");
+  verbose("\nexec&write:");
   sendCommand(0x84, code);
 }
 
 void SysHook::setDmaRead(ToLong address)
 {
-  verbose("setDmaRead\n");
+  verbose("\nsetDmaRead:");
   sendCommand(0x83, address);
 }
 
 void SysHook::setDmaWrite(ToLong address)
 {
-  verbose("setDmaWrite\n");
+  verbose("\nsetDmaWrite:");
   sendCommand(0x82, address);
 }
 
 void SysHook::copyFromStack(ToLong address)
 {
-  verbose("copyFromStack\n");
+  verbose("\ncopyFromStack:");
   sendCommand(0x81, address);
 }
 
 void SysHook::copyToStack(ToLong address)
 {
-  verbose("copyToStack\n");
+  verbose("\ncopyToStack:");
   sendCommand(0x80, address);
 }
 

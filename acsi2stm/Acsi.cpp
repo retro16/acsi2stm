@@ -43,14 +43,6 @@ void Acsi::refresh() {
 
   mediaId = realId;
 
-  if(!removable) {
-    dbg("Non-removable SD", blockDev.slot, " removed: disable slot\n");
-    blockDev.disable();
-    onReset();
-    lastMediumState = MEDIUM_REMOVED;
-    return;
-  }
-
   dbg("Refreshing SD", blockDev.slot, ':');
 
   if(mediaId) {
@@ -206,7 +198,7 @@ void Acsi::process(uint8_t cmd) {
       blockDev.getDeviceString((char *)buf + 8);
     }
 
-    buf[1] = removable ? 0x80 : 0x00; // Removable flag
+    buf[1] = 0x80; // Removable flag
     buf[2] = 1; // ACSI version
     buf[4] = 31; // Data length
 

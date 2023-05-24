@@ -37,7 +37,7 @@ tpexec:
 	blt	abort                   ;
 	move.w	d0,d3                   ; d3 = source FD
 
-	pea	buffer                  ; Read executable
+.read	pea	buffer                  ; Read executable
 	move.l	#$10000,-(sp)           ;
 	move.w	d3,-(sp)                ;
 	gemdos	Fread,12                ;
@@ -48,10 +48,9 @@ tpexec:
 	move.l	d0,-(sp)                ;
 	move.w	d4,-(sp)                ;
 	gemdos	Fwrite,4                ;
-	move.l	(sp)+,d1                ;
-	addq	#4,sp                   ;
-	cmp.l	d0,d1                   ;
-	bne	abort                   ;
+	tst.l	d0                      ;
+	bmi	abort                   ;
+	bne	.read                   ;
 
 	move.w	d3,-(sp)                ; Close files
 	gemdos	Fclose,4                ;

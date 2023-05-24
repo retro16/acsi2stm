@@ -14,23 +14,23 @@ needs (or your tastes), see the [compiling](compiling.md) section.
 Updating a 4.0 unit from the Atari ST
 -------------------------------------
 
-ACSI2STM supports firmware upload via the ACSI port. It uses the Seagate SCSI
-standard command to do that.
+ACSI2STM supports firmware upload via the ACSI port since version 4.0.
+It uses the Seagate SCSI standard command to do that.
 
 Steps to update your firmware:
 
- * Download the release package and unzip it.
- * Choose which firmware variant you want to use (see below).
- * Copy the firmware file (`acsi2stm-VERSION-VARIANT.ino.bin`) or rename it to
-   `HDDFLASH.BIN`
- * Copy `HDDFLASH.TOS` and `HDDFLASH.BIN` files on any medium readable by the
-   ST (floppy, ACSI drive, GemDrive SD card, ...).
- * On the ST, run `HDDFLASH.TOS`.
- * When prompted, choose the hard drive to update (usually ID 0).
- * Press Y to start flashing.
- * When finished, the ST and the ACSI2STM unit will both restart.
+* Download the release package and unzip it.
+* Choose which firmware variant you want to use (see below).
+* Copy the firmware file (`acsi2stm-VERSION-VARIANT.ino.bin`) and rename it to
+  `HDDFLASH.BIN`
+* Copy `HDDFLASH.TOS` and `HDDFLASH.BIN` files on any medium readable by the
+  ST (floppy, ACSI drive, GemDrive SD card, ...).
+* On the ST, run `HDDFLASH.TOS`.
+* When prompted, choose the hard drive to update (usually ID 0).
+* Press Y to start flashing.
+* When finished, the ST and the ACSI2STM unit will both restart.
 
-Note: when updatin an ACSI2STM unit with multiple SD slots, you can select any
+Note: when updating an ACSI2STM unit with multiple SD slots, you can select any
 slot to update the firmware for the whole unit. No need to do the update
 procedure multiple times.
 
@@ -64,6 +64,8 @@ Compile-time options:
 The standard firmware, with limited debug output. Debug output is on the USART
 port of the STM32 (PA9) at 2Mbps.
 
+Requires 128k of flash on the STM32.
+
 Compile-time options:
 
     #define ACSI_DEBUG 1
@@ -73,8 +75,22 @@ Compile-time options:
 
 The standard firmware, with verbose debug output. Very slow.
 
+Requires 128k of flash on the STM32.
+
 Compile-time options:
 
+    #define ACSI_DEBUG 1
+    #define ACSI_VERBOSE 1
+    #define ACSI_STACK_CANARY 4096
+
+### acsi2stm-XXXX-strictverbose.ino.bin
+
+Same as the strict variant, with verbose debug output. Requires only 64k of
+flash on the STM32, unlike the full featured verbose variant.
+
+Compile-time options:
+
+    #define ACSI_STRICT 1
     #define ACSI_DEBUG 1
     #define ACSI_VERBOSE 1
     #define ACSI_STACK_CANARY 4096

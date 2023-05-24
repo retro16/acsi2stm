@@ -83,6 +83,16 @@ Long Tos::Mfree(ToLong block) {
   return gemdos(Mfree_op, p);
 }
 
+Long Tos::Pexec_4(ToLong basepage) {
+  Pexec_4_p p;
+  p.mode = 4;
+  p.z1 = 0;
+  p.basepage = basepage;
+  p.z2 = 0;
+  verbose("Pexec(4)\n");
+  return gemdos(Pexec_op, p);
+}
+
 Long Tos::Pexec_5(ToLong cmdline, ToLong env) {
   Pexec_5_p p;
   p.mode = 5;
@@ -90,6 +100,16 @@ Long Tos::Pexec_5(ToLong cmdline, ToLong env) {
   p.cmdline = cmdline;
   p.env = env;
   verbose("Pexec(5)\n");
+  return gemdos(Pexec_op, p);
+}
+
+Long Tos::Pexec_6(ToLong basepage) {
+  Pexec_6_p p;
+  p.mode = 6;
+  p.z1 = 0;
+  p.basepage = basepage;
+  p.z2 = 0;
+  verbose("Pexec(6)\n");
   return gemdos(Pexec_op, p);
 }
 
