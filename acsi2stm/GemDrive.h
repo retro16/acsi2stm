@@ -91,7 +91,6 @@ struct TOS_PACKED GemPattern {
 // GemDrive DTA, compatible with TOS DTA
 struct TOS_PACKED GemDriveDTA {
   TinyFile file;
-  uint32_t mediaId;
   GemPattern pattern;
   uint8_t d_attrib;
   Word d_time;
@@ -141,7 +140,7 @@ public:
 };
 
 struct GemFile: public TinyFile {
-  void set(FsFile &parent, FsFile &file, oflag_t oflag, Long basePage, uint32_t mediaId);
+  void set(GemPath &parent, FsFile &file, oflag_t oflag, Long basePage);
 
   FsFile & reopen();
   int32_t read(uint8_t *data, int32_t size);
@@ -152,7 +151,6 @@ struct GemFile: public TinyFile {
   bool isWritable() const;
 
   uint32_t position; // Current seek position
-  uint32_t mediaId;
   Long basePage;
   oflag_t oflag;
 };
@@ -250,7 +248,7 @@ struct GemDrive: public Devices, public Tos {
 
   // Create a file descriptor for a file
   // Returns 0 if not possible
-  Word createFd(FsFile &parent, FsFile &file, oflag_t oflag);
+  Word createFd(GemPath &parent, FsFile &file, oflag_t oflag);
 
   // Static variables
   static const int driveCount = Devices::sdCount;

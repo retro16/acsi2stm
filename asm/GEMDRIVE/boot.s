@@ -17,7 +17,15 @@
 	incdir	..\inc\
 	include	tos.i
 
-	org	0
+start	org	0
+
+	bra.b	syshook.init
+
+	org	2
+	dc.b	0                       ; Patched-in variables
+acsiid	dc.b	$ff                     ; Invalid values to check for correct
+prmoff	dc.w	$ff                     ; patching code in the STM32
+
 	include	syshook.s
 
 end

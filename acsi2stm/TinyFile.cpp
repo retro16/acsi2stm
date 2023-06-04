@@ -23,72 +23,40 @@
 
 #include "TinyFile.h"
 
-uint32_t TinyFile::lastMediaId = 0;
-TinyFile TinyFile::lastTinyFile;
 FsFile TinyFile::lastFile;
 FsFile TinyFile::lastParent;
 
 TinyFile::TinyFile() : index(0) {
 }
 
-TinyFile::TinyFile(FsFile &file): index(file.dirIndex()), dirCluster(getCluster(file)) {}
-
-void TinyFile::set(FsFile &parent, FsFile &file) {
+void TinyFile::set(uint32_t mediaId_, FsFile &parent, FsFile &file) {
+  mediaId = mediaId_;
+  dirCluster = getCluster(parent);
   index = file.dirIndex() + 1;
-  dirCluster = getCluster(parent);
 };
 
-void TinyFile::set(FsFile &parent) {
+void TinyFile::set(uint32_t mediaId_, FsFile &parent) {
+  mediaId = mediaId_;
+  dirCluster = getCluster(parent);
   index = 0;
-  dirCluster = getCluster(parent);
 };
 
-//TMPJM
-#include "Monitor.h"
-FsFile & TinyFile::open(FsVolume &volume, oflag_t oflag, uint32_t mediaId) const {
+FsFile & TinyFile::open(FsVolume &volume, oflag_t oflag) const {
   // Easy case
   if(!index) {
     lastParent.close();
     lastFile.close();
-    lastTinyFile.index = 0;
     return lastFile;
   }
-
-/* TMPJM FIXME
-  // Check cache
-  if(mediaId
-      && lastTinyFile
-      && lastTinyFile == *this
-      && lastFile
-      && (mediaId == lastMediaId || !lastMediaId)
-      && lastParent
-      && (oflag & O_RDWR) ?
-        // Read-write check
-        lastFile.isWritable() :
-        // Read-only check
-        (lastFile.isDir() || !lastFile.isWritable())
-      ) {
-    // Optimized !
-Monitor::dbg("TMPJM optim\n");
-    lastMediaId = mediaId;
-    return lastFile;
-  }
-*/
 
   // Open the parent directory
   openParent(volume);
 
   // Find the file with the correct index
-  if(!lastParent) {
-    lastTinyFile.index = 0;
+  if(!lastParent)
     return lastFile;
-  }
 
   lastFile.open(&lastParent, index - 1, oflag);
-
-  // Update cache
-  lastMediaId = mediaId;
-  lastTinyFile = *this;
 
   return lastFile;
 }
@@ -131,8 +99,6 @@ FsFile & TinyFile::openNext(FsVolume &volume, oflag_t oflag) {
 }
 
 FsFile & TinyFile::openParent(FsVolume &volume) const {
-  lastTinyFile.index = 0; // Clear cache
-
   if(!dirCluster) {
     // File is in the root directory
     lastParent.openRoot(&volume);
@@ -152,10 +118,6 @@ FsFile & TinyFile::openParent(FsVolume &volume) const {
 
 void TinyFile::close() {
   index = 0;
-  if(lastTinyFile == *this) {
-    lastFile.close();
-    lastParent.close();
-  }
 }
 
 uint32_t TinyFile::getCluster(FsFile &file) {
@@ -180,9 +142,4 @@ void TinyFile::setCluster(FsFile &file, uint32_t cluster) {
     file.m_fFile->m_firstCluster = cluster;
   else
     file.m_xFile->m_firstCluster = cluster;
-}
-
-void TinyFile::clearCache() {
-  lastFile.close();
-  lastTinyFile.index = 0;
 }

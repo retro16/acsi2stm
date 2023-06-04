@@ -31,14 +31,9 @@ resreg	macro
 	; Stack offset introduced by savereg
 spoff	equ	5*4
 
-	bra.b	syshook.init
-
-	dc.b	0                       ; Patched-in variables
-acsiid	dc.b	$ff                     ; Invalid values to check for correct
-prmoff	dc.w	$ff                     ; patching code in the STM32
-
 syshook.init:
 	savereg	                        ; Save registers
+	moveq	#0,d0                   ;
 	move.b	d7,d0                   ; Send a command with the correct id
 	bra.w	syshook.sendcmd
 
@@ -50,7 +45,7 @@ syshook.setprm:
 	beq.b	.usp                    ; Branch if user mode
 
 	move.w	prmoff(pc),d2           ; Fetch parameter offset
-	lea	8+spoff(sp,d2),a2       ; Compute pointer to call parameters
+	lea	8+spoff(sp,d2.w),a2     ; Compute pointer to call parameters
 	rts
 
 .usp	move	usp,a2                  ; Point at USP directly
@@ -110,11 +105,11 @@ syshook.sendcmd:
 	st	flock.w                 ; Lock floppy controller
 	bsr.w	syshook.setdmaaddr      ; Set DMA address on chip
 
-	move.l	#$00ff0188,(a0)         ; Send 255 blocks. Switch to command.
+	move.w	#$00ff,(a0)             ; Send 255 blocks.
+	move.w	#$0188,(a1)             ; Switch to command.
 	move.l	#$01000000,d1           ;
-	move.b	d0,d1                   ;
-	swap	d1                      ; d1 = 00cc0100
-	move.l	d1,(a0)                 ; Send command to the STM32
+	move.w	d0,(a0)                 ; Send command byte to the STM32
+	move.w	#$0100,(a1)             ; Start DMA
 
 syshook.reply:
 	; Handle single byte reply
@@ -135,22 +130,16 @@ syshook.reply:
 	; Fall through syshook.return
 syshook.return:
 	; Return from interrupt
-	bsr.b	syshook.onexit          ; Release hardware
+	sf	flock.w                 ; Unlock floppy controller
 	resreg	                        ; Restore registers
 	addq	#4,sp                   ; Pop forward address
 	rte	                        ; Return
 
 syshook.forward:
 	; Command $8b: forward the call to the next handler
-	bsr.b	syshook.onexit          ; Release hardware
+	sf	flock.w                 ; Unlock floppy controller
 	resreg	                        ; Restore registers
 	rts	                        ; Jump to forwarding address
-
-syshook.onexit:
-	move.w	#$0190,dmactrl.w        ; Reset DMA controller
-	move.l	#$0000008a,dma.w        ;
-	sf	flock.w                 ; Unlock floppy controller
-	rts
 
 syshook.execcmd:
 	; Received a command in d0
@@ -193,7 +182,7 @@ syshook.pexec6:
 	; Fall through syshook.pexec
 
 syshook.pexec:
-	bsr.b	syshook.onexit          ; Release hardware
+	sf	flock.w                 ; Unlock floppy controller
 
 	; Patch the current Pexec call, then forward
 	bsr.w	syshook.setprm          ; Point at Pexec parameters
@@ -297,7 +286,7 @@ syshook.setdmaaddr:
 
 ; Variables
 syshook.dmareg	dc.w	dmadata,dmactrl ; DMA port addresses
-syshook.oldd0	ds.w	0               ; Temporary storage for d0
+syshook.oldd0	ds.w	1               ; Temporary storage for d0
 	
 
 ; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm68k tw=80

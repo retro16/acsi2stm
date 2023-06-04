@@ -37,15 +37,15 @@ struct __attribute__((__packed__)) TinyFile {
   }
 
   // Point this TinyFile at a file
-  void set(FsFile &parent, FsFile &file);
+  void set(uint32_t mediaId, FsFile &parent, FsFile &file);
 
   // Point this TinyFile at the beginning of a folder
-  void set(FsFile &parent);
+  void set(uint32_t mediaId, FsFile &parent);
 
   // Acquires the file.
   // If mediaId is set, enables the acquire cache, speeding up things a lot.
   // WARNING: returns a reference to a static variable.
-  FsFile & open(FsVolume &volume, oflag_t oflag = O_RDONLY, uint32_t mediaId = 0) const;
+  FsFile & open(FsVolume &volume, oflag_t oflag = O_RDONLY) const;
 
   // If the file is null, open the first file in directory
   // If the file is not null, open the next file in directory
@@ -61,19 +61,15 @@ struct __attribute__((__packed__)) TinyFile {
   static uint32_t getCluster(FsFile &file);
   static void setCluster(FsFile &file, uint32_t cluster);
 
-  // Invalidate cached file
-  static void clearCache();
-
-  uint16_t index;
+  uint32_t mediaId;
   uint32_t dirCluster;
+  uint16_t index;
 
   // Special values for index
   static const uint16_t CURRENT = 0xffff;
   static const uint16_t PARENT = 0xfffe;
   static const uint16_t VOLUME = 0xfffd;
 
-  static uint32_t lastMediaId;
-  static TinyFile lastTinyFile;
   static FsFile lastFile;
   static FsFile lastParent;
 };

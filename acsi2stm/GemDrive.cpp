@@ -25,10 +25,14 @@
 #include "Devices.h"
 #include "BlockDev.h"
 
+#if ! ACSI_STRICT
+
 const
 #include "GEMDRIVE.boot.h"
 
-#if ! ACSI_STRICT
+// Offsets for variables to patch in the GEMDRIVE payload
+static const int GEMDRIVE_boot_acsiid = 3;
+static const int GEMDRIVE_boot_prmoff = 4;
 
 // Static variables
 GemFile GemDrive::files[GemDrive::filesMax]; // File descriptors
@@ -97,6 +101,7 @@ bool GemPath::parent() {
 
 void GemPath::clear() {
   indexes[0] = 0;
+  mediaId = sd.mediaId();
   openRoot(&sd.fs);
 }
 
@@ -120,16 +125,17 @@ bool GemPath::append(FsFile &f) {
 }
 
 bool GemPath::openPath(const char *path, GemPattern &last, bool parseLastName) {
-  if(mediaId != sd.mediaId()) {
-    // Disk swapped
-    if(!isRoot())
-      // The only guaranteed valid path is the root path
-      return false;
-  }
-
   if(*path == '\\') {
     ++path;
     clear();
+  } else if(mediaId != sd.mediaId()) {
+    // Disk swapped
+
+    if(!isRoot())
+      // The only guaranteed valid path is the root path
+      return false;
+
+    mediaId = sd.mediaId();
   }
 
   for(;;) {
@@ -326,10 +332,9 @@ bool GemPath::isContainedBy(FsFile &file) const {
   return false;
 }
 
-void GemFile::set(FsFile &parent, FsFile &file, oflag_t oflag_, Long basePage_, uint32_t mediaId_) {
-  TinyFile::set(parent, file);
+void GemFile::set(GemPath &parent, FsFile &file, oflag_t oflag_, Long basePage_) {
+  TinyFile::set(parent.mediaId, parent, file);
   position = 0;
-  mediaId = mediaId_;
   basePage = basePage_;
   oflag = oflag_;
 }
@@ -340,7 +345,7 @@ FsFile & GemFile::reopen() {
     lastFile.close();
     return lastFile;
   }
-  FsFile &file = open(drive->sd.fs, oflag, mediaId);
+  FsFile &file = open(drive->sd.fs, oflag);
   if(!file.seek(position)) {
     close();
     file.close();
@@ -792,7 +797,7 @@ void GemDrive::process(uint8_t cmd) {
         memcpy(buf, GEMDRIVE_boot_bin, GEMDRIVE_boot_bin_len);
 
         // Patch ACSI id
-        buf[3] = SdDev::gemBootDrive << 5;
+        buf[GEMDRIVE_boot_acsiid] = SdDev::gemBootDrive << 5;
 
         // Patch checksum
         buf[ACSI_BLOCKSIZE - 2] = 0;
@@ -856,11 +861,11 @@ void GemDrive::onBoot() {
   memcpy(buf, GEMDRIVE_boot_bin, GEMDRIVE_boot_bin_len);
 
   // Patch ACSI id
-  buf[3] = SdDev::gemBootDrive << 5;
+  buf[GEMDRIVE_boot_acsiid] = SdDev::gemBootDrive << 5;
 
   // Patch parameter offset
   verbose("Query longframe\n");
-  buf[5] = _longframe() ? 8 : 6;
+  buf[GEMDRIVE_boot_prmoff + 1] = _longframe() ? 8 : 6;
 
   // Upload the driver to resident memory
   verbose("Allocate memory\n");
@@ -944,6 +949,9 @@ void GemDrive::onBoot() {
   for(d = 0; d < driveCount; ++d) {
     if(Devices::sdSlots[d].mode != SdDev::GEMDRIVE)
       continue;
+
+    // Reset current path to root
+    Devices::drives[d].curPath.clear();
 
     buf[1] = ':';
     buf[2] = ' ';
@@ -1196,7 +1204,7 @@ bool GemDrive::onDdelete(const Tos::Ddelete_p &p) {
     return rte(EPTHNF);
 
   if(!dir.isSubDir())
-    return rte(EACCDN); // TMPJM : check this with the test matrix
+    return rte(EACCDN);
 
   // TODO: check if any file is open in the directory
 
@@ -1470,8 +1478,6 @@ bool GemDrive::onFdelete(const Tos::Fdelete_p &p) {
     // Incompatible character
     return rte(EACCDN);
 
-  TinyFile::clearCache();
-
   dbg("-> ", unicodeName, ' ');
   if(!drive->sd.fs.exists(unicodeName))
     return rte(EFILNF);
@@ -1614,8 +1620,7 @@ bool GemDrive::onFsfirst(const Tos::Fsfirst_p &p) {
   if(dta.pattern.isEmpty() || dta.pattern.isCurDir() || dta.pattern.isParentDir())
     return rte(EFILNF);
 
-  dta.file.set(parent);
-  dta.mediaId = drive->sd.mediaId();
+  dta.file.set(parent.mediaId, parent);
   dta.attribMask = p.attr;
 
   // Scan the first file
@@ -1626,7 +1631,7 @@ bool GemDrive::onFsnext(const Tos::Fsnext_p &) {
   GemDriveDTA dta;
   readAt(dta, Fgetdta());
 
-  GemDrive *drive = getDrive(dta.mediaId);
+  GemDrive *drive = getDrive(dta.file.mediaId);
   if(!drive)
     return forward();
 
@@ -2156,11 +2161,11 @@ char GemDrive::letter() const {
   return 'A' + id;
 }
 
-Word GemDrive::createFd(FsFile &parent, FsFile &file, oflag_t oflag) {
+Word GemDrive::createFd(GemPath &parent, FsFile &file, oflag_t oflag) {
   for(int i = 0; i < filesMax; ++i) {
     if(!files[i]) {
       // Found a free FD
-      files[i].set(parent, file, oflag, getBasePage(), sd.mediaId());
+      files[i].set(parent, file, oflag, getBasePage());
       return ToWord(0x32 + Devices::acsiFirstId, i);
     }
   }
