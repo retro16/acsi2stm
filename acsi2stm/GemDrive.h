@@ -120,7 +120,7 @@ struct GemPath: public FsFile {
 
   // Returns true if the path points at the root directory
   bool isRoot() const {
-    return !indexes[0];
+    return indexes[0] == 0;
   }
 
   bool openPath(const char *pathStr, GemPattern &last, bool parseLastName = false);

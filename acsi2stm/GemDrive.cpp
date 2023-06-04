@@ -195,16 +195,16 @@ bool GemPath::openFile(const GemPattern &name, FsFile &file, oflag_t oflag) {
 }
 
 int GemPath::toAtari(char *out, int bufSize) const {
-  if(mediaId != sd.mediaId()) {
-    // Disk swapped
-    *out = 0;
-    return -1;
-  }
-
   if(isRoot()) {
     out[0] = '\\';
     out[1] = 0;
     return 1;
+  }
+
+  if(mediaId != sd.mediaId()) {
+    // Disk swapped
+    *out = 0;
+    return -1;
   }
 
   FsFile f[2];
