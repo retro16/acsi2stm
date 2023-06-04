@@ -96,7 +96,7 @@ void loop() {
       Monitor::dbgHex("GDRV", deviceId, ':', cmd, ' ');
 #endif
       if(cmd == 0x08 && deviceIndex != SdDev::gemBootDrive)
-        Monitor::dbg("Ignore non-boot\n");
+        Monitor::dbg("Ignore non-boot");
       else if(cmd == 0x1f)
         // Extended commands allow accessing the device in ACSI mode while
         // keeping it reasonably hidden from other tools.
@@ -107,6 +107,7 @@ void loop() {
       else
         // Handles GEMDOS trap as well as boot sector loader
         GemDrive::process(cmd);
+      Monitor::dbg('\n');
     } else
 #endif
     if(mask & SdDev::acsiDeviceMask) {
@@ -114,6 +115,7 @@ void loop() {
       Monitor::dbg("ACSI", deviceId, ':');
 #endif
       Devices::acsi[deviceIndex].process(cmd);
+      Monitor::dbg('\n');
     } else {
 #if ! ACSI_VERBOSE
       Monitor::dbg("ACSI", deviceId, ':');

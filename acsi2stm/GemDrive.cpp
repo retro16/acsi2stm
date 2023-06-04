@@ -789,7 +789,7 @@ void GemDrive::process(uint8_t cmd) {
 
         if(buf[0] != 0x00 || buf[1] != 0x00 || buf[2] != 0x00 || buf[3] != 0x01 || buf[4] != 0x00) {
           // Not a boot query: send the 'no operation' SCSI status
-          dbg("non-boot query\n");
+          dbg("non-boot query ");
           DmaPort::sendIrq(0x08);
         }
 
@@ -843,7 +843,7 @@ void GemDrive::process(uint8_t cmd) {
 
     default:
       // For unknown commands, play dead to avoid confusing other drivers
-      dbg("Unknown command\n");
+      dbg("Unknown command ");
       break;
   }
 }
@@ -851,7 +851,7 @@ void GemDrive::process(uint8_t cmd) {
 void GemDrive::onBoot() {
   int d;
 
-  dbg("GemDrive boot\n");
+  dbg("GemDrive boot ");
 
   // Update phystop for this machine
   verbose("Read phystop\n");
@@ -934,7 +934,6 @@ void GemDrive::onBoot() {
   verbose("Get boot drive\n");
   setCurDrive(Dgetdrv());
 
-  dbg("Mount SD\n");
   // Compute first drive letter
 #if ACSI_GEMDRIVE_FIRST_LETTER
   static const int firstDriveLetter = ACSI_GEMDRIVE_FIRST_LETTER;
@@ -947,8 +946,16 @@ void GemDrive::onBoot() {
 #endif
   uint32_t drvbits = _drvbits();
   for(d = 0; d < driveCount; ++d) {
-    if(Devices::sdSlots[d].mode != SdDev::GEMDRIVE)
+    if(Devices::sdSlots[d].mode == SdDev::DISABLED)
       continue;
+
+    if(Devices::sdSlots[d].mode == SdDev::ACSI) {
+      dbg("ACSI mode\n");
+      continue;
+    }
+
+    // Reinitialize the SD card
+    Devices::sdSlots[d].init();
 
     // Reset current path to root
     Devices::drives[d].curPath.clear();
@@ -962,7 +969,14 @@ void GemDrive::onBoot() {
 
         buf[0] = 'A' + i;
         Devices::sdSlots[d].getDeviceString((char *)&buf[3]);
-        memcpy(&buf[27], "\r\n", 3);
+#if ACSI_DEBUG
+        buf[27] = '\n';
+        buf[28] = 0;
+        dbg("-> ", (const char *)buf);
+#endif
+        buf[27] = '\r';
+        buf[28] = '\n';
+        buf[29] = 0;
         tosPrint((const char *)buf);
 
         break;
@@ -975,12 +989,16 @@ void GemDrive::onBoot() {
   // Set boot drive on the ST
   for(d = 0; d < driveCount; ++d) {
     if(Devices::sdSlots[d].mode == SdDev::GEMDRIVE && Devices::sdSlots[d].mediaId()) {
+      dbg("Boot on ");
       setCurDrive(Devices::drives[d].id);
       _bootdev(Devices::drives[d].id);
       Dsetdrv(Devices::drives[d].id);
-      dbg("Set boot drive to ", Devices::drives[d].letter(), ":\n");
+      memcpy(buf, "\r\nBoot on ?:\r\n\r\n", 17);
+      buf[10] = Devices::drives[d].letter();
+      tosPrint((const char *)buf);
       break;
     }
+    dbg('\n');
   }
 
   // Continue boot sequence
@@ -1882,7 +1900,7 @@ void GemDrive::closeProcessFiles() {
     }
   }
 #if ACSI_DEBUG
-  dbg("Leaked ", total, " fd\n");
+  dbg("Leaked ", total, " fd ");
 #endif
 }
 
@@ -1968,7 +1986,7 @@ uint32_t GemDrive::loadPrg(FsFile &prgFile, Long cmdline, Long env, uint32_t &ba
     basepage = Pexec_7(ph.ph_prgflags, cmdline, env);
 
   if(!isDma(basepage)) {
-    dbg("Can't load here\n");
+    dbg("Not in ST RAM ");
     Mfree(basepage);
     return EIMBA;
   }

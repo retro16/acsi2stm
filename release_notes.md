@@ -147,8 +147,8 @@ Pushed back for a later release
 * Test/fix Pexec command-line that seems to be broken (1 / 2 extra bytes)
 * Fix top RAM allocation. I missed something. Need help.
 * Fix the `GEMDRIVE.TOS` loader that releases its hooks memory !
+  * Need to use Pexec / Ptermres instead of Malloc.
 * Support for using GemDrive from within EmuTOS.
-* SYS file loader (For EMUTOS and ICD driver).
 * Support for unicode file names. (may not fit in flash)
 * Work around long delay on boot (long timeout on ACSI id 1 by TOS)
 
@@ -163,4 +163,5 @@ Features that can't be implemented / unfixable bugs
 * Implement filesystem label in Fsfirst/Fsnext: SdFat doesn't expose this.
 * The SdFat library has issues with 8.3 long file names. For example, lower case
   file names aren't correctly handled.
+* SYS file loader: not enough room in the boot sector.
 

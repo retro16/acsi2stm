@@ -371,17 +371,17 @@ Long SysHook::readLongAtIndirect(ToLong source) {
 void SysHook::rte(int8_t value) {
   if(value <= (int8_t)0x8b)
     rte(ToLong(value));
-  dbgHex("rte (quick ", (uint32_t)(uint8_t)value, ")\n");
+  dbgHex("rte (quick ", (uint32_t)(uint8_t)value, ") ");
   DmaPort::sendIrq(value);
 }
 
 void SysHook::forward() {
-  dbg("forward\n");
+  dbg("forward ");
   DmaPort::sendIrq(0x8b);
 }
 
 void SysHook::rte(ToLong value) {
-  dbgHex("rte(", (uint32_t)value, ")\n");
+  dbgHex("rte(", (uint32_t)value, ") ");
   uint8_t bytes[5];
   bytes[0] = 0x8a;
   bytes[1] = value.bytes[0];
@@ -392,7 +392,7 @@ void SysHook::rte(ToLong value) {
 }
 
 void SysHook::pexec4ThenRte(ToLong pd) {
-  dbg("pexec4\n");
+  dbg("pexec4 ");
   uint8_t bytes[5];
   bytes[0] = 0x88;
   bytes[1] = pd.bytes[0];
@@ -403,7 +403,7 @@ void SysHook::pexec4ThenRte(ToLong pd) {
 }
 
 void SysHook::pexec6ThenRte(ToLong pd) {
-  dbg("pexec6\n");
+  dbg("pexec6 ");
   uint8_t bytes[5];
   bytes[0] = 0x86;
   bytes[1] = pd.bytes[0];

@@ -887,7 +887,7 @@ void DmaPort::quickReset() {
   delayMicroseconds(50);
 
   // Display a nice message
-  Acsi::dbg("\n\n -- Quick reset --\n\n");
+  Acsi::dbg("\n\n--- Quick reset ---\n\n");
 
   // Jump back to the main loop
   longjmp(resetJump, 1);

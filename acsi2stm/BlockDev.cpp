@@ -68,6 +68,89 @@ void SdDev::reset() {
   bootable = false;
 }
 
+void SdDev::init() {
+  reset();
+
+  // Set wp pin as input pullup to read write lock later
+  pinMode(wpPin, INPUT_PULLUP);
+
+  dbg("SD", slot, ' ');
+
+  unsigned int rate;
+  for(rate = 0; rate < sizeof(sdRates)/sizeof(sdRates[0]); ++rate) {
+    lastMediaCheckTime = millis();
+    lastMediaId = 0;
+
+    for(int i = 0; i < 2; ++i)
+      if(card.begin(SdSpiConfig(csPin, SHARED_SPI, sdRates[rate], &SPI)))
+        goto beginOk;
+      else
+        delay(10);
+
+    verbose("error ");
+    continue;
+
+beginOk:
+    dbg(sdRates[rate] / SD_SCK_MHZ(1), "MHz ");
+
+    // Get SD card identification to test communication
+    cid_t cid;
+    if(!card.readCID(&cid)) {
+      verbose("CID error ");
+      continue;
+    }
+
+    // Get SD card size
+    blocks = card.sectorCount();
+
+#if ACSI_MAX_BLOCKS
+    if(blocks > ACSI_MAX_BLOCKS)
+      blocks = ACSI_MAX_BLOCKS;
+#endif
+
+    if(!blocks) {
+      verbose("no block ");
+      continue;
+    }
+
+    // Get writable pin status
+#if !ACSI_SD_WRITE_LOCK
+    writable = true;
+#elif ACSI_SD_WRITE_LOCK == 1
+    writable = digitalRead(wpPin);
+#elif ACSI_SD_WRITE_LOCK == 2
+    writable = !digitalRead(wpPin);
+#endif
+
+    mediaId(true);
+
+    // Open the file system
+    if(fs.begin(&card))
+      image.open(ACSI_IMAGE_FILE);
+
+    // Check if bootable
+    if(!(*this)->updateBootable()) {
+      verbose("read error ");
+      continue;
+    }
+
+    dbg(blocks, " blocks ", writable ? "rw ":"ro ");
+    if(image)
+      dbg("image ");
+    else if(fs.fatType())
+      dbg("mountable ");
+    if(bootable)
+      dbg("bootable ");
+
+    break;
+  }
+
+  if(!lastMediaId) {
+    dbg("no SD ");
+    reset();
+  }
+}
+
 void SdDev::onReset() {
   // Detach from ACSI bus
   acsiDeviceMask &= ~(1 << slot);
@@ -89,6 +172,7 @@ void SdDev::onReset() {
   // Try to initialize the SD card
   mode = ACSI; // Enable the slot
   init();
+  dbg('\n');
 
   // Sense mode
   if(!Devices::strict) {
@@ -120,91 +204,6 @@ void SdDev::onReset() {
   if(mode == ACSI)
     acsiDeviceMask |= (1 << slot);
 }
-
-void SdDev::init() {
-  reset();
-
-  // Set wp pin as input pullup to read write lock later
-  pinMode(wpPin, INPUT_PULLUP);
-
-  unsigned int rate;
-  for(rate = 0; rate < sizeof(sdRates)/sizeof(sdRates[0]); ++rate) {
-    lastMediaCheckTime = millis();
-    lastMediaId = 0;
-
-    dbg("SD", slot, ' ');
-    if(!card.begin(SdSpiConfig(csPin, SHARED_SPI, sdRates[rate], &SPI))) {
-      // Don't retry at slower speed because begin()
-      // already works at low speed.
-      dbg("no sd card\n");
-
-      // Refresh mediaId cache
-      break;
-    }
-
-    dbg(sdRates[rate] / SD_SCK_MHZ(1), "MHz ");
-
-    // Give some time to the internal SD electronics to initialize properly
-    // Not sure if this is required. Pretty sure it's not.
-    delay(20);
-
-    // Get SD card identification to test communication
-    cid_t cid;
-    if(!card.readCID(&cid)) {
-      dbg("CID error\n");
-      continue;
-    }
-
-    // Get SD card size
-    blocks = card.sectorCount();
-
-#if ACSI_MAX_BLOCKS
-    if(blocks > ACSI_MAX_BLOCKS)
-      blocks = ACSI_MAX_BLOCKS;
-#endif
-
-    if(!blocks) {
-      dbg("returns 0 block\n");
-      continue;
-    }
-
-    // Get writable pin status
-#if !ACSI_SD_WRITE_LOCK
-    writable = true;
-#elif ACSI_SD_WRITE_LOCK == 1
-    writable = digitalRead(wpPin);
-#elif ACSI_SD_WRITE_LOCK == 2
-    writable = !digitalRead(wpPin);
-#endif
-
-    mediaId(true);
-
-    // Open the file system
-    if(fs.begin(&card))
-      image.open(ACSI_IMAGE_FILE);
-
-    // Check if bootable
-    if(!(*this)->updateBootable()) {
-      dbg("read error\n");
-      continue;
-    }
-
-    dbg(blocks, " blocks ", writable ? "rw":"ro");
-    if(image)
-      dbg(" image");
-    else if(fs.fatType())
-      dbg(" mountable");
-    if(bootable)
-      dbg(" bootable");
-    dbg('\n');
-
-    break;
-  }
-
-  if(!lastMediaId)
-    reset();
-}
-
 
 bool SdDev::readStart(uint32_t block) {
   if(!mediaId())

@@ -87,6 +87,8 @@ public:
     wpPin(wpPin_) {}
   SdDev(SdDev&&);
 
+  void init(); // Initialize
+
   void onReset(); // Called at Atari reset
 
   void getDeviceString(char *target);
@@ -133,7 +135,6 @@ protected:
   uint32_t lastMediaId;
   uint32_t lastMediaCheckTime;
   void reset();
-  void init();
 #if ! ACSI_STRICT
   void updateGemBootDrive();
 #endif
