@@ -93,7 +93,7 @@ main:	print	.header
 
 	crlf
 .devrq	print	.askid                  ;
-	gemdos	Cconin,2                ; Read drive letter
+	gemdos	Cnecin,2                ; Read drive letter
 
 	cmp.b	#$1b,d0                 ; Exit if pressed Esc
 	beq	.exit                   ;

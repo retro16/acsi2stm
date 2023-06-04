@@ -843,7 +843,7 @@ void GemDrive::process(uint8_t cmd) {
 
     default:
       // For unknown commands, play dead to avoid confusing other drivers
-      dbg("Unknown command ");
+      dbg("Ignore command ");
       break;
   }
 }

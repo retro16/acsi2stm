@@ -60,12 +60,12 @@ void Acsi::process(uint8_t cmd) {
     // Slot disabled: unplug the device completely
     return;
 
+  readCmdBuf(cmd);
+
   refresh();
   if(blockDev.slot < 0)
-    // Slot may have been disabled by refresh()
+    // Slot has been disabled by refresh()
     return;
-
-  readCmdBuf(cmd);
 
 #if ACSI_VERBOSE
   dumpln(cmdBuf, cmdLen, 0);

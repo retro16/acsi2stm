@@ -1,7 +1,5 @@
-**4.0f: RELEASE CANDIDATE**
-
-4.0: A giant leap for ST-kind
-=============================
+4.00: A giant leap for ST-kind
+==============================
 
 Why version 4.0 ?
 -----------------
@@ -128,14 +126,15 @@ Changes since 3.01
   * Removed the setup tool
   * Removed the image creation tool
 * Added GemDrive mode (TOS >= 1.04 "rainbow TOS" recommended)
-* Added a tool to test TOS filesystem functions: `TOSTEST.TOS`
-  * Uses TOS 2.06 floppy access as a reference implementation
-  * Hatari is currently not fully compliant
-* Added a tool to stress test ACSI drives: `ACSITEST.TOS`
 * Added `ACSI_A1_WORKAROUND` to increase compatibility with TOS 1.0 and the
   2008 PP driver.
 * Added support for flashing firmware.
+* Added `TOSTEST.TOS` to test TOS filesystem functions.
+  * Uses TOS 2.06 floppy access as a reference implementation
+  * Hatari is currently not fully compliant
+* Added `ACSITEST.TOS` to stress test ACSI drives.
 * Added the `HDDFLASH.TOS` utility to flash ACSI devices, including ACSI2STM.
+* Added the `SWAPTEST.TOS` to stress test GemDrive swapping.
 
 
 Pushed back for a later release
