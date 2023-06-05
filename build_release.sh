@@ -34,6 +34,9 @@ fi
 
 outdir="$(readlink -fs "$PWD")"
 
+# Update the STM32 core
+git -C "$HOME/Arduino/hardware/Arduino_STM32" pull
+
 export KEEP_BUILD
 builddir="$outdir/build.release~"
 zipdir="acsi2stm-$VERSION-release"

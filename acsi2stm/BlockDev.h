@@ -25,6 +25,12 @@
 // Block device generic interface
 class BlockDev: public Monitor, public Devices {
 public:
+  enum MediaIdMode {
+    NORMAL, // Refresh cache after some time has passed
+    FORCE, // Don't use cache, don't reinit a failed drive
+    CACHED, // Return the value in cache
+  };
+
   // Read/write functions
   virtual bool readStart(uint32_t block) = 0;
   virtual bool readData(uint8_t *data, int count = 1) = 0;
@@ -37,7 +43,7 @@ public:
   // Return a (hopefully) unique id for this media
   // Returns 0 if no device is present
   // Also serves as a device state detection and refresh
-  virtual uint32_t mediaId(bool force = false) = 0;
+  virtual uint32_t mediaId(MediaIdMode mode = NORMAL) = 0;
 
   // Size in 512 bytes blocks
   uint32_t blocks;
@@ -67,7 +73,7 @@ public:
   virtual bool writeData(const uint8_t *data, int count = 1);
   virtual bool writeStop();
   virtual bool isWritable();
-  virtual uint32_t mediaId(bool force = false);
+  virtual uint32_t mediaId(MediaIdMode mode = NORMAL);
 
   SdDev &sd;
   FsBaseFile image;
@@ -105,7 +111,7 @@ public:
   virtual bool writeData(const uint8_t *data, int count = 1);
   virtual bool writeStop();
   virtual bool isWritable();
-  virtual uint32_t mediaId(bool force = false);
+  virtual uint32_t mediaId(MediaIdMode = NORMAL);
 
   // Permanently disable the slot
   void disable();

@@ -20,9 +20,7 @@
 
 #include "acsi2stm.h"
 
-#if ACSI_RTC
 #include <RTClock.h>
-#endif
 
 // ACSI protocol block size
 #define ACSI_BLOCKSIZE 512
@@ -50,9 +48,10 @@ struct Devices {
 #endif
 
   // Realtime clock
-#if ACSI_RTC
   static RTClock rtc;
-#endif
+  static void getDateTime(uint16_t *date, uint16_t *time);
+  static void setDateTime(uint16_t date, uint16_t time);
+  static bool isDateTimeSet();
 
 #if ACSI_STRICT
   static const bool strict = true;

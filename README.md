@@ -116,3 +116,4 @@ feedback, contributing to make the project better.
 * All people contributing on GitHub, for their code, their ideas, the issues
   they submit, and their patience when things fail !
 * Olivier Jan for the Mega STE PCB.
+* Tomasz Orczyk for finding a way to have a much better version of GCC.

@@ -13,9 +13,13 @@ Software needed
 Installing software
 -------------------
 
-Install the [STM32 library](https://github.com/rogerclarkmelbourne/Arduino_STM32/wiki/Installation).
-The doc says that it only works on Arduino 1.8.5 but that works with more
-recent versions too, including Arduino 2.x.
+Clone/download the Arduino_STM32 library to your Arduino/hardware folder.
+Use the [master](https://github.com/rogerclarkmelbourne/arduino_stm32/tree/master)
+branch of the project for the most up to date version.
+
+In the Tools / Board / Board manager, install "Arduino Mbed OS RP2040".
+Thanks to Tomasz Orczyk for finding that this board provides a much better
+compiler than the recommended Arduino SAM boards.
 
 In the Tools / Manage Libraries menu of the Arduino interface, search for
 "SdFat" and install "SdFat - AdaFruit Fork".
@@ -33,6 +37,9 @@ If you have different options in the Tools menu, it may be because you don't
 have the correct board installed.
 
 Then, you will be able to upload the program to the STM32.
+
+Instructions are a bit different for Arduino 2.x, but it's basically the same
+idea.
 
 
 Programming the STM32

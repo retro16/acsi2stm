@@ -23,18 +23,21 @@ Benefits
 * Everything that runs on Hatari GEMDOS drives should run on GemDrive.
 * Imitates GEMDOS much more closely than Hatari, especially weird error codes.
   It is even closer to TOS than EmuTOS in some unimportant areas.
+* Translates all Atari characters to matching unicode characters. Fuji logo and
+  "Bob" characters are translated to blocks that get converted back properly.
+  Some usual non-atari unicode characters are transliterated to Atari
+  equivalents.
 
 
 Limitations
 -----------
 
 * Truncates long file names, as TOS doesn't support them.
-* Only supports ASCII characters in file names, no intl support.
 * Only one partition per SD card.
 * Works around some TOS limitations by using (relatively safe) heuristics,
   but there may be issues in some very extreme corner cases.
 * Hooks the whole system unconditionally: may decrease performance in some
-  cases. Also, the STM32 can stall the whole TOS in case of error.
+  extreme cases. Also, the STM32 can stall the whole TOS in case of error.
 * TOS versions below 1.04 (Rainbow TOS) lack necessary APIs to implement Pexec
   properly, meaning that running a program will leak a small amount of RAM.
   This is also the case in Hatari.
@@ -67,7 +70,7 @@ providing a boot sector through the first GemDrive slot only (to avoid loading
 the driver multiple times). All further GemDrive communication will go through
 the ACSI id matching this slot.
 
-If no SD card is present, GemDrive mode is enabled, because it supports hot
+If no SD card is present, GemDrive mode is enabled because it supports hot
 inserting and hot swapping cards.
 
 If GemDrive detects a bootable SD card, it will shift its drive letters to L:
@@ -97,7 +100,7 @@ To mix GemDrive with ICD PRO, you must proceed like this:
 The GemDrive driver will boot before the ICD PRO driver. GemDrive will use L:
 and above as drive letters.
 
-### Mixing GemDrive and theP PP driver
+### Mixing GemDrive and the PP driver (ACSID07)
 
 To mix GemDrive with the PP driver, proceed like this:
 
@@ -141,6 +144,8 @@ so the whole algorithm is actually implemented in the STM32.
 The STM32 decodes the trap call, then can decide to either implement it, or to
 forward the call to the TOS.
 
+The communication protocol is detailed in [protocols.md](protocols.md).
+
 
 Future improvements
 -------------------
@@ -150,5 +155,3 @@ Things that could be done more or less easily:
 * Install the driver in top RAM.
 * Floppy drive emulator, by hooking BIOS and XBIOS calls.
 * Hook Pexec on ST files to boot a floppy image by double-clicking it in GEM.
-* Support international character sets for filename translation, based on the
-  language of the machine.

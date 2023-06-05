@@ -124,7 +124,7 @@ beginOk:
     writable = !digitalRead(wpPin);
 #endif
 
-    mediaId(true);
+    mediaId(FORCE);
 
     // Open the file system
     if(fs.begin(&card))
@@ -325,12 +325,16 @@ bool SdDev::isWritable() {
   return writable;
 }
 
-uint32_t SdDev::mediaId(bool force) {
+uint32_t SdDev::mediaId(BlockDev::MediaIdMode mediaIdMode) {
   if(mode == DISABLED)
     return 0;
 
+  if(mediaIdMode == BlockDev::CACHED && !lastMediaId)
+    // Don't refresh cache if known to have an empty slot
+    return 0;
+
   uint32_t now = millis();
-  if(!force) {
+  if(mediaIdMode == BlockDev::NORMAL) {
     if(now - lastMediaCheckTime <= mediaCheckPeriod)
       return lastMediaId;
   }
@@ -342,7 +346,7 @@ uint32_t SdDev::mediaId(bool force) {
   if(!card.readCID(&cid)) {
     // SD has an issue
 
-    if(force)
+    if(mediaIdMode == FORCE)
       // The caller wants the truth: don't lie
       return 0;
 
@@ -496,11 +500,11 @@ bool ImageDev::isWritable() {
   return image.isWritable();
 }
 
-uint32_t ImageDev::mediaId(bool force) {
+uint32_t ImageDev::mediaId(BlockDev::MediaIdMode mode) {
   // For now, images cannot be switched on the fly so they cannot change
   // unless the SD card is physically swapped. Derive mediaId from the SD
   // card itself
-  uint32_t id = sd.mediaId(force);
+  uint32_t id = sd.mediaId(mode);
   if(!id || id != sdMediaId) {
     // No medium or SD card swapped: abort ASAP
     close();

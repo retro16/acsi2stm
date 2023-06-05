@@ -83,6 +83,9 @@ int Devices::acsiFirstId = ACSI_FIRST_ID;
 #endif
 
 void Devices::sense() {
+#if ACSI_RTC
+  FsDateTime::setCallback(getDateTime);
+#endif
 #if ! ACSI_STRICT
   strict = digitalRead(PB2);
 #endif
@@ -120,6 +123,31 @@ end:
 #if ! ACSI_STRICT
   GemDrive::closeAll();
 #endif
+}
+
+void Devices::getDateTime(uint16_t *date, uint16_t *time) {
+  tm_t now;
+  rtc.getTime(now);
+  *date = FS_DATE(now.year + 1970, now.month, now.day);
+  *time = FS_TIME(now.hour, now.minute, now.second);
+}
+
+void Devices::setDateTime(uint16_t date, uint16_t time) {
+  tm_t newDateTime;
+  newDateTime.year = (date >> 9) + 1980 - 1970;
+  newDateTime.month = ((date >> 5) & 0x7);
+  newDateTime.day = (date & 0x1f);
+  newDateTime.hour = (time >> 11) & 0x1f;
+  newDateTime.minute = (time >> 5) & 0x3f;
+  newDateTime.second = (time & 0x1f) * 2;
+
+  rtc.setTime(newDateTime);
+}
+
+bool Devices::isDateTimeSet() {
+  tm_t now;
+  rtc.getTime(now);
+  return now.year > 1980 - 1970 && now.year < 2107 - 1970;
 }
 
 void Devices::blocksToString(uint32_t blocks, char *target) {
@@ -162,8 +190,6 @@ int Devices::computeChecksum(uint8_t *block) {
 }
 
 uint8_t Devices::buf[ACSI_BLOCKSIZE * ACSI_BLOCKS];
-#if ACSI_RTC
 RTClock Devices::rtc;
-#endif
 
 // vim: ts=2 sw=2 sts=2 et

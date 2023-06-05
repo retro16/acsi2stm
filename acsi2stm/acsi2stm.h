@@ -22,7 +22,7 @@
 
 // acsi2stm global configuration
 
-#define ACSI2STM_VERSION "4.01"
+#define ACSI2STM_VERSION "4.10"
 
 // Set to 1 to enable debug output on the serial port
 #define ACSI_DEBUG 0
@@ -160,9 +160,11 @@
 #define ACSI_GEMDRIVE_UPPER_CASE 1
 
 // If set, use a fallback character for characters that cannot be converted.
+// The character needs to be encoded in Atari ST encoding.
 // If not set, hide any file that contains incompatible characters in its name.
 // If not set, any unsupported character in Atari filenames will be skipped.
-#define ACSI_GEMDRIVE_FALLBACK_CHAR '_'
+// 0xff encodes a macron, which is easily spotted.
+#define ACSI_GEMDRIVE_FALLBACK_CHAR 0xff
 
 // Hide files with names starting with '.'
 // This is a good idea because dot files are usually hidden in UNIX-like OSes.

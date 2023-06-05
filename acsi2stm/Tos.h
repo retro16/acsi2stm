@@ -277,8 +277,12 @@ struct Tos: public SysHook {
   DECLARE_FUNCTION(Super, 32, (ToLong stack)) {
     Long stack;
   };
+  DECLARE_FUNCTION(Tgetdate, 42, ()) {
+  };
   DECLARE_FUNCTION(Tsetdate, 43, (ToWord date)) {
     Word date;
+  };
+  DECLARE_FUNCTION(Tgettime, 44, ()) {
   };
   DECLARE_FUNCTION(Tsettime, 45, (ToWord time)) {
     Word time;

@@ -30,6 +30,74 @@
 const
 #include "GEMDRIVE.boot.h"
 
+// Character tables
+
+// For all unicode codepoints, 0x1fxxx will be represented as 0xfxxx
+static const uint16_t lowChars[] = {
+  // 0x
+  0x2400, 0x21e7, 0x21e9, 0x21e8, 0x21e6, 0xfbbd, 0xfbbe, 0xfbbf,
+  0x2713, 0xf552, 0xf514, 0x266a, 0x240c, 0x240d, 0xfb4b, 0xfb40,
+  // Map "Fuji" logo characters as 2 triangles so they assemble cleanly.
+
+  // 1x
+  0xfbf0, 0xfbf1, 0xfbf2, 0xfbf3, 0xfbf4, 0xfbf5, 0xfbf6, 0xfbf7,
+  0xfbf8, 0xfbf9, 0x259, 0x241b, 0x259b, 0x259c, 0x2599, 0x259f
+  // Map "Bob Dobbs" as 4 corner block characters, so it stays coherent when
+  // properly assembled.
+};
+
+// Characters 127 and above
+static const uint16_t highChars[] = {
+  // 7f
+  0x2302,
+
+  // 8x
+  0xc7, 0xfc, 0xe9, 0xe2, 0xe4, 0xe0, 0xe5, 0xe7,
+  0xea, 0xeb, 0xe8, 0xef, 0xee, 0xec, 0xc4, 0xc5,
+
+  // 9x
+  0xc9, 0xe6, 0xc6, 0xf4, 0xf6, 0xf2, 0xfb, 0xf9,
+  0xff, 0xd6, 0xdc, 0xa2, 0xa3, 0xa5, 0xdf, 0x192,
+
+  // ax
+  0xe1, 0xed, 0xf3, 0xfa, 0xf1, 0xd1, 0xaa, 0xba,
+  0xbf, 0x2310, 0xac, 0xbd, 0xbc, 0xa1, 0xab, 0xbb,
+
+  // bx
+  0xe3, 0xf5, 0xd8, 0xf8, 0x153, 0x152, 0xc0, 0xc3,
+  0xd5, 0xa8, 0xb4, 0x2020, 0xb6, 0xa9, 0xae, 0x2122,
+
+  // cx
+  0x133, 0x132, 0x5d0, 0x5d1, 0x5d2, 0x5d3, 0x5d4, 0x5d5,
+  0x5d6, 0x5d7, 0x5d8, 0x5d9, 0x5db, 0x5dc, 0x5de, 0x5e0,
+
+  // dx
+  0x5e1, 0x5e2, 0x5e4, 0x5e6, 0x5e7, 0x5e8, 0x5e9, 0x5ea,
+  0x5df, 0x5da, 0x5dd, 0x5e3, 0x5e5, 0xa7, 0x2227, 0x221e,
+
+  // ex
+  0x3b1, 0x3b2, 0x393, 0x3c0, 0x3a3, 0x3c3, 0xb5, 0x3c4,
+  0x3a6, 0x398, 0x3a9, 0x3b4, 0x222e, 0x3d5, 0x2208, 0x2229,
+
+  // fx
+  0x2261, 0xb1, 0x2265, 0x2264, 0x2320, 0x2321, 0xf7, 0x2248,
+  0xb0, 0x2022, 0xb7, 0x221a, 0x207f, 0xb2, 0xb3, 0xaf,
+};
+
+// Approximate transliterations for "common" characters
+static const uint16_t translitChars[][2] = {
+  {0x00a0,0x0020}, // Non breaking space -> space
+  {0x220f,0x00e3}, // ∏ -> π (Math n-ary product)
+  {0x2211,0x00e4}, // ∑ -> Σ (Math sommation)
+  {0x2126,0x00ea}, // Ω -> Ω (Ohm sign)
+  {0x00f0,0x00eb}, // ð -> δ (Icelandic eth)
+  {0x2202,0x00eb}, // ∂ -> δ (Math partial derivative)
+  {0x2205,0x00ed}, // ∅ -> ϕ (Math empty set)
+  {0x2300,0x00ed}, // ⌀ -> ϕ (Math diameter sign)
+  {0x20ac,0x00ee}, // € -> ∈ (Euro sign)
+  {0x03b5,0x00ee}, // ε -> ∈ (Epsilon)
+};
+
 // Offsets for variables to patch in the GEMDRIVE payload
 static const int GEMDRIVE_boot_acsiid = 3;
 static const int GEMDRIVE_boot_prmoff = 4;
@@ -491,14 +559,15 @@ bool GemPattern::parseUnicode(const char *name) {
   if(name[0] == '.' && name[1] != '.')
     return false;
 #endif
-#if ACSI_GEMDRIVE_HIDE_NON_8_3
-  // Hide non 8.3 files
-  if(ext > 8 || nameEnd - ext > 4)
-    return false;
-#endif
 
   // Parse name
   for(i = 0, j = 0; i < ext && j < 8; ++j) {
+#if ACSI_GEMDRIVE_HIDE_NON_8_3
+    if(name[i] == '.')
+      // Multiple dots in the file name (e.g. "FILE.TAR.GZ")
+      return false;
+#endif
+
     if(name[i] == '*') {
       // Fill with '?' until the end
       for(; j < 8; ++j)
@@ -506,18 +575,25 @@ bool GemPattern::parseUnicode(const char *name) {
       ++i;
       break;
     }
+
     int clen = getNextUnicode(&name[i], &pattern[j]);
-    if(clen) {
+    if(clen > 0) {
       i += clen;
     } else {
       i += -clen;
 #if ACSI_GEMDRIVE_FALLBACK_CHAR
-      pattern[j] = '_';
+      pattern[j] = ACSI_GEMDRIVE_FALLBACK_CHAR;
 #else
       return false;
 #endif
     }
   }
+
+#if ACSI_GEMDRIVE_HIDE_NON_8_3
+  // Check that we have an expected end of file name
+  if(name[i] && name[i] != '.' && name[i] != '/')
+    return false;
+#endif
 
   // Fill the name with spaces
   for(; j < 8; ++j)
@@ -534,18 +610,24 @@ bool GemPattern::parseUnicode(const char *name) {
         break;
       }
       int clen = getNextUnicode(&name[i], &pattern[j]);
-      if(clen) {
+      if(clen > 0) {
         i += clen;
       } else {
         i += -clen;
 #if ACSI_GEMDRIVE_FALLBACK_CHAR
-        pattern[j] = '_';
+        pattern[j] = ACSI_GEMDRIVE_FALLBACK_CHAR;
 #else
         return false;
 #endif
       }
     }
   }
+
+#if ACSI_GEMDRIVE_HIDE_NON_8_3
+  // Check that we have an expected end of extension
+  if(name[i] && name[i] != '/')
+    return false;
+#endif
 
   // Fill the extension with spaces
   for(; j < 11; ++j)
@@ -628,28 +710,78 @@ const char * GemPattern::parseAtari(const char *path) {
   return &path[i];
 }
 
-int GemPattern::getNextUnicode(const char *source, char *target) {
-  // Forbidden characters
-  if(*source && (*source <= ' ' || strchr("*,.:?\\", *source)))
+int GemPattern::getNextUnicode(const char *sourceStr, char *target) {
+  const uint8_t *source = (const uint8_t *)sourceStr;
+  uint8_t c = *source;
+
+  // Forbidden characters and control characters
+  if(c <= ' ' || strchr("*.:?\\", c))
     return -1;
 
   // Simple 1 byte case
-  if(*source < 128) {
+  if(c < 127) {
 #if ACSI_GEMDRIVE_UPPER_CASE
-    if(*source >= 'a' && *source <= 'z')
+    if(c >= 'a' && c <= 'z')
       // Convert to upper case
-      *target = *source - 'a' + 'A';
+      *target = c - 'a' + 'A';
     else
 #endif
-      *target = *source;
+    *target = c;
     return 1;
   }
 
-  // XXX TODO: parse extended unicode and convert it to Atari
-
   // Compute the character length
-  int l = 1;
-  for(int l = 1; (source[l] & 0b11000000) == 0b1000000; ++l);
+  int l;
+  for(l = 1; (source[l] & 0xc0) == 0x80; ++l);
+
+  uint32_t codepoint;
+  if((c & 0xe0) == 0xc0) {
+    if(l != 2)
+      return -l;
+    codepoint = ((uint32_t)source[0] & 0x1f) << 6 | ((uint32_t)source[1] & 0x3f);
+  } else if((source[0] & 0xf0) == 0xe0) {
+    if(l != 3)
+      return -l;
+    codepoint = (((uint32_t)source[0] & 0x0f) << 12)
+              | (((uint32_t)source[1] & 0x3f) << 6)
+              | ((uint32_t)source[2] & 0x3f);
+  } else if((source[0] & 0xf8) == 0xf0) {
+    if(l != 4)
+      return -l;
+    codepoint = (((uint32_t)source[0] & 0x07) << 18)
+              | (((uint32_t)source[1] & 0x3f) << 12)
+              | (((uint32_t)source[2] & 0x3f) << 6)
+              | ((uint32_t)source[3] & 0x3f);
+  } else {
+    return -l;
+  }
+
+  // Char tables map 0x1fxxx as 0x0fxxx, so do the conversion
+  if((codepoint & 0x1f000) == 0x0f000)
+    return -l;
+  if((codepoint & 0x1f000) == 0x1f000)
+    codepoint &= 0xfffeffff;
+
+  for(uint32_t i = 0; i < sizeof(translitChars) / sizeof(translitChars[0]); ++i) {
+    if(translitChars[i][0] == codepoint) {
+      *target = (uint8_t)translitChars[i][1];
+      return l;
+    }
+  }
+
+  for(c = 0; c < sizeof(highChars) / sizeof(highChars[0]); ++c) {
+    if(highChars[c] == codepoint) {
+      *target = c + 0x7f;
+      return l;
+    }
+  }
+  for(c = 0; c < sizeof(lowChars) / sizeof(lowChars[0]); ++c) {
+    if(lowChars[c] == codepoint) {
+      *target = c;
+      return l;
+    }
+  }
+
   return -l;
 }
 
@@ -679,19 +811,51 @@ int GemPattern::toUnicode(char *target, int bufSize) const {
 }
 
 int GemPattern::appendUnicode(char atariChar, char *target, int bufSize) {
-  if(bufSize) {
-    if(atariChar < 128) {
-      *target = atariChar;
-      return 1;
-    }
-#if ACSI_GEMDRIVE_FALLBACK_CHAR
-    else {
-      *target = ACSI_GEMDRIVE_FALLBACK_CHAR;
-      return 1;
-    }
-#endif
+  uint16_t c;
+
+  // Get unicode codepoint for this atari character
+  if(atariChar < 0x20) {
+    c = lowChars[(uint8_t)atariChar];
+  } else if(atariChar >= 0x7f) {
+    c = highChars[(uint8_t)atariChar - 0x7f];
+  } else {
+    c = atariChar;
   }
-  return 0;
+
+  // Output codepoint as UTF-8
+
+  if(c < 0x80) {
+    if(bufSize < 1)
+      return 0;
+    target[0] = c;
+    return 1;
+  }
+
+  if(c < 0x800) {
+    if(bufSize < 2)
+      return 0;
+    target[0] = 0xc0 | ((c >> 6) & 0x1f);
+    target[1] = 0x80 | (c & 0x3f);
+    return 2;
+  }
+
+  if(c < 0xf000) {
+    if(bufSize < 3)
+      return 0;
+    target[0] = 0xe0 | ((c >> 12) & 0x0f);
+    target[1] = 0x80 | ((c >> 6) & 0x3f);
+    target[2] = 0x80 | (c & 0x3f);
+    return 3;
+  }
+
+  // Map fxxx as 1fxxx
+  if(bufSize < 4)
+    return 0;
+  target[0] = 0xf0;
+  target[1] = 0x90 | ((c >> 12) & 0x3f);
+  target[2] = 0x80 | ((c >> 6) & 0x3f);
+  target[3] = 0x80 | (c & 0x3f);
+  return 4;
 }
 
 int GemPattern::toAtari(char *target) const {
@@ -1001,6 +1165,13 @@ void GemDrive::onBoot() {
     dbg('\n');
   }
 
+#if ACSI_RTC
+  if(!Devices::isDateTimeSet())
+#endif
+  // Get time from the ST, in case it has an internal clock. Set unconditionally
+  // if ACSI_RTC is disabled to keep file dates in sync with the ST clock.
+  Devices::setDateTime(Tgetdate(), Tgettime());
+
   // Continue boot sequence
   forward();
 }
@@ -1019,7 +1190,9 @@ void GemDrive::onGemdos() {
   DECLARE_CALLBACK(Pterm0);
   DECLARE_CALLBACK(Cconws);
   DECLARE_CALLBACK(Dsetdrv);
+  DECLARE_CALLBACK(Tgetdate);
   DECLARE_CALLBACK(Tsetdate);
+  DECLARE_CALLBACK(Tgettime);
   DECLARE_CALLBACK(Tsettime);
   DECLARE_CALLBACK(Dfree);
   DECLARE_CALLBACK(Fclose);
@@ -1108,15 +1281,51 @@ bool GemDrive::onDsetdrv(const Tos::Dsetdrv_p &p) {
   return forward();
 }
 
+bool GemDrive::onTgetdate(const Tos::Tgetdate_p &) {
+#if ACSI_RTC
+  if(Devices::isDateTimeSet()) {
+    uint16_t date;
+    uint16_t time;
+    Devices::getDateTime(&date, &time);
+    return rte(ToLong(date));
+  }
+#endif
+  return forward();
+}
+
 bool GemDrive::onTsetdate(const Tos::Tsetdate_p &p) {
-  // TODO
-  (void)p;
+  // Set even if ACSI_RTC is disabled to keep file dates in sync with the ST
+  // clock.
+  uint16_t date;
+  uint16_t time;
+  getDateTime(&date, &time);
+  date = p.date;
+  setDateTime(date, time);
+
+  return forward();
+}
+
+bool GemDrive::onTgettime(const Tos::Tgettime_p &) {
+#if ACSI_RTC
+  if(isDateTimeSet()) {
+    uint16_t date;
+    uint16_t time;
+    getDateTime(&date, &time);
+    return rte(ToLong(time));
+  }
+#endif
   return forward();
 }
 
 bool GemDrive::onTsettime(const Tos::Tsettime_p &p) {
-  // TODO
-  (void)p;
+  // Set even if ACSI_RTC is disabled to keep file dates in sync with the ST
+  // clock.
+  uint16_t date;
+  uint16_t time;
+  getDateTime(&date, &time);
+  time = p.time;
+  setDateTime(date, time);
+
   return forward();
 }
 
@@ -1224,12 +1433,6 @@ bool GemDrive::onDdelete(const Tos::Ddelete_p &p) {
   if(!dir.isSubDir())
     return rte(EACCDN);
 
-  // TODO: check if any file is open in the directory
-
-  if(TinyFile::getCluster(dir) == TinyFile::getCluster(drive->curPath))
-    // Trying to delete the current directory !
-    return rte(EACCDN);
-
   const char *unicodeName = toUnicode(dir);
   if(!unicodeName)
     return rte(EPTHNF);
@@ -1314,8 +1517,6 @@ bool GemDrive::onFcreate(const Tos::Fcreate_p &p) {
     if(!newFile || newFile.isDir())
       return rte(EACCDN);
   }
-
-  // TODO : Add a test matrix with attribs in Fcreate (such as directory / volume label / archive bit combinations)
 
   newFile.attrib(attrib);
 
@@ -1648,7 +1849,7 @@ bool GemDrive::onFsnext(const Tos::Fsnext_p &) {
   GemDriveDTA dta;
   readAt(dta, Fgetdta());
 
-  GemDrive *drive = getDrive(dta.file.mediaId);
+  GemDrive *drive = getDrive(dta.file.mediaId, BlockDev::CACHED);
   if(!drive)
     return forward();
 
@@ -1871,13 +2072,13 @@ GemDrive * GemDrive::getDrive(uint8_t id) {
   return nullptr;
 }
 
-GemDrive * GemDrive::getDrive(uint32_t mediaId) {
+GemDrive * GemDrive::getDrive(uint32_t mediaId, BlockDev::MediaIdMode mode) {
   if(!mediaId)
     return nullptr;
 
   for(int i = 0; i < driveCount; ++i) {
     auto &drive = Devices::drives[i];
-    if(drive.sd.mediaId() == mediaId)
+    if(drive.sd.mediaId(mode) == mediaId)
       return &drive;
   }
 
@@ -2148,9 +2349,12 @@ bool GemDrive::scanDTA(GemDriveDTA &dta, uint32_t noFileErr) {
     }
 
     // Scan normal files
+scanFile:
     FsFile &file = dta.file.openNext(sd.fs);
     if(file) {
-      fileName.parseFileName(file);
+      if(!fileName.parseFileName(file))
+        // Incompatible file name: skip
+        goto scanFile;
       dta.d_attrib = file.isDir() ? 0x10 : file.attrib();
       uint16_t time;
       uint16_t date;

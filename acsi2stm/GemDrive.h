@@ -23,6 +23,7 @@
 #include "Tos.h"
 #include "SdFat.h"
 #include "TinyFile.h"
+#include "BlockDev.h"
 
 struct TOS_PACKED GemPattern {
   GemPattern();
@@ -174,7 +175,9 @@ struct GemDrive: public Devices, public Tos {
   DECLARE_CALLBACK(Cconws);
   DECLARE_CALLBACK(Dsetdrv);
   DECLARE_CALLBACK(Fsetdta);
+  DECLARE_CALLBACK(Tgetdate);
   DECLARE_CALLBACK(Tsetdate);
+  DECLARE_CALLBACK(Tgettime);
   DECLARE_CALLBACK(Tsettime);
   DECLARE_CALLBACK(Dfree);
   DECLARE_CALLBACK(Dcreate);
@@ -207,7 +210,7 @@ struct GemDrive: public Devices, public Tos {
   static GemDrive * getDrive(char *path, char **outPath = nullptr);
   static GemDrive * getDrive(Long pathAddr, char **outPath = nullptr);
   static GemDrive * getDrive(uint8_t driveId);
-  static GemDrive * getDrive(uint32_t mediaId);
+  static GemDrive * getDrive(uint32_t mediaId, BlockDev::MediaIdMode mode = BlockDev::NORMAL);
   static void closeProcessFiles();
   static oflag_t attribToSdFat(uint8_t attrib);
   static bool ownFd(Word fd);

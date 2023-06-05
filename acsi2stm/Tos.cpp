@@ -50,11 +50,21 @@ Long Tos::Dgetdrv() {
   return gemdos(Dgetdrv_op);
 }
 
+Long Tos::Tgetdate() {
+  verboseHex("Tgetdate()\n");
+  return gemdos(Tgetdate_op);
+}
+
 Long Tos::Tsetdate(ToWord date) {
   Tsetdate_p p;
   p.date = date;
   verboseHex("Tsetdate(", (uint16_t)date, ")\n");
   return gemdos(Tsetdate_op, p);
+}
+
+Long Tos::Tgettime() {
+  verboseHex("Tgettime()\n");
+  return gemdos(Tgettime_op);
 }
 
 Long Tos::Tsettime(ToWord time) {
