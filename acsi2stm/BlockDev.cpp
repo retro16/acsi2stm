@@ -33,15 +33,17 @@ static const uint32_t sdRates[] = {
 bool BlockDev::updateBootable() {
   bootable = false;
 
+  uint8_t bootSector[ACSI_BLOCKSIZE];
+
   // Read the boot sector
   if(!readStart(0))
     return false;
-  if(!readData(buf, 1))
+  if(!readData(bootSector, 1))
     return false;
   if(!readStop())
     return false;
 
-  bootable = (computeChecksum(buf) == 0x1234);
+  bootable = (computeChecksum(bootSector) == 0x1234);
 
   return true;
 }

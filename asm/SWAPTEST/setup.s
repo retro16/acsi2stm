@@ -75,6 +75,8 @@ clean	; Clean everything created by both setup routines
 	gemdos	Ddelete,6               ;
 	pea	dsk2dir                 ;
 	gemdos	Ddelete,6               ;
+	pea	dsk1sub                 ;
+	gemdos	Ddelete,6               ;
 	pea	dsk1dir                 ;
 	gemdos	Ddelete,6               ;
 	pea	root                    ; Leave topdir to delete it
@@ -89,6 +91,8 @@ setup1	; Disk 1 setup
 	bsr	setcom                  ; Common setup
 
 	pea	dsk1dir                 ; Create disk specific directory
+	gemdos	Dcreate,6               ;
+	pea	dsk1sub                 ;
 	gemdos	Dcreate,6               ;
 
 	lea	descr,a3                ; a3 = current descriptor
@@ -186,21 +190,5 @@ crfile	; Create a single byte long file
 
 	rts	                        ;
 
-	; Paths
-root	dc.b	'\',0
-topdir	dc.b	'\SWAPTEST.TMP',0
-dsk1dir	dc.b	'DISK1.DIR',0
-dsk2dir	dc.b	'DISK2.DIR',0
-comdir	dc.b	'COMMON.DIR',0
-	even
-pathcnt	equ	3
-paths	dc.l	dsk1dir,dsk2dir,comdir
-
-ordf	dc.b	'OPENRD.FIL',0
-owrf	dc.b	'OPENWR.FIL',0
-wrpendf	dc.b	'WRITPEND.FIL',0
-	even
-filecnt	equ	3
-files	dc.l	ordf,owrf,wrpendf
 
 ; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm68k tw=80

@@ -18,6 +18,14 @@ testcnt	equ	5
 
 test	; Test pass
 
+	lea	srches,a3               ; Test searches
+	moveq	#0,d3                   ; d3 = path count
+.nxtsch	bsr	tstsrch                 ; Test the path
+	addq	#4,a3                   ; Next search
+	addq.w	#1,d3                   ;
+	cmp.w	#srchcnt,d3             ;
+	bne	.nxtsch                 ;
+
 	lea	descr,a3                ; a3 = file descriptors
 
 	print	.wr1byt                 ; Write 1 byte to each file
@@ -65,6 +73,22 @@ test	; Test pass
 .seek2	dc.b	'Seek at offset 2 of',$0d,$0a
 	dc.b	0
 
+	even
+
+tstsrch	; Do a test pass on a search pattern
+
+	move.l	(a3),a4                 ; a4 = pattern to test
+
+	print	.search                 ; Search pattern
+	print	(a4)                    ;
+	crlf	                        ;
+	move.w	#$0017,-(sp)            ; Search everything
+	pea	(a4)                    ;
+	gemdos	Fsfirst,8               ;
+	bra	tstcode                 ;
+
+.search	dc.b	'Fsfirst on',$0d,$0a
+	dc.b	0
 	even
 
 tstpath	; Do a test pass on a path

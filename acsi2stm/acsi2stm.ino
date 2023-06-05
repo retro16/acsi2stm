@@ -53,15 +53,22 @@ void setup() {
   delay(100);
 }
 
-#if ACSI_STACK_CANARY
-#if ! ACSI_DEBUG
-#warning Stack canary is probably useless without ACSI_DEBUG
-#endif
+#if ACSI_DEBUG && ACSI_STACK_CANARY
 void __attribute__ ((noinline)) checkCanary() {
-  volatile uint32_t canary[ACSI_STACK_CANARY / 4];
-  for(int i = 1; i < ACSI_STACK_CANARY / 16; i *= 2) {
-    if(canary[i - 1] != 0xdeadbeef) {
-      canary[i - 1] = 0xdeadbeef;
+  // Total 32-bit words to allocate on the stack
+  static const uint32_t stackWords = ACSI_STACK_CANARY / 4;
+
+  // Number of words that must not be clobbered
+  static const int canaryWords = stackWords / 4;
+
+  // Allocate canaries on the stack
+  volatile uint32_t canary[stackWords];
+
+  // Check canaries.
+  // Canaries are more packed on top of the stack than at the bottom.
+  for(int i = 1; i <= canaryWords; i *= 2) {
+    if(canary[canaryWords - i - 1] != 0xdeadbeef) {
+      canary[canaryWords - i - 1] = 0xdeadbeef;
       Monitor::dbg("Stack canary ", i, " died. Reviving.\n");
     }
   }

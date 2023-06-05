@@ -249,6 +249,8 @@ tmx:
 ;	dc.l	ALOGD0,.topdir
 ;	dc.l	ALOGD0,.fuldir
 ;	dc.l	ALOGD0,.subdir
+;	dc.l	ALOGD0,absdir
+;	dc.l	ALOGD0,absfile
 ;	dc.l	ALOGD0,.filerw
 ;	dc.l	ALOGD0,.filena
 ;	dc.l	ALOGD0,.filero
@@ -262,11 +264,14 @@ tmx:
 ;	dc.l	ALOGD0,.dotslh
 ;	dc.l	ALOGD0,.ddtslh
 ;	dc.l	ALOGD0,.dirslh
+;	dc.l	ALOGD0,absdslh
 ;	dc.l	ALOGD0,.filslh
 ;	dc.l	ALOGD0,.pthfrw
 ;	dc.l	ALOGD0,.pthfro
 ;	dc.l	ALOGD0,.pthne
 ;	dc.l	ALOGD0,.filne
+;	dc.l	ALOGD0,absne
+;	dc.l	ALOGD0,absnes
 ;	dc.l	ALOGD0,.invdrv
 ;	dc.l	ALOGD0,.dirptn
 ;	dc.l	ALOGD0,.filptn
@@ -288,6 +293,8 @@ tmx:
 	dc.l	EACCDN,.topdir
 	dc.l	EACCDN,.fuldir
 	dc.l	EACCDN,.subdir
+	dc.l	EACCDN,absdir
+	dc.l	EACCDN,absfile
 	dc.l	EACCDN,.filerw
 	dc.l	EACCDN,.filena
 	dc.l	EACCDN,.filero
@@ -301,11 +308,14 @@ tmx:
 	dc.l	EPTHNF,.dotslh
 	dc.l	EPTHNF,.ddtslh
 	dc.l	EPTHNF,.dirslh
+	dc.l	EPTHNF,absdslh
 	dc.l	EPTHNF,.filslh
 	dc.l	EPTHNF,.pthfrw
 	dc.l	EPTHNF,.pthfro
 	dc.l	EPTHNF,.pthne
 	dc.l	ADDELE,.filne
+	dc.l	ADDELE,absne
+	dc.l	EPTHNF,absnes
 	dc.l	EPTHNF,.invdrv
 	dc.l	EPTHNF,.dirptn
 	dc.l	EACCDN,.filptn
@@ -327,6 +337,8 @@ tmx:
 	dc.l	EACCDN,.topdir
 	dc.l	EACCDN,.fuldir
 	dc.l	ADCREA,.subdir,.subdir
+	dc.l	EACCDN,absdir
+	dc.l	EPTHNF,absfile
 	dc.l	EPTHNF,.filerw
 	dc.l	EPTHNF,.filena
 	dc.l	EPTHNF,.filero
@@ -340,11 +352,14 @@ tmx:
 	dc.l	EACCDN,.dotslh
 ;	dc.l	ALOGD0,.ddtslh          ; Disabled: crashes TOS on floppy
 	dc.l	ADCREA,.dirslh,.subdir
+	dc.l	EACCDN,absdslh
 	dc.l	EPTHNF,.filslh
 	dc.l	EPTHNF,.pthfrw
 	dc.l	EPTHNF,.pthfro
 	dc.l	EPTHNF,.pthne
 	dc.l	EPTHNF,.filne
+	dc.l	EPTHNF,absne
+	dc.l	EPTHNF,absnes
 	dc.l	EPTHNF,.invdrv
 	dc.l	EPTHNF,.dirptn
 	dc.l	EPTHNF,.filptn
@@ -366,6 +381,8 @@ tmx:
 	dc.l	$00000000,.topdir
 	dc.l	$00000000,.fuldir
 	dc.l	$00000000,.subdir
+	dc.l	$00000000,absdir
+	dc.l	EPTHNF,absfile
 	dc.l	EPTHNF,.filerw
 	dc.l	EPTHNF,.filena
 	dc.l	EPTHNF,.filero
@@ -379,11 +396,14 @@ tmx:
 	dc.l	$00000000,.dotslh
 	dc.l	$00000000,.ddtslh
 	dc.l	$00000000,.dirslh
+	dc.l	$00000000,absdslh
 	dc.l	EPTHNF,.filslh
 	dc.l	EPTHNF,.pthfrw
 	dc.l	EPTHNF,.pthfro
 	dc.l	EPTHNF,.pthne
 	dc.l	EPTHNF,.filne
+	dc.l	EPTHNF,absne
+	dc.l	EPTHNF,absnes
 	dc.l	$00000000,.invdrv
 	dc.l	EPTHNF,.dirptn
 	dc.l	EPTHNF,.filptn
@@ -407,6 +427,8 @@ tmx:
 	dc.l	EFILNF,.topdir
 	dc.l	EFILNF,.fuldir
 	dc.l	EFILNF,.subdir
+	dc.l	EFILNF,absdir
+	dc.l	$00000020,absfile
 	dc.l	$00000020,.filerw
 	dc.l	$00000000,.filena
 	dc.l	$00000001,.filero
@@ -420,11 +442,14 @@ tmx:
 	dc.l	EFILNF,.dotslh
 	dc.l	EFILNF,.ddtslh
 	dc.l	EFILNF,.dirslh
+	dc.l	EFILNF,absdslh
 	dc.l	EFILNF,.filslh
 	dc.l	EFILNF,.pthfrw
 	dc.l	EFILNF,.pthfro
 	dc.l	EFILNF,.pthne
 	dc.l	EFILNF,.filne
+	dc.l	EFILNF,absne
+	dc.l	EFILNF,absnes
 	dc.l	EFILNF,.invdrv
 	dc.l	EFILNF,.dirptn
 	dc.l	$00000020,.filptn       ; Points at FILE.RW
@@ -448,6 +473,8 @@ tmx:
 	dc.l	EFILNF,.topdir
 	dc.l	EFILNF,.fuldir
 	dc.l	EFILNF,.subdir
+	dc.l	EFILNF,absdir
+	dc.l	$00000020,absfile
 	dc.l	$00000020,.filerw
 ;	dc.l	$00000020,.filena       ; Disabled: would clobber attribute
 ;	dc.l	$00000020,.filero       ; Disabled: would clobber attribute
@@ -461,11 +488,14 @@ tmx:
 	dc.l	EFILNF,.dotslh
 	dc.l	EFILNF,.ddtslh
 	dc.l	EFILNF,.dirslh
+	dc.l	EFILNF,absdslh
 	dc.l	EFILNF,.filslh
 	dc.l	EFILNF,.pthfrw
 	dc.l	EFILNF,.pthfro
 	dc.l	EFILNF,.pthne
 	dc.l	EFILNF,.filne
+	dc.l	EFILNF,absne
+	dc.l	EFILNF,absnes
 	dc.l	EFILNF,.invdrv
 	dc.l	EFILNF,.dirptn
 	dc.l	$00000020,.filptn
@@ -489,6 +519,8 @@ tmx:
 	dc.l	EACCDN,.topdir
 	dc.l	EACCDN,.fuldir
 	dc.l	EACCDN,.subdir
+	dc.l	EACCDN,absdir
+	dc.l	ACLOSE,absfile
 	dc.l	ACLOSE,.filerw
 	dc.l	ACLOSE,.filena
 	dc.l	EACCDN,.filero
@@ -502,14 +534,17 @@ tmx:
 	dc.l	EPTHNF,.dotslh
 	dc.l	EPTHNF,.ddtslh
 	dc.l	EPTHNF,.dirslh
+	dc.l	EPTHNF,absdslh
 	dc.l	EPTHNF,.filslh
 	dc.l	EPTHNF,.pthfrw
 	dc.l	EPTHNF,.pthfro
 	dc.l	EPTHNF,.pthne
 	dc.l	ACLDEL,.filne
+	dc.l	ACLDEL,absne
+	dc.l	EPTHNF,absnes
 	dc.l	EPTHNF,.invdrv
 	dc.l	EPTHNF,.dirptn
-	dc.l	ACLOSE,.filptn          ; Truncates FILE.RW
+;	dc.l	ACLOSE,.filptn          ; Disabled: Renames FILE.RW to FILE.???
 ;	dc.l	ACLDEL,.nfilpt          ; Disabled: produces an invalid name
 
 	dc.l	AEND,0
@@ -529,6 +564,8 @@ tmx:
 	dc.l	EFILNF,.topdir
 	dc.l	EFILNF,.fuldir
 	dc.l	EFILNF,.subdir
+	dc.l	EFILNF,absdir
+	dc.l	ACLOSE,absfile
 	dc.l	ACLOSE,.filerw
 	dc.l	ACLOSE,.filena
 	dc.l	ACLOSE,.filero
@@ -542,11 +579,14 @@ tmx:
 	dc.l	EFILNF,.dotslh
 	dc.l	EFILNF,.ddtslh
 	dc.l	EFILNF,.dirslh
+	dc.l	EFILNF,absdslh
 	dc.l	EFILNF,.filslh
 	dc.l	EFILNF,.pthfrw
 	dc.l	EFILNF,.pthfro
 	dc.l	EFILNF,.pthne
 	dc.l	EFILNF,.filne
+	dc.l	EFILNF,absne
+	dc.l	EFILNF,absnes
 	dc.l	EFILNF,.invdrv
 	dc.l	EFILNF,.dirptn
 	dc.l	ACLOSE,.filptn          ; Opens the first matching file
@@ -580,6 +620,8 @@ tmx:
 	dc.l	EFILNF,.topdir
 	dc.l	EFILNF,.fuldir
 	dc.l	EFILNF,.subdir
+	dc.l	EFILNF,absdir
+	dc.l	ACLOSE,absfile
 	dc.l	ACLOSE,.filerw
 	dc.l	ACLOSE,.filena
 	dc.l	EACCDN,.filero
@@ -593,11 +635,14 @@ tmx:
 	dc.l	EFILNF,.dotslh
 	dc.l	EFILNF,.ddtslh
 	dc.l	EFILNF,.dirslh
+	dc.l	EFILNF,absdslh
 	dc.l	EFILNF,.filslh
 	dc.l	EFILNF,.pthfrw
 	dc.l	EFILNF,.pthfro
 	dc.l	EFILNF,.pthne
 	dc.l	EFILNF,.filne
+	dc.l	EFILNF,absne
+	dc.l	EFILNF,absnes
 	dc.l	EFILNF,.invdrv
 	dc.l	EFILNF,.dirptn
 	dc.l	ACLOSE,.filptn
@@ -620,6 +665,8 @@ tmx:
 	dc.l	EFILNF,.topdir
 	dc.l	EFILNF,.fuldir
 	dc.l	EFILNF,.subdir
+	dc.l	EFILNF,absdir
+	dc.l	AFCREA,absfile,.filerw
 	dc.l	AFCREA,.filerw,.filerw
 ;	dc.l	AFCREA,.filena          ; Disabled: would clobber attributes
 	dc.l	EACCDN,.filero
@@ -633,11 +680,14 @@ tmx:
 	dc.l	EFILNF,.dotslh
 	dc.l	EFILNF,.ddtslh
 	dc.l	EFILNF,.dirslh
+	dc.l	EFILNF,absdslh
 	dc.l	EFILNF,.filslh
 	dc.l	EFILNF,.pthfrw
 	dc.l	EFILNF,.pthfro
 	dc.l	EFILNF,.pthne
 	dc.l	EFILNF,.filne
+	dc.l	EFILNF,absne
+	dc.l	EFILNF,absnes
 	dc.l	EFILNF,.invdrv
 	dc.l	EFILNF,.dirptn
 	dc.l	AFCREA,.filptn,.filerw
@@ -667,6 +717,8 @@ tmx:
 	dc.l	EACCDN,.topdir
 ;	dc.l	$00000000,.fuldir       ; Disabled
 	dc.l	EACCDN,.subdir
+	dc.l	EACCDN,absdir
+;	dc.l	$00000000,absfile       ; Disabled
 ;	dc.l	$00000000,.filerw       ; Disabled
 ;	dc.l	$00000000,.filena       ; Disabled
 	dc.l	EACCDN,.filero
@@ -680,11 +732,14 @@ tmx:
 	dc.l	EFILNF,.dotslh
 	dc.l	EFILNF,.ddtslh
 	dc.l	EFILNF,.dirslh
+	dc.l	EFILNF,absdslh
 	dc.l	EPTHNF,.filslh
 	dc.l	EPTHNF,.pthfrw
 	dc.l	EPTHNF,.pthfro
 	dc.l	EPTHNF,.pthne
 	dc.l	EFILNF,.filne
+	dc.l	EFILNF,absne
+	dc.l	EPTHNF,absnes
 	dc.l	EPTHNF,.invdrv
 	dc.l	EPTHNF,.dirptn
 ;	dc.l	$00000000,.filptn       ; Disabled
@@ -713,6 +768,8 @@ tmx:
 	dc.l	EACCDN,.topdir
 ;	dc.l	$00000000,.fuldir       ; Disabled
 	dc.l	EACCDN,.subdir
+	dc.l	EACCDN,absdir
+;	dc.l	$00000000,absfile       ; Disabled
 ;	dc.l	$00000000,.filerw       ; Disabled
 ;	dc.l	$00000000,.filena       ; Disabled
 	dc.l	EACCDN,.filero
@@ -726,11 +783,14 @@ tmx:
 	dc.l	EFILNF,.dotslh
 	dc.l	EFILNF,.ddtslh
 	dc.l	EFILNF,.dirslh
+	dc.l	EFILNF,absdslh
 	dc.l	EPTHNF,.filslh
 	dc.l	EPTHNF,.pthfrw
 	dc.l	EPTHNF,.pthfro
 	dc.l	EPTHNF,.pthne
 	dc.l	EFILNF,.filne
+	dc.l	EFILNF,absne
+	dc.l	EPTHNF,absnes
 	dc.l	EPTHNF,.invdrv
 	dc.l	EPTHNF,.dirptn
 ;	dc.l	$00000000,.filptn       ; Disabled
@@ -759,6 +819,8 @@ tmx:
 	dc.l	EACCDN,.topdir
 	dc.l	EACCDN,.fuldir
 	dc.l	EACCDN,.subdir
+	dc.l	EACCDN,absdir
+	dc.l	EACCDN,absfile
 	dc.l	EACCDN,.filerw
 	dc.l	EACCDN,.filena
 	dc.l	EACCDN,.filero
@@ -772,11 +834,14 @@ tmx:
 	dc.l	EBADRQ,.dotslh
 	dc.l	EBADRQ,.ddtslh
 	dc.l	EBADRQ,.dirslh
+	dc.l	EBADRQ,absdslh
 	dc.l	EPTHNF,.filslh
 	dc.l	EPTHNF,.pthfrw
 	dc.l	EPTHNF,.pthfro
 	dc.l	EPTHNF,.pthne
 ;	dc.l	$00000000,.filne        ; Disabled
+;	dc.l	$00000000,absne         ; Disabled
+	dc.l	EPTHNF,absnes
 ;	dc.l	EPTHNF,.invdrv          ; Disabled: GemDrive returns ENSAME
 	dc.l	EPTHNF,.dirptn
 	dc.l	EACCDN,.filptn
@@ -805,6 +870,8 @@ tmx:
 	dc.l	EACCDN,.topdir
 	dc.l	EACCDN,.fuldir
 	dc.l	EACCDN,.subdir
+	dc.l	EACCDN,absdir
+	dc.l	EACCDN,absfile
 	dc.l	EACCDN,.filerw
 	dc.l	EACCDN,.filena
 	dc.l	EACCDN,.filero
@@ -818,11 +885,14 @@ tmx:
 	dc.l	EFILNF,.dotslh
 	dc.l	EFILNF,.ddtslh
 	dc.l	EFILNF,.dirslh
+	dc.l	EFILNF,absdslh
 	dc.l	EPTHNF,.filslh
 	dc.l	EPTHNF,.pthfrw
 	dc.l	EPTHNF,.pthfro
 	dc.l	EPTHNF,.pthne
 	dc.l	EFILNF,.filne
+	dc.l	EFILNF,absne
+	dc.l	EPTHNF,absnes
 	dc.l	EPTHNF,.invdrv
 	dc.l	EPTHNF,.dirptn
 	dc.l	EACCDN,.filptn
@@ -851,6 +921,8 @@ tmx:
 	dc.l	EACCDN,.topdir
 	dc.l	EACCDN,.fuldir
 	dc.l	EACCDN,.subdir
+	dc.l	EACCDN,absdir
+	dc.l	EACCDN,absfile
 	dc.l	EACCDN,.filerw
 	dc.l	EACCDN,.filena
 	dc.l	EACCDN,.filero
@@ -864,11 +936,14 @@ tmx:
 	dc.l	EFILNF,.dotslh
 	dc.l	EFILNF,.ddtslh
 	dc.l	EFILNF,.dirslh
+	dc.l	EFILNF,absdslh
 	dc.l	EPTHNF,.filslh
 	dc.l	EPTHNF,.pthfrw
 	dc.l	EPTHNF,.pthfro
 	dc.l	EPTHNF,.pthne
 	dc.l	EFILNF,.filne
+	dc.l	EFILNF,absne
+	dc.l	EPTHNF,absnes
 	dc.l	EPTHNF,.invdrv
 	dc.l	EPTHNF,.dirptn
 	dc.l	EACCDN,.filptn

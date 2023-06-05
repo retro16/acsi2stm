@@ -87,7 +87,13 @@ main:
 	bmi.b	.upper                  ;
 	add.b	#'A'-'a',d0             ;
 
-.upper	sub.b	#'A',d0                 ; Transform to id
+.upper	moveq	#abscnt-1,d1            ; Patch absolute paths
+	lea	abspath,a0              ;
+.abspt	move.l	(a0)+,a1                ;
+	move.b	d0,(a1)                 ;
+	dbra	d1,.abspt               ;
+
+	sub.b	#'A',d0                 ; Transform to id
 	and.w	#$00ff,d0               ;
 
 	cmp.w	#26,d0                  ; Check if it is a valid letter
@@ -169,6 +175,11 @@ askdrv	gemdos	Cconws,6                ; Print message
 expectd	; Expected results for all tests
 
 	; disk 1 -> disk 1 (no swap) - File descriptor tests
+	dc.l	0                       ; Fsfirst,pattern 1
+	dc.l	0                       ; Fsfirst,pattern 2
+	dc.l	EPTHNF                  ; Fsfirst,pattern 3
+	dc.l	0                       ; Fsfirst,pattern 4
+
 	dc.l	EACCDN,1,1              ; Write 1 byte
 	dc.l	1,1,0                   ; Read 1 byte
 	dc.l	0,0,0                   ; Close file descriptor
@@ -176,10 +187,16 @@ expectd	; Expected results for all tests
 	dc.l	ERANGE,ERANGE,ERANGE    ; Seek at offset 2
 
 	dc.l	0,EACCDN                ; Delete,create path 1
-	dc.l	EPTHNF,0                ; Delete,create path 2
-	dc.l	0,EACCDN                ; Delete,create path 3
+	dc.l	EACCDN,EACCDN           ; Delete,create path 2
+	dc.l	EPTHNF,0                ; Delete,create path 3
+	dc.l	0,EACCDN                ; Delete,create path 4
 
 	; disk 1 -> disk 2 - File descriptor tests
+	dc.l	0                       ; Fsfirst,pattern 1
+	dc.l	EPTHNF                  ; Fsfirst,pattern 2
+	dc.l	EPTHNF                  ; Fsfirst,pattern 3
+	dc.l	EPTHNF                  ; Fsfirst,pattern 4
+
 	dc.l	EACCDN,EACCDN,EACCDN    ; Write 1 byte
 	dc.l	EACCDN,EACCDN,EACCDN    ; Read 1 byte
 	dc.l	0,0,0                   ; Close file descriptor
@@ -189,8 +206,14 @@ expectd	; Expected results for all tests
 	dc.l	EPTHNF,EPTHNF           ; Delete,create path 1
 	dc.l	EPTHNF,EPTHNF           ; Delete,create path 2
 	dc.l	EPTHNF,EPTHNF           ; Delete,create path 3
+	dc.l	EPTHNF,EPTHNF           ; Delete,create path 4
 
 	; disk 1 -> ejected - File descriptor tests
+	dc.l	EPTHNF                  ; Fsfirst,pattern 1
+	dc.l	EPTHNF                  ; Fsfirst,pattern 2
+	dc.l	EPTHNF                  ; Fsfirst,pattern 3
+	dc.l	EPTHNF                  ; Fsfirst,pattern 4
+
 	dc.l	EACCDN,EACCDN,EACCDN    ; Write 1 byte
 	dc.l	EACCDN,EACCDN,EACCDN    ; Read 1 byte
 	dc.l	0,0,0                   ; Close file descriptor
@@ -200,5 +223,6 @@ expectd	; Expected results for all tests
 	dc.l	EACCDN,EACCDN           ; Delete,create path 1
 	dc.l	EACCDN,EACCDN           ; Delete,create path 2
 	dc.l	EACCDN,EACCDN           ; Delete,create path 3
+	dc.l	EACCDN,EACCDN           ; Delete,create path 4
 
 ; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm68k tw=80

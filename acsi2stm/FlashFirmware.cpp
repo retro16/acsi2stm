@@ -99,11 +99,6 @@ void __attribute__((section(".data"))) updateFirmwareFromDMA(uint32_t address, u
   *GPIOA_REGS_CRH = 0x84444BB4; // releaseRq()
   *GPIOB_REGS_CRH = 0x44444444; // releaseDataBus()
 
-  // Wait to be reset by the watchdog
-#if ACSI_ACTIVITY_LED
-  *GPIOC_REGS_BSRR = 1 << 13;
-#endif
-
   // Enable the reset control register access
   RCC_BASE->APB1ENR |= RCC_APB1ENR_PWREN;
   PWR_BASE->CR |= PWR_CR_DBP;

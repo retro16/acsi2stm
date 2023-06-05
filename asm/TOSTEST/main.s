@@ -118,7 +118,15 @@ main:
 	bmi.b	.upper                  ;
 	add.b	#'A'-'a',d0             ;
 
-.upper	sub.b	#'A',d0                 ; Transform to id
+.upper	lea	abspath,a0              ; Patch absolute paths with drive letter
+.absnxt	move.l	(a0)+,d1                ;
+	beq.b	.absend                 ;
+	move.l	d1,a1                   ;
+	move.b	d0,(a1)                 ;
+	bra.b	.absnxt                 ;
+.absend		                        ;
+
+	sub.b	#'A',d0                 ; Transform to id
 	and.w	#$00ff,d0               ;
 
 	cmp.w	#26,d0                  ; Check if it is a valid letter

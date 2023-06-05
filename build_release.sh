@@ -20,7 +20,6 @@ if ! [ "$FORCE" ]; then
   || ! grep 'ACSI_READONLY 0' "$srcdir/acsi2stm/acsi2stm.h" >/dev/null \
   || ! grep 'ACSI_SD_WRITE_LOCK 2' "$srcdir/acsi2stm/acsi2stm.h" >/dev/null \
   || ! grep 'ACSI_HAS_RESET 1' "$srcdir/acsi2stm/acsi2stm.h" >/dev/null \
-  || ! grep 'ACSI_STACK_CANARY 0' "$srcdir/acsi2stm/acsi2stm.h" >/dev/null \
   || ! grep 'ACSI_A1_WORKAROUND 1' "$srcdir/acsi2stm/acsi2stm.h" >/dev/null \
   || grep -ri 'deadbeef' "$srcdir/asm" >/dev/null \
   || grep -ri 'cafe' "$srcdir/asm" >/dev/null \

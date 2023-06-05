@@ -14,5 +14,13 @@
 ; You should have received a copy of the GNU General Public License
 ; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+absdir	dc.b	'Z:\TOSTEST.TMP',0
+absfile	dc.b	'Z:\TOSTEST.TMP\FILE.RW',0
+absdslh	dc.b	'Z:\TOSTEST.TMP\',0
+absne	dc.b	'Z:\TOSTEST.TMP\NONFILE',0
+absnes	dc.b	'Z:\TOSTEST.TMP\NONDIR\',0
+	even
+
+abspath	dc.l	absdir,absfile,absdslh,absne,absnes,0
 
 ; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm68k tw=80

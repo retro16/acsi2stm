@@ -1626,7 +1626,7 @@ bool GemDrive::onFsfirst(const Tos::Fsfirst_p &p) {
   if(!drive)
     return forward();
   if(!path)
-    return rte(EACCDN);
+    return rte(EPTHNF);
 
   // Initialize a new DTA to scan the directory
   GemDriveDTA dta;
@@ -1637,7 +1637,6 @@ bool GemDrive::onFsfirst(const Tos::Fsfirst_p &p) {
 
   if(dta.pattern.isEmpty() || dta.pattern.isCurDir() || dta.pattern.isParentDir())
     return rte(EFILNF);
-
   dta.file.set(parent.mediaId, parent);
   dta.attribMask = p.attr;
 

@@ -38,7 +38,7 @@ if [ "$1" = fast ]; then
   optim=2
 fi
 
-arduino --pref build.path="$builddir/Arduino-$name" --pref build.warn_data_percentage=80 --pref compiler.warning_level=all --board "Arduino_STM32-master:STM32F1:genericSTM32F103C:device_variant=$device,upload_method=serialMethod,cpu_speed=speed_72mhz,opt=o${optim}std" --preserve-temp-files --verify "$srcdir/acsi2stm/acsi2stm.ino"
+arduino --pref build.path="$builddir/Arduino-$name" --pref build.warn_data_percentage=84 --pref compiler.warning_level=all --board "Arduino_STM32:STM32F1:genericSTM32F103C:device_variant=$device,upload_method=serialMethod,cpu_speed=speed_72mhz,opt=o${optim}std" --preserve-temp-files --verify "$srcdir/acsi2stm/acsi2stm.ino"
 
 [ -e "$builddir/Arduino-$name/acsi2stm.ino.bin" ] || exit $?
 
@@ -49,7 +49,6 @@ if [ "$1" = all ]; then
   echo "Compile verbose binary"
   sed -i 's/^#define ACSI_VERBOSE .$/#define ACSI_VERBOSE 1/' "$srcdir/acsi2stm/acsi2stm.h"
   sed -i 's/^#define ACSI_DEBUG .$/#define ACSI_DEBUG 1/' "$srcdir/acsi2stm/acsi2stm.h"
-  sed -i 's/^#define ACSI_STACK_CANARY .*$/#define ACSI_STACK_CANARY 4096/' "$srcdir/acsi2stm/acsi2stm.h"
   compile_arduino verbose 128
   mv "$builddir/Arduino-verbose/acsi2stm.ino.bin" ./acsi2stm-$VERSION-verbose.ino.bin
 
@@ -69,7 +68,6 @@ if [ "$1" = all ]; then
   echo
   echo "Compile release binary"
   sed -i 's/^#define ACSI_DEBUG .$/#define ACSI_DEBUG 0/' "$srcdir/acsi2stm/acsi2stm.h"
-  sed -i 's/^#define ACSI_STACK_CANARY .*$/#define ACSI_STACK_CANARY 0/' "$srcdir/acsi2stm/acsi2stm.h"
   compile_arduino release
   cp "$builddir/Arduino-release/acsi2stm.ino.bin" ./acsi2stm-$VERSION.ino.bin
 

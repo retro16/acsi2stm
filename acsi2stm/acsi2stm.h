@@ -22,7 +22,7 @@
 
 // acsi2stm global configuration
 
-#define ACSI2STM_VERSION "4.00"
+#define ACSI2STM_VERSION "4.01"
 
 // Set to 1 to enable debug output on the serial port
 #define ACSI_DEBUG 0
@@ -139,10 +139,11 @@
 
 // Stack canary
 // Used to check that RAM was not overwritten. Set to 0 for normal operation,
-// or a size in bytes to enable the feature. Standard size is 4096 bytes.
+// or a size in bytes to enable the feature.
 // If more than 75% of this amount of stack is used, debug messages will be
 // displayed.
-#define ACSI_STACK_CANARY 0
+// Automatically disabled if ACSI_DEBUG is disabled.
+#define ACSI_STACK_CANARY 3072
 
 // First drive letter to scan when allocating drive letters to GemDrive.
 // In all cases, GemDrive will skip drive letters already reserved by drivers
