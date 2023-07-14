@@ -81,7 +81,8 @@ RTC battery
 
 ![Battery holder](images/battery_holder.jpg)
 
-You can put a CR2032 battery holder to save date and time.
+You can put a CR2032 battery holder to save date and time. It keeps the clock
+running even when the unit is not powered.
 
 The battery holder covers one floppy connector pin, so you will have to solder
 floppy pins before the battery holder.
@@ -210,6 +211,9 @@ You will need
 ![Round pin diameter: 1.26mm](images/round_pin_diameter.jpg)
 
 ![Round pin length: 8.24mm](images/round_pin_length.jpg)
+
+**Hint**: On online stores, these pins are often designated as
+"EN0508 0.50mm² ferrule"
 
 ### 21mm long 2.54 standard square wrapping pins.
 

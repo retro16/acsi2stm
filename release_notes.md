@@ -1,9 +1,8 @@
 TODO for 4.20:
 
-* Try to make the `GEMDRIVE.TOS` loader work with EmuTOS.
+* Try to make the `GEMDRIVE.TOS` loader work with EmuTOS and use Ptermres.
   * Need to add a new *init without loading* command to the GemDrive protocol.
 * Update debug_output.txt.
-* Proof read doc again, there are small issues.
 
 4.20: Professionally assembled PCB and RTC fix
 ==============================================

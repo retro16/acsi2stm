@@ -236,6 +236,9 @@ just by switching these jumpers to different places.
 **WARNING:** Do not attempt any other combination than what is explained here.
 You might damage your product.
 
+Note: The *Compact PCB* has its own jumpers since it doesn't use a Blue Pill.
+See [compact_pcb_manual.md](compact_pcb_manual.md) for details on its jumpers.
+
 ACSI id 0 to 4, GemDrive enabled
 
      _______________________________

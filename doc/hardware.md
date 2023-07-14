@@ -2,7 +2,8 @@ Creating your own ACSI2STM hardware
 ===================================
 
 This page helps hardware designers to design new hardware from scratch. If you
-simply want to build the official PCB, see [build_pcb.md](build_pcb.md)
+simply want to build the official PCB, see [build_pcb.md](build_pcb.md) or
+[compact_pcb_manual.md](compact_pcb_manual.md).
 
 
 Hardware needed

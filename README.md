@@ -48,7 +48,7 @@ This is what you can find:
   PCB with most features.
 * [compiling.md](doc/compiling.md): A step-by-step tutorial to compile and
   customize a new firmware. Describes compilation options.
-* [pcb_manual.md](doc/pcb_manual.md): User manual for the official PCB.
+* [pcb_manual.md](doc/pcb_manual.md): User manual for the full featured PCB.
 * [build_pcb.md](doc/build_pcb.md): Instructions for building a unit using
   the official PCB.
 * [hardware.md](doc/hardware.md): How to design and build an acsi2stm unit

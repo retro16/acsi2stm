@@ -69,7 +69,6 @@ Requires 128k of flash on the STM32.
 Compile-time options:
 
     #define ACSI_DEBUG 1
-    #define ACSI_STACK_CANARY 4096
 
 ### acsi2stm-XXXX-verbose.ino.bin
 
@@ -81,7 +80,6 @@ Compile-time options:
 
     #define ACSI_DEBUG 1
     #define ACSI_VERBOSE 1
-    #define ACSI_STACK_CANARY 4096
 
 ### acsi2stm-XXXX-strictverbose.ino.bin
 
@@ -93,7 +91,6 @@ Compile-time options:
     #define ACSI_STRICT 1
     #define ACSI_DEBUG 1
     #define ACSI_VERBOSE 1
-    #define ACSI_STACK_CANARY 4096
 
 ### acsi2stm-XXXX-legacy.ino.bin
 
@@ -140,7 +137,7 @@ this one:
 Set the USB dongle to 3.3V if you have a jumper for that. Connect TX to PA10, RX
 to PA9 and the GND pins together.
 
-On the board itself, set the BOOT0 jumper to 1 to enable the serial flash
+On the Blue Pill itself, set the BOOT0 jumper to 1 to enable the serial flash
 bootloader:
 
      _______________________________
@@ -152,6 +149,9 @@ bootloader:
     |_______________________________|
 
 
+On the *Compact PCB*, put a jumper on FLASH to enable serial flashing mode.
+Connect TX to RX, RX to TX and GND together.
+
 To upload the firmware, you need the `stm32flash` command-line tool available on
 the [Arduino_STM32](https://github.com/rogerclarkmelbourne/Arduino_STM32/tree/master/tools)
 repository, in the tools subdirectory.
@@ -161,7 +161,8 @@ Sample stm32flash command-line:
     stm32flash -w acsi2stm-XXXX.ino.bin /dev/ttyUSB0
 
 You need to adapt the command-line for your setup: /dev/ttyUSB0 should point at
-the virtual serial port connected to the STM32 (on Windows it looks like COM1:)
+the virtual serial port connected to the STM32. On Windows and MacOS, it may use
+slightly different syntax for the port.
 
 Once the chip is programmed, switch the BOOT0 jumper back to 0, then reset the
 STM32 (press the button or do a power cycle).

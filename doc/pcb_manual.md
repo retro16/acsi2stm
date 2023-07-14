@@ -1,7 +1,10 @@
 ACSI2STM PCB user manual
 ========================
 
-This document describes how to install the official ACSI2STM PCB on an Atari ST.
+This document describes how to install the official full-featured ACSI2STM PCB
+on an Atari ST.
+
+For instructions about the compact PCB, see [compact_pcb_manual.md](compact_pcb_manual.md).
 
 For instructions to build this PCB, see [build_pcb.md](build_pcb.md).
 
