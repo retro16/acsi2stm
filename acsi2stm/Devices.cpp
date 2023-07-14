@@ -190,6 +190,6 @@ int Devices::computeChecksum(uint8_t *block) {
 }
 
 uint8_t Devices::buf[ACSI_BLOCKSIZE * ACSI_BLOCKS];
-RTClock Devices::rtc;
+RTClock Devices::rtc(RTCSEL_LSE);
 
 // vim: ts=2 sw=2 sts=2 et

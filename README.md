@@ -21,6 +21,11 @@ It also provides an UltraSatan compatible real-time clock if you add a simple
 
 See [RELEASE NOTES](release_notes.md) for details about the current version.
 
+A ready-to-use PCB with preassembled parts is now available and can be ordered
+directly from JLCPCB. No need to buy a Blue Pill, it integrates everything !
+You just need a USB-UART adapter to flash the firmware and it's ready to go.
+See [compact_pcb_manual.md](doc/compact_pcb_manual.md).
+
 **WARNING**, the pinout has changed for version 3.xx and above. If you built or
 bought a unit for older 1.xx, you need to make changes. If you have a 2.xx unit,
 use the "legacy" firmware image or make hardware changes. See the last section
@@ -39,6 +44,8 @@ This is what you can find:
 * [flashing.md](doc/flashing.md): A tutorial on how to download and flash a
   firmware into a STM32. For first time users or for upgrading a pre-built
   unit.
+* [compact_pcb_manual.md](doc/compact_pcb_manual.md): Ready to use preassembled
+  PCB with most features.
 * [compiling.md](doc/compiling.md): A step-by-step tutorial to compile and
   customize a new firmware. Describes compilation options.
 * [pcb_manual.md](doc/pcb_manual.md): User manual for the official PCB.
@@ -117,3 +124,4 @@ feedback, contributing to make the project better.
   they submit, and their patience when things fail !
 * Olivier Jan for the Mega STE PCB.
 * Tomasz Orczyk for finding a way to have a much better version of GCC.
+* Joe Ceklosky for his feedback and help on fixing RTC issues.
