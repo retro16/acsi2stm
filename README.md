@@ -56,6 +56,7 @@ This is what you can find:
 * [gemdrive.md](doc/gemdrive.md): Technical details about GemDrive.
 * [protocols.md](doc/protocols.md): Technical details about the communication
   protocol between the ACSI2STM unit and the Atari ST.
+* [emutos.md](doc/emutos.md): How to install EmuTOS with GemDrive support.
 * [troubleshooting.md](doc/troubleshooting.md): Having problems? Have a look
   in here.
 

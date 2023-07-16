@@ -1025,6 +1025,24 @@ void GemDrive::process(uint8_t cmd) {
 }
 
 void GemDrive::onBoot() {
+#ifdef ACSI_GEMDRIVE_LOAD_EMUTOS
+  // Check for EmuTOS
+  auto &fs = Devices::sdSlots[SdDev::gemBootDrive].fs;
+  if(fs.exists(ACSI_GEMDRIVE_LOAD_EMUTOS)) {
+    // EmuTOS found. Load and run it.
+    FsFile emutos = fs.open(ACSI_GEMDRIVE_LOAD_EMUTOS);
+    uint32_t basepage;
+    uint32_t result = loadPrg(emutos, ToLong(0), ToLong(0), basepage);
+    dbgHex(basepage," ");
+    if(result == E_OK) {
+      dbg("successful\n");
+      Pexec_4(ToLong(basepage));
+      return;
+    }
+    dbg("failed ");
+  }
+#endif
+
   // Prepare the driver binary
   memcpy(buf, GEMDRIVE_boot_bin, GEMDRIVE_boot_bin_len);
 

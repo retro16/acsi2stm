@@ -169,7 +169,7 @@ syshook.rte
 	bra.b	syshook.return          ; Return from exception
 
 syshook.pexec4:
-	; Command $86: Pexec4 and rte
+	; Command $88: Pexec4 and rte
 	moveq	#4,d0
 	bra.b	syshook.pexec
 

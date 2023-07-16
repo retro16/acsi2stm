@@ -253,11 +253,11 @@ This hook is not installed as it is currently unused.
 
 DMA is set at the correct address to read XBIOS call parameters.
 
-#### 0x11: Reserved GemDrive hook
+#### 0x11: Initialize GemDrive
 
-Enters in *Hook protocol* mode.
+Ask the ACSI2STM to initialize GemDrive. The ST enters hook mode.
 
-This hook is not installed as it is currently unused.
+Used by `GEMDRIVE.TOS`.
 
 #### 0x1f: ACSI command
 

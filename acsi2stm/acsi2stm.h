@@ -145,6 +145,11 @@
 // Automatically disabled if ACSI_DEBUG is disabled.
 #define ACSI_STACK_CANARY 3072
 
+// Boot EmuTOS if found on the SD card during GemDrive boot
+// The value is the path to search for EMUTOS.SYS on the SD card
+// Leave undefined to disable loading EmuTOS
+#define ACSI_GEMDRIVE_LOAD_EMUTOS "/EMUTOS.SYS"
+
 // First drive letter to scan when allocating drive letters to GemDrive.
 // In all cases, GemDrive will skip drive letters already reserved by drivers
 // loaded before it (such as ACSI drivers).

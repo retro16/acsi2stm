@@ -32,15 +32,21 @@ EmuTOS support since EmuTOS does not boot hard disk boot sectors. Simply start
 `GEMDRIVE.TOS` from the AUTO folder or from the desktop to load the GemDrive
 driver and all drives will be enabled.
 
+EmuTOS loader
+-------------
+
+GemDrive can now boot `EMUTOS.SYS` from the 1st SD card slot.
+
 Changes since 4.10
 ------------------
 
 * Fixed RTC clock that didn't run when unpowered.
-* Added the *Compact* PCB.
-* Small documentation fixes.
+* Added the *Compact PCB*.
+* Documentation updates.
 * Added back the whole history for 4.x in release_notes.md, as it should be.
 * Fixed GemDrive letter allocation when the 1st slot is not GemDrive.
 * Fixed and added `GEMDRIVE.TOS` to load GemDrive from desktop.
+* Boot `EMUTOS.SYS` on startup if present on the SD card.
 
 
 4.10: Clock support and unicode for GemDrive

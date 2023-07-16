@@ -31,8 +31,8 @@ in the sections below.
 ACSI mode can work either directly on SD cards, or on hard disk images.
 
 
-Compatibility
--------------
+Hardware compatibility
+----------------------
 
 ACSI2STM was successfully tested in ACSI mode on the following hardware:
 
@@ -158,6 +158,88 @@ indicating the firmware version along with other information.
 
 **WARNING**: See [hardware.md](hardware.md) if you wish to upgrade a 1.x or 2.x
 unit to 3.x or later: you may need to make changes.
+
+
+Software compatibility table
+----------------------------
+
+This section explains why some programs are compatible and some are not.
+
+### Software properly using the operating system
+
+These programs use the normal GEMDOS interface to access disk drives. This
+means that they have no path restrictions and follow the rules.
+
+**Programs usually working like this:**
+
+* Most desktop programs
+* A few games with no disk protection
+* Basically everything using the standard file selector to open files
+
+**Compatible with**
+
+* Internal floppy disk (A:)
+* External floppy disk (B:)
+* ACSI hard disk
+* GemDrive
+* Hatari GEMDOS
+
+### Software relying on bugs
+
+These programs use the normal GEMDOS interface to access disk drives but rely
+on weird patterns to work properly.
+
+**Compatible with**
+
+* Internal floppy disk (A:)
+* External floppy disk (B:)
+* ACSI hard disk
+* GemDrive
+
+**Incompatible with**
+
+* Hatari GEMDOS
+
+### Software doing BIOS access
+
+These programs access low level disks using BIOS or XBIOS interfaces.
+
+**Programs usually working like this:**
+
+* Most disk utilities
+* Maybe some very weirdly programmed games
+
+**Compatible with**
+
+* Internal floppy disk (A:)
+* External floppy disk (B:)
+* ACSI hard disk
+
+**Incompatible with**
+
+* GemDrive
+* Hatari GEMDOS
+
+### Software doing direct floppy controller access
+
+These programs directly access the floppy controller.
+
+**Programs usually working like this:**
+
+* Most games
+* Most programs relying on copy protected floppy disks
+* Floppy disk utilities (copy/format/repair)
+
+**Compatible with**
+
+* Internal floppy disk (A:)
+* (not always) External floppy disk (B:)
+
+**Incompatible with**
+
+* ACSI hard disk
+* GemDrive
+* Hatari GEMDOS
 
 
 Choosing a hard disk driver for ACSI mode

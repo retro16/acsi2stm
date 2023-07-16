@@ -213,7 +213,7 @@ You will need
 ![Round pin length: 8.24mm](images/round_pin_length.jpg)
 
 **Hint**: On online stores, these pins are often designated as
-"EN0508 0.50mm² ferrule"
+*EN0508 0.50mm² ferrule non-insulated*
 
 ### 21mm long 2.54 standard square wrapping pins.
 

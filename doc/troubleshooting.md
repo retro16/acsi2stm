@@ -7,54 +7,7 @@ If you have an issue, check this place first:
 Read-Only SD cards
 ------------------
 
-You need to solder PB0 to PB5 pins. See [hardware](hardware.md).
-
-
-Corrupted partitions
---------------------
-
-This is a symptom of certain models of STE and is unfortunately a
-[well documented problem](http://joo.kie.sk/?page_id=250). While the DMA chip
-is often identified as the culprit, an easy fix is to swap out the 68000
-processor for a more modern, less noisy lower power equivalent, such as the
-MC68HC000EI16 which is a drop-in replacement. Swapping the chip should require
-no soldering, the old chip can be pried out of the socket with a little effort
-(be careful not to damage the socket) and the substitute chip dropped in its
-place. Be sure to confirm the orientation of the chip is the same as the old
-one.
-
-**Update**: [recent research](https://www.chzsoft.de/site/hardware/new-atari-ste-bad-dma-investigation/)
-tend to indicate that a software workaround is possible. GemDrive implemented
-this workaround, so it may be immune to the issue. Only time will tell ...
-
-
-Writing errors in ACSI mode
----------------------------
-
-The following errors are common with TOS 1.62:
-> This disk does not have enough room for this operation.
-> 
-> Invalid copy operation.
-> 
-> TOS Error \#6
-
-The workaround is basically to use an alternative TOS version. TOS 2.06 and [EmuTOS](https://emutos.github.io) are good candidates. EmuTOS offers a familiar experience with many quality of life improvements and is still under active development.
-
-### Boot EmuTOS from SD
-Check out [EmuTOS Bootloader](https://github.com/czietz/emutos-bootloader). Installing is as straight-forward as restoring an image file to an SD card. A couple of things to note about this method:
-
-* This will wipe all the data from the card, but the linked website offers other methods of installation.
-* This method does not play nice with multiple partitions yet, so is only really suitable if you're happy with a single partition on your card.
-
-### Boot EmuTOS or another TOS from floppy
-Check out the [EmuTOS Installation Guide](https://emutos.github.io/manual/#installation) for help on how to set up a floppy to boot straight into EmuTOS.
-
-Alternatively you may find floppy images you can use to boot into original versions of TOS elsewhere online.
-
-To skip booting from the SD card, hold down the **Alternate** key when turning on your computer.
-
-### Physically swap the ROMs
-This is a much more advanced solution and involves sourcing and soldering new chips into your machine. This is outwith the scope of this document.
+You need to solder PB0..PB5 pins. See [hardware](hardware.md).
 
 
 Programs crashing in GemDrive mode
@@ -64,10 +17,49 @@ Unfortunately GemDrive isn't 100% compatible due to the way it works. A rule of
 thumb is: if it crashes on Hatari's GEMDOS drives, then there is nothing you
 can do about it.
 
-Implementing Pexec (the TOS function that starts programs) is very hard so it
-very likely has bugs. Some other functions may have subtle differences in
-their implementations compared to the original TOS (including non-existing
-bugs).
-
 Please file a bug report if you find a program that should work but doesn't.
 Provide a debug trace in any case, it really helps.
+
+See [manual.md](manual.md) for information about software compatibility.
+
+
+"Bad DMA" chips
+---------------
+
+**Update**: [A recent article](https://www.chzsoft.de/site/hardware/new-atari-ste-bad-dma-investigation/)
+describes a phenomenon that introduces DMA issues on some ST. It mentions a
+possible software workaround. GemDrive implemented this workaround, so it
+should be immune to the issue.
+
+For ACSI, if you use a modern driver, contact the developer. If you use an
+old legacy driver, there is nothing you can do. Use GemDrive instead.
+
+**Note:** ACSI2STM 3.x and lower had random issues. Many people were confused
+by this and thought that they had a bad DMA chip because of this. 4.00 fixed
+the issue so it might be worth trying an up to date version.
+
+
+The problem of STM32 clones / variants
+--------------------------------------
+
+Most STM32 clones won't work with ACSI2STM. The DMA code makes very heavy usage
+of timers and the STM32 DMA engine, even using undocumented features. All of
+this is very specific to the STM32F103 chip.
+
+You really need a quality source of STM32F103 chips, beware of fake chips. Chip
+shortage really increased the odds of buying fake chips, so be careful.
+
+CH32F103 chips are known not to work.
+
+Some official STM32 chips are sold as STM32F103C8T6 but in reality they are
+STM32F103CBT6. The only difference is that the chip provides 128k flash instead of
+64k. Both kinds of chips will work, and only CBT6 (or 128k C8T6) will support
+verbose mode (verbose mode requires 128k of flash).
+
+STM32 series other than STM32F103 work differently and won't work without
+modifying the code substantially.
+
+**Note:** Some STM32 didn't work with versions 3.x and lower, but this was
+caused by a hardware issue in all STM32 (including good ones). A workaround was
+implemented in version 4.00 so if you have old non-working ACSI2STM units,
+updating to the latest version may fix your issues.

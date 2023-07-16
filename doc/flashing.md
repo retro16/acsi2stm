@@ -30,15 +30,19 @@ Steps to update your firmware:
 * Press Y to start flashing.
 * When finished, the ST and the ACSI2STM unit will both restart.
 
-Note: when updating an ACSI2STM unit with multiple SD slots, you can select any
-slot to update the firmware for the whole unit. No need to do the update
+**Note:** when updating an ACSI2STM unit with multiple SD slots, you can select
+any slot to update the firmware for the whole unit. No need to do the update
 procedure multiple times.
 
-Note: `HDDFLASH.TOS` works entirely in RAM, so you can start the program from
-the unit to update.
+**Note:** `HDDFLASH.TOS` works entirely in RAM, so you can start the program
+from the unit to update.
 
-Warning: If flashing fails or if the unit is bricked, you will have to upload
-the new firmware using a serial dongle. See below.
+**Note:** If you load GemDrive using `GEMDRIVE.TOS`, upgrade this file right
+before running `HDDFLASH.TOS`. An old version of `GEMDRIVE.TOS` may not be
+compatible with the newer firmware.
+
+**Warning:** If flashing fails or if the unit is bricked, you will have to
+upload the new firmware using a serial dongle. See below.
 
 
 Firmware variants in the release package
