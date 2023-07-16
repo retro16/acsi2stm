@@ -128,6 +128,7 @@ end:
 void Devices::getDateTime(uint16_t *date, uint16_t *time) {
   tm_t now;
   rtc.getTime(now);
+  Monitor::dbg(now.year + 1970, '-', now.month, '-', now.day, ' ', now.hour, ':', now.minute, ':', now.second, ' ');
   *date = FS_DATE(now.year + 1970, now.month, now.day);
   *time = FS_TIME(now.hour, now.minute, now.second);
 }
@@ -141,6 +142,7 @@ void Devices::setDateTime(uint16_t date, uint16_t time) {
   newDateTime.minute = (time >> 5) & 0x3f;
   newDateTime.second = (time & 0x1f) * 2;
 
+  Monitor::dbg(newDateTime.year + 1970, '-', newDateTime.month, '-', newDateTime.day, ' ', newDateTime.hour, ':', newDateTime.minute, ':', newDateTime.second, ' ');
   rtc.setTime(newDateTime);
 }
 

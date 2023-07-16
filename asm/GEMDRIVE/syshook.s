@@ -33,8 +33,7 @@ spoff	equ	5*4
 
 syshook.init:
 	savereg	                        ; Save registers
-	moveq	#0,d0                   ;
-	move.b	d7,d0                   ; Send a command with the correct id
+	moveq	#0,d0                   ; Send zero command
 	bra.w	syshook.sendcmd
 
 syshook.setprm:
@@ -107,7 +106,6 @@ syshook.sendcmd:
 
 	move.w	#$00ff,(a0)             ; Send 255 blocks.
 	move.w	#$0188,(a1)             ; Switch to command.
-	move.l	#$01000000,d1           ;
 	move.w	d0,(a0)                 ; Send command byte to the STM32
 	move.w	#$0100,(a1)             ; Start DMA
 

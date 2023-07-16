@@ -1,8 +1,7 @@
 TODO for 4.20:
 
-* Try to make the `GEMDRIVE.TOS` loader work with EmuTOS and use Ptermres.
-  * Need to add a new *init without loading* command to the GemDrive protocol.
-* Update debug_output.txt.
+* Test the Compact PCB prototype
+* Review all documentation once again
 
 4.20: Professionally assembled PCB and RTC fix
 ==============================================
@@ -15,6 +14,7 @@ by JLCPCB's assembly services. It does not require a Blue Pill as it integrates
 the STM32 directly.
 
 Total cost is around $50 for 5 units (this is the minimum amount you can buy).
+Prices are of 07/2023 and may vary.
 
 Sources for EasyEda and Gerber are included, just like the full featured PCB.
 
@@ -24,6 +24,14 @@ sharing the port to other devices or being connected using an IDC20 cable.
 Note that buying from JLCPCB does not imply any warranty of any form from
 ACSI2STM authors. ACSI2STM authors don't receive any money from this.
 
+GemDrive loader program
+-----------------------
+
+GemDrive can now be loaded as a TOS program. The main reason to do that is
+EmuTOS support since EmuTOS does not boot hard disk boot sectors. Simply start
+`GEMDRIVE.TOS` from the AUTO folder or from the desktop to load the GemDrive
+driver and all drives will be enabled.
+
 Changes since 4.10
 ------------------
 
@@ -31,6 +39,8 @@ Changes since 4.10
 * Added the *Compact* PCB.
 * Small documentation fixes.
 * Added back the whole history for 4.x in release_notes.md, as it should be.
+* Fixed GemDrive letter allocation when the 1st slot is not GemDrive.
+* Fixed and added `GEMDRIVE.TOS` to load GemDrive from desktop.
 
 
 4.10: Clock support and unicode for GemDrive

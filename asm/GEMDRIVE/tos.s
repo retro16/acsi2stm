@@ -44,20 +44,25 @@ devstr...	rs.b	0
 
 	text
 
-start
-	lea	stacktop,sp             ; Initialize stack
+start	bra	main                    ; Main program is in the freed zone
 
-	move.l	sp,d0                   ; Shrink memory
-	lea	start-$100,a0           ;
-	sub.l	a0,d0                   ;
-	move.l	d0,-(sp)                ;
-	pea	start-$100              ;
-	clr.w	-(sp)                   ;
-	gemdos	Mshrink,12              ;
+syshook
+	include	syshook.s
+	dc.b	0
+acsiid	dc.b	$ff                     ; Patched by device detection
+prmoff	dc.w	$ff                     ; Detected during initialization
+syshook.end
+
+	ds.b	256                     ; Temporary stack for initialization
+stack		                        ;
+
+main
+	lea	stack,sp                ; Initialize stack in the command-line
 
 	Super	                        ; This program needs super user
 
 	; Check if the driver is already installed
+
 .nxtvec	move.l	gemdos.vector.w,a0
 	cmp.l	#'XBRA',-12(a0)
 	bne.b	.notins
@@ -73,21 +78,16 @@ start
 	bra.b	.nxtvec
 
 .notins	moveq	#0,d7                   ; d7 = pre-shifted ACSI id
+	st	flock.w                 ; Lock floppy controller
 
 .test	; Test for ACSI device in d7
 
-	lea	devices,a2              ; Load data into the device list
+	moveq	#0,d1                   ; Disable DMA
 	bsr.w	syshook.setdmaaddr      ;
+	move.w	#$0088,(a1)             ; Switch to command.
+	move.w	#$0011,(a0)             ; Send command $11 to the STM32
 
-	move.l	#$00010088,(a0)         ; Read 1 block. Switch to command.
-	move.l	#$01000000,d1           ;
-	move.b	d7,d1                   ;
-	or.b	#$02,d1                 ; Command $02
-	swap	d1                      ; d1 = 00i20100 (i being the device id)
-	move.l	d1,(a0)                 ; Send command to the STM32
-
-	; Timeout for IRQ
-	moveq	#20,d1                  ; 100ms timeout
+	moveq	#2,d1                   ; 10ms timeout
 
 .doack	add.l	hz200.w,d1              ;
 .await	cmp.l	hz200.w,d1              ; Test timeout
@@ -104,53 +104,93 @@ start
 .nxtid	add.b	#$20,d7                 ; Point at next ACSI id
 	bne.b	.test                   ; Try next ACSI id
 
+	sf	flock.w                 ; Unlock floppy controller
 	print	devnfnd
 	gemdos	Cconin,2                ; Wait for a key
 	Pterm0	                        ;  then exit
 
-.found	; Check device string
-	moveq	#7,d0
-	lea	devices,a0
+.found	sf	flock.w                 ; Unlock floppy controller
 
-.nxtdev	cmp.b	#2,(a0)
-	bne.b	.invdev
+	; All good, found device in d7
 
-	cmp.l	#'ACSI',devstr.product(a0)
-	bne.b	.invdev
-	cmp.l	#'2STM',devstr.product+4(a0)
-	bne.b	.invdev
-	cmp.b	#'4',devstr.version(a0)
-	blt.b	.invdev
-	cmp.b	#'9',devstr.version(a0)
-	bgt.b	.invdev
+setvars	lea	acsiid(pc),a0           ; Save ACSI id to RAM
+	move.b	d7,(a0)+                ;
 
-	; All good, run system hook init
-	bsr.b	syshook.init
-	Pterm0
+	move.w	#6,(a0)                 ; Compute parameter offset
+	tst.w	_longframe.w            ; Test _longframe
+	beq.b	.shrtfr                 ;
+	move.w	#8,(a0)                 ;
+.shrtfr
 
-.invdev	lea	devstr...(a0),a0
-	dbra	d0,.nxtdev
+	; Install system call hooks
 
-	; System hook code
-	include	syshook.s
+	move.l	#'XBRA',d3
+	move.l	#'A2ST',d4
+
+	; Warning: this list must be synchronized with GemDrive::onBoot()
+
+	lea	gemdos.vector.w,a3
+	bsr.b	install
+
+	; Enter syshook mode to run onInit on the STM32
+
+	bsr	syshook.init
+
+	; Shrink memory usage, terminate and stay resident
+
+termres	lea	start-72(pc),a0         ; Copy termres code into cmdline space
+	lea	termres.start(pc),a1    ;
+	move.w	#termres.end-termres.start-1,d0
+.loop	move.w	(a1)+,(a0)+             ;
+	dbra	d0,.loop                ;
+
+	bra	start-72                ; Jump to copied code
+
+termres.start
+	move.l	#$100+(syshook.end-start),-(sp) ; Shrink memory
+	move.l	8(sp),-(sp)             ;
+	clr.w	-(sp)                   ;
+	gemdos	Mshrink,12              ;
+
+	clr.w	-(sp)                   ; Terminate and stay resident
+	gemdos	Ptermres                ;
+
+	even
+termres.end
+
+install	; Install a hook
+	; Input:
+	;  d3: #'XBRA'
+	;  d4: #'A2ST'
+	;  a3: vector address
+
+	lea	syshook,a0              ; Search for XBRA signature
+	move.w	#(syshook.end-syshook)/2-1,d0
+.sig1	cmp.l	(a0),d3                 ;
+	beq.b	.sig1ok                 ;
+.cont	addq	#2,a0                   ;
+	dbra	d0,.sig1                ;
+
+	rts
+
+.sig1ok	cmp.l	4(a0),d4                ; Search for A2ST signature
+	bne.b	.cont                   ;
+	cmp.l	8(a0),a3                ; Check vector to install
+	bne.b	.cont                   ;
+
+	; Marker found: install hook
+
+	addq	#8,a0                   ; Point a0 to old vector
+	move.l	(a3),(a0)+              ; Save old vector and point at hook code
+	move.l	a0,(a3)                 ; Install hook vector
+
+	rts
 
 	; Strings
 alrdyin	dc.b	7,'GemDrive already installed',13,10,0
-devnfnd	dc.b	7,'GemDrive error: could not find a device',13,10,0
+devnfnd	dc.b	7,'No GemDrive device detected',13,10,0
 	even
 
 end
-
-detect
-
-	; Try to detect a GemDrive device
-
-	bss
-
-devices	ds.b	devstr...*8
-
-stack:
-	ds.b	32
-stacktop:
 
 ; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm68k tw=80

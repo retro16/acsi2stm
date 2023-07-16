@@ -22,7 +22,7 @@
 
 // acsi2stm global configuration
 
-#define ACSI2STM_VERSION "4.10"
+#define ACSI2STM_VERSION "4.2a"
 
 // Set to 1 to enable debug output on the serial port
 #define ACSI_DEBUG 0
@@ -176,12 +176,6 @@
 // names are simply truncated, leaving possible duplicates (and their glitches).
 // Hiding any file not fitting the 8.3 standard is the safest option.
 #define ACSI_GEMDRIVE_HIDE_NON_8_3 1
-
-// If set to 1, allocate GemDrive in top RAM. As I don't know yet all the
-// details, and as I saw a few glitches, I must be doing something wrong
-// somewhere. So by setting this to 1 you can allocate GemDrive to top RAM,
-// but don't complain if it crashes.
-#define ACSI_GEMDRIVE_TOPRAM 0
 
 // Size in bytes for the relocation table cache. Bigger means faster Pexec,
 // smaller means less memory used by Pexec on the STM32.

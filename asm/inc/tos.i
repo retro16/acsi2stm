@@ -170,6 +170,8 @@ phystop=$42e                            ; Top of physical RAM
 memtop=$436                             ; Top of TOS RAM
 dskbufp=$4c6                            ; Disk buffers
 bufl=$4b2                               ; Buffer lists
+_longframe=$59e                         ; Word: true if using long frames
+memvalid=$420                           ; Magic number to detect if RAM is valid
 
 ; Exception vectors
 gemdos.vector=$84

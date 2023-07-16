@@ -152,6 +152,5 @@ Future improvements
 
 Things that could be done more or less easily:
 
-* Install the driver in top RAM.
 * Floppy drive emulator, by hooking BIOS and XBIOS calls.
 * Hook Pexec on ST files to boot a floppy image by double-clicking it in GEM.

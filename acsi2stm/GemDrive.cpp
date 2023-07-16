@@ -981,6 +981,7 @@ void GemDrive::process(uint8_t cmd) {
         // The ST is now waiting for commands
 
         // Process initialization
+        dbg("GemDrive boot ");
         onBoot();
       }
       break;
@@ -1000,9 +1001,20 @@ void GemDrive::process(uint8_t cmd) {
       // Unused for now
 
     case 0x11:
-      // ACSI2STM extensions hook
-      // Unused for now
-      forward();
+      // ACSI2STM direct initialization command
+
+      // Acknowledge the ACSI command
+      DmaPort::sendIrq(0);
+
+      dbg("Direct ");
+
+      // Wait for the command byte telling that the ST is ready
+      DmaPort::waitCommand();
+      // The ST is now waiting for commands
+
+      // Do initialization process
+      dbg("GemDrive init ");
+      onInit();
       break;
 
     default:
@@ -1013,14 +1025,6 @@ void GemDrive::process(uint8_t cmd) {
 }
 
 void GemDrive::onBoot() {
-  int d;
-
-  dbg("GemDrive boot ");
-
-  // Update phystop for this machine
-  verbose("Read phystop\n");
-  SysHook::phystop = phystop();
-
   // Prepare the driver binary
   memcpy(buf, GEMDRIVE_boot_bin, GEMDRIVE_boot_bin_len);
 
@@ -1034,34 +1038,26 @@ void GemDrive::onBoot() {
   // Upload the driver to resident memory
   verbose("Allocate memory\n");
 
-#if ACSI_GEMDRIVE_TOPRAM
-  uint32_t driverSize = (GEMDRIVE_boot_bin_len + 0xff) & 0xffffff00;
-
-  // Shift memory to allocate the driver
-  ToLong physScreenMem = Physbase() - driverSize;
-  ToLong logScreenMem = Logbase() - driverSize;
-  ToWord screenRez = (int16_t)Getrez();
-
-  _memtop(_memtop() - driverSize);
-  Setscreen(physScreenMem, logScreenMem, screenRez);
-
-  ToLong driverMem = SysHook::phystop - driverSize;
-  phystop(driverMem);
-#else
   uint32_t driverSize = (GEMDRIVE_boot_bin_len + 0xf) & 0xfffffff0;
   ToLong driverMem = Malloc(driverSize);
-#endif
-
-  memvalid(0); // Don't keep anything memory resident on reset
-
-  delay(21); // Let enough time for the screen to be refresh
 
   verbose("Upload driver\n");
   sendAt(driverMem, buf, GEMDRIVE_boot_bin_len);
 
   // Install system call hooks
+  // Warning: installed system calls must be the same as in asm/GEMDRIVE/tos.s
   verbose("Install hooks\n");
   installHook(driverMem, 0x84); // GEMDOS
+
+  onInit();
+}
+
+void GemDrive::onInit() {
+  int d;
+
+  // Get phystop for this machine
+  verbose("Read phystop\n");
+  SysHook::phystop = phystop();
 
   // Driver splash screen
   tosPrint("\eE" "ACSI2STM " ACSI2STM_VERSION " by Jean-Matthieu Coulon\r\n",
@@ -1075,7 +1071,7 @@ void GemDrive::onBoot() {
 
   // Check TOS version
   os_version = readWordAt(os_beg + offsetof(OSHEADER, os_version));
-  dbgHex("TOS ", os_version, '\n');
+  dbgHex("TOS ", os_version, ' ');
   if(os_version < 0x104)
     tosPrint("\x07TOS < 1.04 has issues with GemDrive\r\n\r\n");
 
@@ -1118,22 +1114,19 @@ void GemDrive::onBoot() {
       continue;
     }
 
-    // Reinitialize the SD card
-    Devices::sdSlots[d].init();
-
     // Reset current path to root
     Devices::drives[d].curPath.clear();
 
     buf[1] = ':';
     buf[2] = ' ';
-    for(int i = (firstDriveLetter - 'A'); i < 26; ++i) {
+    for(int i = (d + firstDriveLetter - 'A'); i < 26; ++i) {
       if(!(drvbits & (1 << i))) {
         Devices::drives[d].id = i;
         drvbits |= (1 << i);
 
         buf[0] = 'A' + i;
         Devices::sdSlots[d].getDeviceString((char *)&buf[3]);
-#if ACSI_DEBUG
+#if ACSI_VERBOSE
         buf[27] = '\n';
         buf[28] = 0;
         dbg("-> ", (const char *)buf);
