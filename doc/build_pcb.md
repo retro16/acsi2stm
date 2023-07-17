@@ -1,5 +1,5 @@
-Building the ACSI2STM PCB
-=========================
+Building the ACSI2STM full-featured PCB
+=======================================
 
 You can find the PCB and its sources in the pcb directory.
 
@@ -206,14 +206,14 @@ You will need
 
 ### 1.24mm-1.28mm diameter hollow round pins
 
+**Hint**: On online stores, these pins are often designated as
+*EN0508 0.50mm² ferrule non-insulated*
+
 ![Box of pins](images/round_pins.jpg)
 
 ![Round pin diameter: 1.26mm](images/round_pin_diameter.jpg)
 
 ![Round pin length: 8.24mm](images/round_pin_length.jpg)
-
-**Hint**: On online stores, these pins are often designated as
-*EN0508 0.50mm² ferrule non-insulated*
 
 ### 21mm long 2.54 standard square wrapping pins.
 

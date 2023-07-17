@@ -7,7 +7,7 @@ If you have an issue, check this place first:
 Read-Only SD cards
 ------------------
 
-You need to solder PB0..PB5 pins. See [hardware](hardware.md).
+You need to solder PB0..PB5 pins. See [hardware.md](hardware.md).
 
 
 Programs crashing in GemDrive mode
@@ -26,7 +26,7 @@ See [manual.md](manual.md) for information about software compatibility.
 "Bad DMA" chips
 ---------------
 
-**Update**: [A recent article](https://www.chzsoft.de/site/hardware/new-atari-ste-bad-dma-investigation/)
+[This article](https://www.chzsoft.de/site/hardware/new-atari-ste-bad-dma-investigation/)
 describes a phenomenon that introduces DMA issues on some ST. It mentions a
 possible software workaround. GemDrive implemented this workaround, so it
 should be immune to the issue.

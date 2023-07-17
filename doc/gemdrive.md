@@ -43,7 +43,8 @@ Limitations
   This is also the case in Hatari.
 * File descriptors are leaked when terminating a process with Ctrl-C. There is
   no system call to catch this event.
-* Not compatible with EmuTOS, MiNT, or any other TOS replacement.
+* Not compatible with MiNT or any other TOS replacement.
+* Not compatible with OS-level multitasking (MultiTOS, ...).
 * Mimics TOS 1.04, TOS 1.62 and TOS 2.06 behavior (and some of its bugs), so
   software relying on other TOS versions can have issues.
 
@@ -73,13 +74,13 @@ the ACSI id matching this slot.
 If no SD card is present, GemDrive mode is enabled because it supports hot
 inserting and hot swapping cards.
 
-If GemDrive detects a bootable SD card, it will shift its drive letters to L:
-in order to avoid conflicts with poorly written ACSI drivers that steal
-existing drive letters for themselves.
+If GemDrive detects at least one SD slot running in ACSI mode, it will shift its
+drive letters to L: in order to avoid conflicts with ACSI drivers.
 
 At boot, GemDrive designates the first SD card it finds as boot drive (even if
 it is not C:). If no SD card is detected, it leaves boot drive untouched
-(usually the floppy drive is designated as boot).
+(usually the floppy drive is designated as boot). Note that "boot drive" isn't
+really taken into account by TOS, most of the time.
 
 **Note**: in order to avoid drive letter confusion, only the first partition of
 the SD card is used by GemDrive. This should not be a problem in most cases as
@@ -145,12 +146,3 @@ The STM32 decodes the trap call, then can decide to either implement it, or to
 forward the call to the TOS.
 
 The communication protocol is detailed in [protocols.md](protocols.md).
-
-
-Future improvements
--------------------
-
-Things that could be done more or less easily:
-
-* Floppy drive emulator, by hooking BIOS and XBIOS calls.
-* Hook Pexec on ST files to boot a floppy image by double-clicking it in GEM.

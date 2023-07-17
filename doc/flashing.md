@@ -37,9 +37,8 @@ procedure multiple times.
 **Note:** `HDDFLASH.TOS` works entirely in RAM, so you can start the program
 from the unit to update.
 
-**Note:** If you load GemDrive using `GEMDRIVE.TOS`, upgrade this file right
-before running `HDDFLASH.TOS`. An old version of `GEMDRIVE.TOS` may not be
-compatible with the newer firmware.
+**Note:** If you load GemDrive using `GEMDRIVE.TOS`, upgrade this file as well.
+An old version of `GEMDRIVE.TOS` may not be compatible with the newer firmware.
 
 **Warning:** If flashing fails or if the unit is bricked, you will have to
 upload the new firmware using a serial dongle. See below.
@@ -67,8 +66,6 @@ Compile-time options:
 
 The standard firmware, with limited debug output. Debug output is on the USART
 port of the STM32 (PA9) at 2Mbps.
-
-Requires 128k of flash on the STM32.
 
 Compile-time options:
 
@@ -156,8 +153,27 @@ bootloader:
 On the *Compact PCB*, put a jumper on FLASH to enable serial flashing mode.
 Connect TX to RX, RX to TX and GND together.
 
-To upload the firmware, you need the `stm32flash` command-line tool available on
-the [Arduino_STM32](https://github.com/rogerclarkmelbourne/Arduino_STM32/tree/master/tools)
+### Flashing using STM32CubeProg
+
+Download [STM32CubeProg from st.com](https://www.st.com/en/development-tools/stm32cubeprog.html)
+
+Install STM32CubeProg on your system and start it.
+
+![Screenshot of STM32CubeProg](images/stm32cube-1.png)
+
+On the main window, select *UART* in the programmer type, then select the serial
+port matching your UART adapter, then click *Connect*.
+
+Click the *Open file* tab and select the firmware file to upload.
+
+![Last STM32CubeProg step](images/stm32cube-2.png)
+
+To program the chip, click the *Download* button.
+
+### Flashing using the stm32flash command-line
+
+You need the `stm32flash` command-line tool available on the
+[Arduino_STM32](https://github.com/rogerclarkmelbourne/Arduino_STM32/tree/master/tools)
 repository, in the tools subdirectory.
 
 Sample stm32flash command-line:

@@ -4,10 +4,7 @@ ACSI2STM Compact PCB user manual
 This document describes how to order, install and connect the official compact
 PCB of ACSI2STM.
 
-This PCB already integrates all components, so it doesn't need a Blue Pill PCB.
-It allows a much more compact layout.
-
-For instructions on how to use the ACSI2STM, see [manual.md](manual.md).
+This PCB already integrates all components, so it doesn't need a Blue Pill.
 
 
 Ordering a unit
@@ -63,10 +60,10 @@ To flash the firmware:
 * Connect RX to the TX pin of the serial adapter
 * Connect GND to the serial adapter
 * Power the board using USB-C
-* See [flashing.md](flashing.md) for more details about flashing the firmware
+* See [flashing.md](flashing.md) for the firmware flashing procedure
 
-Note: you don't need to connect the board to an Atari for this operation. It can
-be done safely when connected to an Atari though.
+**Note:** You don't need to connect the board to an Atari for this operation. It
+can be done safely when connected to an Atari though.
 
 
 Installing the PCB
@@ -115,7 +112,7 @@ The ID_SHIFT pins will change ACSI IDs of the ACSI2STM unit to 3-5 instead of
 
 Put a jumper to enable (id 3-5), remove to disable (id 0-2).
 
-This allows putting 2 ACSI2STM units at the same time, or leaving ID0 free for
+This allows putting 2 ACSI2STM units at the same time, or leaving id 0 free for
 another device.
 
 ### FLASH

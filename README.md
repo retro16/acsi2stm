@@ -26,10 +26,9 @@ directly from JLCPCB. No need to buy a Blue Pill, it integrates everything !
 You just need a USB-UART adapter to flash the firmware and it's ready to go.
 See [compact_pcb_manual.md](doc/compact_pcb_manual.md).
 
-**WARNING**, the pinout has changed for version 3.xx and above. If you built or
-bought a unit for older 1.xx, you need to make changes. If you have a 2.xx unit,
-use the "legacy" firmware image or make hardware changes. See the last section
-of [hardware.md](doc/hardware.md) for more information.
+**WARNING**, if you built or bought a unit for older 1.xx, you need to make
+changes. See the last section of [hardware.md](doc/hardware.md) for more
+information.
 
 
 Documentation
@@ -46,17 +45,17 @@ This is what you can find:
   unit.
 * [compact_pcb_manual.md](doc/compact_pcb_manual.md): Ready to use preassembled
   PCB with most features.
+* [emutos.md](doc/emutos.md): How to install EmuTOS with GemDrive support.
 * [compiling.md](doc/compiling.md): A step-by-step tutorial to compile and
   customize a new firmware. Describes compilation options.
 * [pcb_manual.md](doc/pcb_manual.md): User manual for the full featured PCB.
 * [build_pcb.md](doc/build_pcb.md): Instructions for building a unit using
-  the official PCB.
+  the full featured PCB.
 * [hardware.md](doc/hardware.md): How to design and build an acsi2stm unit
   from scratch (hand wired, or your own PCB design).
 * [gemdrive.md](doc/gemdrive.md): Technical details about GemDrive.
 * [protocols.md](doc/protocols.md): Technical details about the communication
   protocol between the ACSI2STM unit and the Atari ST.
-* [emutos.md](doc/emutos.md): How to install EmuTOS with GemDrive support.
 * [troubleshooting.md](doc/troubleshooting.md): Having problems? Have a look
   in here.
 
