@@ -82,6 +82,10 @@ it is not C:). If no SD card is detected, it leaves boot drive untouched
 (usually the floppy drive is designated as boot). Note that "boot drive" isn't
 really taken into account by TOS, most of the time.
 
+GemDrive doesn't respond to any ACSI command, except reading the boot sector.
+Most ACSI drivers and tools will ignore such a strange behavior and will skip
+the drive successfully.
+
 **Note**: in order to avoid drive letter confusion, only the first partition of
 the SD card is used by GemDrive. This should not be a problem in most cases as
 the need for multiple partitions arised from disk size limitations, and
@@ -118,9 +122,6 @@ A few considerations should be made when mixing both kinds of drives:
 
 * ACSI drivers that require ACSI id 0 and break the boot chain won't allow
   GemDrive loading itself.
-* GemDrive doesn't respond to any ACSI command, except reading the boot sector.
-  Most drivers will ignore such a strange behavior and will skip the drive
-  successfully.
 * In general putting GemDrive first and the ACSI drives last is your best bet.
 
 If your driver has problems with GemDrive, then only solution is to enable

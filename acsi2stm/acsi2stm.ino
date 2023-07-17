@@ -43,10 +43,10 @@ void setup() {
   // Send a few characters to synchronize autoconfigured USB-serial dongles.
   Monitor::dbg("\n\n");
   delay(150);
-  Monitor::dbg("\n\n");
+  Monitor::dbg('\n');
   delay(50);
 
-  Monitor::dbg("ACSI2STM SD bridge v" ACSI2STM_VERSION "\n\n");
+  Monitor::dbg("ACSI2STM v" ACSI2STM_VERSION "\n\n");
 #endif
 
   // Delay to stabilize SD cards power
@@ -69,7 +69,7 @@ void __attribute__ ((noinline)) checkCanary() {
   for(int i = 1; i <= canaryWords; i *= 2) {
     if(canary[canaryWords - i - 1] != 0xdeadbeef) {
       canary[canaryWords - i - 1] = 0xdeadbeef;
-      Monitor::dbg("Stack canary ", i, " died. Reviving.\n");
+      Monitor::dbg("Canary ", i, " died\n");
     }
   }
 }

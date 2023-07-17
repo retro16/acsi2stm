@@ -19,14 +19,40 @@
 
 start	org	0
 
-	bra.b	syshook.init
+	bra.b	load                    ; Send the load ACSI command
 
 	org	2
 	dc.b	0                       ; Patched-in variables
 acsiid	dc.b	$ff                     ; Invalid values to check for correct
 prmoff	dc.w	$ff                     ; patching code in the STM32
 
-	include	syshook.s
+load	st	flock.w                 ; Lock floppy controller
+
+	moveq	#0,d1                   ; Disable DMA
+	bsr.w	syshook.setdmaaddr      ;
+	move.w	#$0088,(a1)             ; Switch to command.
+	move.w	#$0009,(a0)             ; Send command $09 (GemDrive boot)
+
+	moveq	#20,d1                  ; 100ms timeout
+
+	add.l	hz200.w,d1              ;
+.await	cmp.l	hz200.w,d1              ; Test timeout
+	bmi.b	.err                    ;
+	btst.b	#5,gpip.w               ; Test command acknowledge
+	bne.b	.await                  ;
+
+	move.w	#$008a,(a1)             ; Prepare to read command/status
+	move.w	(a0),d0                 ; Read command/status byte
+
+	tst.b	d0                      ; 0 = success
+	beq.b	.found                  ;
+
+.err	sf	flock.w                 ; Unlock floppy controller
+	rts	                        ;  then exit
+
+.found	sf	flock.w                 ; Unlock floppy controller
+
+	include	syshook.s               ; Enter syshook mode
 
 end
 

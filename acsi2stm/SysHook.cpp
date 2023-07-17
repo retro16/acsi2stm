@@ -371,7 +371,7 @@ Long SysHook::readLongAtIndirect(ToLong source) {
 void SysHook::rte(int8_t value) {
   if(value <= (int8_t)0x8b)
     rte(ToLong(value));
-  dbgHex("rte (quick ", (uint32_t)(uint8_t)value, ") ");
+  dbgHex("rte(", (uint32_t)(uint8_t)value, ") ");
   DmaPort::sendIrq(value);
 }
 
@@ -470,7 +470,5 @@ void SysHook::sendCommand(int command, ToLong param)
 bool SysHook::isDma(uint32_t address) {
   return address < phystop;
 }
-
-uint32_t SysHook::phystop = 0xe00000; // By default, allow DMA in the low 14MB region
 
 // vim: ts=2 sw=2 sts=2 et

@@ -47,6 +47,7 @@ Changes since 4.10
 * Fixed GemDrive letter allocation when the 1st slot is not GemDrive.
 * Fixed and added `GEMDRIVE.TOS` to load GemDrive from desktop.
 * Boot `EMUTOS.SYS` on startup if present on the SD card.
+* Introduced command 0x09 to avoid crashes if a tool reads GemDrive boot sector.
 
 
 4.10: Clock support and unicode for GemDrive

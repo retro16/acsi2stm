@@ -55,13 +55,13 @@ details.
 ### Command start byte (ST -> peripheral)
 
          _________
-    IRQ           
+    IRQ
          __     __
     A1     |___|
          ___   ___
-    CS      |_|   
+    CS      |_|
     
-    DATA      ^   
+    DATA      ^
 
 
 The ST pulls the A1 pin as well as the DATA pins (D7..D0) then pulses CS. Data
@@ -75,13 +75,13 @@ the ACSI id.
 ### Command byte (ST -> peripheral)
 
          __         __
-    IRQ    |_______|  
+    IRQ    |_______|
          _____________
-    A1   
+    A1
          _______   ___
-    CS          |_|   
+    CS          |_|
     
-    DATA          ^   
+    DATA          ^
 
 
 The peripheral pulls IRQ when it is ready to read the next command byte. When
@@ -114,10 +114,10 @@ whole IRQ pulse to be safe.
 #### GemDrive variant: status byte with parameter
 
 GemDrive uses status bytes as reverse commands in hook mode. Commands 0x80 to
-0x8a transmit a parameter in fast mode (without waiting for IRQ):
+0x8a transmit a 4 bytes long parameter in fast mode (without waiting for IRQ):
 
-         __      _______________________________
-    IRQ    |____|
+         __      _                           ___
+    IRQ    |____| |_________________________|
          _____   ____   ____   ____   ____   ___
     CS        |_|    |_|    |_|    |_|    |_|
     
@@ -180,7 +180,7 @@ explains some compatibility issues.
 
 ### ICD extended commands
 
-As ACSI command byte cannot go beyond 0x1f, SCSI commands above 0x1f cannot be
+As ACSI command bytes cannot go beyond 0x1f, SCSI commands above 0x1f cannot be
 sent as-is. The ICD extension is commonly used to send extended SCSI commands:
 
 The first byte is sent as 0x1f + ACSI id, then a full SCSI command is sent.
@@ -212,13 +212,13 @@ driver.
 
 ### Initial commands (ST -> ACSI2STM)
 
-These are sent with A1 low.
+These are sent with A1 low during the first byte.
 
 #### 0x08: SCSI READ(6)
 
 This is for compatibility with the TOS bootloader. GemDrive supports reading a
-single sector, containing just enough driver to start listening for other
-commands. See *Hook protocol* below.
+single sector, containing just enough driver to send command 0x09 then start
+listening for hook commands. See *Hook protocol* below.
 
 Expected ACSI command:
 
@@ -227,6 +227,14 @@ Expected ACSI command:
 Any other byte sequence after 0x08 will return an error.
 
 Note: only the boot id responds to this command.
+
+#### 0x09: Install GemDrive
+
+Ask the ACSI2STM to install GemDrive. The ST enters in hook mode, then expects
+the STM32 to install GemDrive in RAM and follow up with the initialization
+process (just like command 0x11).
+
+Used by the boot loader returned by command 0x08.
 
 #### 0x0e: GEMDOS hook
 
@@ -255,7 +263,8 @@ DMA is set at the correct address to read XBIOS call parameters.
 
 #### 0x11: Initialize GemDrive
 
-Ask the ACSI2STM to initialize GemDrive. The ST enters hook mode.
+Ask the ACSI2STM to initialize GemDrive. The ST enters in hook mode, then
+expects the STM32 to do the initialization process.
 
 Used by `GEMDRIVE.TOS`.
 
@@ -268,13 +277,13 @@ may conflict with the GemDrive driver and corrupt data.
 
 ### Hook protocol
 
-Once the boot sector is loaded or any hook command is sent, the ST turns into
-hooked mode, using an entirely different protocol.
+Once any hook command is sent, the ST goes into hooked mode, using an entirely
+different protocol.
 
 The ST waits for a status byte (which becomes a command byte), then acts
 accordingly.
 
-Command bytes in the 0x80-0x8a range are followed by a 4 bytes long parameter.
+Command bytes in the 0x80..0x8a range are followed by a 4 bytes long parameter.
 These bytes are transfered in fast mode (see *GemDrive variant* above).
 
 * 0x8b: forward hook to TOS / continue boot routine
@@ -297,11 +306,11 @@ These bytes are transfered in fast mode (see *GemDrive variant* above).
   bytes from stack to the address pointed by *parameter*. Then it sets DMA write
   on stack data after the byte count and waits for another command. Stack
   pointer is unchanged.
-* Any other byte will set D0 sign extended to a long (e.g. 0xff will set D0 to
-  0xffffffff) and return from exception.
+* Any other byte will set D0 sign extended to a long (e.g. 0xdc will set D0 to
+  0xffffffdc) and return from exception. Used to return TOS error codes.
 
 For commands 0x85 and 0x84 (running machine code), microprograms are defined
-in the file [asm/programs/boot.s](../asm/programs/boot.s). Obviously, all
+in the file [asm/PROGRAMS/boot.s](../asm/PROGRAMS/boot.s). Obviously, all
 microprograms must be exactly 4 bytes long. To execute longer programs you would
 have to upload them in the ST ram, then call them.
 Some microprograms are patched dynamically by the STM32 before being uploaded.

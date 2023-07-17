@@ -953,7 +953,6 @@ void GemDrive::process(uint8_t cmd) {
 
         if(buf[0] != 0x00 || buf[1] != 0x00 || buf[2] != 0x00 || buf[3] != 0x01 || buf[4] != 0x00) {
           // Not a boot query: send the 'no operation' SCSI status
-          dbg("non-boot query ");
           DmaPort::sendIrq(0x08);
         }
 
@@ -975,13 +974,20 @@ void GemDrive::process(uint8_t cmd) {
 
         // Acknowledge the ACSI read command
         DmaPort::sendIrq(0);
+      }
+      break;
+
+    case 0x09:
+      {
+        // Acknowledge the GemDrive boot command
+        DmaPort::sendIrq(0);
 
         // Wait for the command byte telling that the ST is ready
         DmaPort::waitCommand();
         // The ST is now waiting for commands
 
         // Process initialization
-        dbg("GemDrive boot ");
+        dbg("boot ");
         onBoot();
       }
       break;
@@ -1006,20 +1012,18 @@ void GemDrive::process(uint8_t cmd) {
       // Acknowledge the ACSI command
       DmaPort::sendIrq(0);
 
-      dbg("Direct ");
-
       // Wait for the command byte telling that the ST is ready
       DmaPort::waitCommand();
       // The ST is now waiting for commands
 
       // Do initialization process
-      dbg("GemDrive init ");
+      dbg("init ");
       onInit();
       break;
 
     default:
       // For unknown commands, play dead to avoid confusing other drivers
-      dbg("Ignore command ");
+      dbg("Ignore ");
       break;
   }
 }
@@ -1073,14 +1077,10 @@ void GemDrive::onBoot() {
 void GemDrive::onInit() {
   int d;
 
-  // Get phystop for this machine
-  verbose("Read phystop\n");
-  SysHook::phystop = phystop();
-
   // Driver splash screen
   tosPrint("\eE" "ACSI2STM " ACSI2STM_VERSION " by Jean-Matthieu Coulon\r\n",
            "GPLv3 license. Source & doc at\r\n",
-           " https://github.com/retro16/acsi2stm\r\n\r\n");
+           " https://github.com/retro16/acsi2stm\r\n\n");
 
   // Cache OSHEADER values
   verbose("Read OSHEADER\n");
@@ -1091,7 +1091,7 @@ void GemDrive::onInit() {
   os_version = readWordAt(os_beg + offsetof(OSHEADER, os_version));
   dbgHex("TOS ", os_version, ' ');
   if(os_version < 0x104)
-    tosPrint("\x07TOS < 1.04 has issues with GemDrive\r\n\r\n");
+    tosPrint("\x07TOS < 1.04 has issues with GemDrive\r\n\n");
 
   // Get basepage pointer
   os_conf = readWordAt(os_beg + offsetof(OSHEADER, os_conf));
@@ -1168,7 +1168,7 @@ void GemDrive::onInit() {
       setCurDrive(Devices::drives[d].id);
       _bootdev(Devices::drives[d].id);
       Dsetdrv(Devices::drives[d].id);
-      memcpy(buf, "\r\nBoot on ?:\r\n\r\n", 17);
+      memcpy(buf, "\r\nBoot on ?:\r\n\n", 17);
       buf[10] = Devices::drives[d].letter();
       tosPrint((const char *)buf);
       break;
@@ -1194,7 +1194,7 @@ void GemDrive::onGemdos() {
   case Tos::name ## _op: { name ## _p p; \
     dbg(#name "("); \
     readParams(&p, sizeof(p)); \
-    dbg("): "); \
+    dbg("):"); \
     on ## name(p); \
   } return
 
@@ -1233,7 +1233,7 @@ void GemDrive::onGemdos() {
   case Tos::name ## _op: { name ## _p p; \
     dbg(#name "("); \
     readParams(&p, sizeof(p)); \
-    dbg("): "); \
+    dbg("):"); \
   } break
 #else
 #undef DECLARE_CALLBACK
@@ -1942,7 +1942,7 @@ bool GemDrive::onFrename(const Tos::Frename_p &p) {
 bool GemDrive::onFdatime(const Tos::Fdatime_p &p) {
   if(!ownFd(p.handle))
     return forward();
- 
+
   FsFile &file = files[p.handle.bytes[1]].reopen();
   if(!file)
     return rte(EIHNDL);

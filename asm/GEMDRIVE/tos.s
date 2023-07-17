@@ -87,9 +87,9 @@ main
 	move.w	#$0088,(a1)             ; Switch to command.
 	move.w	#$0011,(a0)             ; Send command $11 to the STM32
 
-	moveq	#2,d1                   ; 10ms timeout
+	moveq	#20,d1                  ; 100ms timeout
 
-.doack	add.l	hz200.w,d1              ;
+	add.l	hz200.w,d1              ;
 .await	cmp.l	hz200.w,d1              ; Test timeout
 	bmi.b	.nxtid                  ;
 	btst.b	#5,gpip.w               ; Test command acknowledge

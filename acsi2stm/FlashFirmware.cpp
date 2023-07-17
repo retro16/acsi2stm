@@ -125,7 +125,7 @@ void flashFirmware(uint32_t size) {
   FLASH_BASE->KEYR = 0x45670123;
   FLASH_BASE->KEYR = 0xCDEF89AB;
 
-  Monitor::dbg("Flashing ", size, " bytes at ");
+  Monitor::dbg("Flash ", size, " bytes at ");
   Monitor::dbgHex(FLASH_START, '\n');
 
   // The rest must be executed from RAM

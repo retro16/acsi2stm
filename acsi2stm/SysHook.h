@@ -411,7 +411,7 @@ struct SysHook: public Monitor {
 
   // Test for DMA-compatible memory
   static bool isDma(uint32_t address);
-  static uint32_t phystop; // Refreshed by GemDrive at boot
+  static const uint32_t phystop = 0xe00000; // DMA-compatible range
 };
 
 // vim: ts=2 sw=2 sts=2 et
