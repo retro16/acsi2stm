@@ -1,3 +1,9 @@
+4.11: Clock fix
+===============
+
+Very small bug fix for the realtime clock that didn't run correctly.
+No other change.
+
 4.10: Clock support and unicode for GemDrive
 ============================================
 
