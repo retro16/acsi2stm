@@ -1,10 +1,6 @@
-TODO for 4.20:
+4.20: Professionally assembled PCB, EmuTOS and fixes
+====================================================
 
-* Test the Compact PCB prototype
-* Review all documentation once again
-
-4.20: Professionally assembled PCB and RTC fix
-==============================================
 
 New Compact PCB
 ---------------
@@ -28,14 +24,13 @@ GemDrive loader program
 -----------------------
 
 GemDrive can now be loaded as a TOS program. The main reason to do that is
-EmuTOS support since EmuTOS does not boot hard disk boot sectors. Simply start
-`GEMDRIVE.TOS` from the AUTO folder or from the desktop to load the GemDrive
-driver and all drives will be enabled.
+EmuTOS support since EmuTOS does not boot hard disk boot sectors.
 
 EmuTOS loader
 -------------
 
-GemDrive can now boot `EMUTOS.SYS` from the 1st SD card slot.
+GemDrive can now boot `EMUTOS.SYS` from the 1st SD card slot. It needs a special
+setup to reload GemDrive from within EmuTOS, described in [gemdrive.md](doc/gemdrive.md).
 
 Changes since 4.10
 ------------------

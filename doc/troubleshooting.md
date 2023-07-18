@@ -4,6 +4,56 @@ Troubleshooting
 If you have an issue, check this place first:
 
 
+"Nothing works" - where to start ?
+----------------------------------
+
+"Nothing works" doesn't mean anything.
+
+First of all, ACSI2STM is not a hardware nor software vendor. It is **not** a
+finished product that is guaranteed to work. Your old ST is also not guaranteed
+to work. You need technical knowledge to assemble, test and debug the project.
+
+Things to check first:
+
+* Use the debug firmware in case of issues. Debug messages help a lot.
+* The green LED must stay on when the ST is off. If it is not, you have an
+  issue with the STM32 (bad firmware upload ? hardware issue ?)
+* The green LED must turn off nearly immediately when powering the ST on. If it
+  doesn't, you may have a hardware fault on the ST.
+* With no Blue Pill installed, the following signals must be present on the HD
+  port of the ST during the boot process (after the first floppy disk access and
+  before the desktop appears):
+  * RST must be high and steady
+  * CS must pulse low exactly 8 times, pulses are around 250ns long and spaced
+    by about 50ms (more or less)
+  * A1 must pulse low from time to time. A1 must be low anytime CS pulses low.
+  * R/W must be high when CS pulses low
+  * IRQ, DRQ and ACK must be high around CS pulses
+  * See [protocols.md](protocols.md) and [hardware.md](hardware.md) for
+    technical details that will help you do all the necessary checks.
+
+
+SD cards not detected / malfunctioning
+--------------------------------------
+
+Check in the debug output that the SD card are effectively detected. For
+GemDrive, the SD card should be specified as "mountable". If the SD card is not
+marked as "mountable" or marked as "bootable", then it will be set to ACSI mode.
+
+The best cards are the most modern SDHC/SDXC cards. Reputable brands offer
+better reliability. Be careful with the many bootleg/knockoffs, some of them
+even include the whole packaging and look very convincing.
+
+The SdFat library uses SD cards in SPI mode. Normally, all cards are compatible,
+but some full size SD cards may not support this mode.
+
+Some old SD cards don't work at 36MHz and will fall back at 12MHz.
+
+If SD cards aren't detected, check connections and make sure you don't use a SD
+slot with logic level adapters for 5V Arduinos. Connections between the SD card
+and the microcontroller must be direct.
+
+
 Read-Only SD cards
 ------------------
 

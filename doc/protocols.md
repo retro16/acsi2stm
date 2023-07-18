@@ -72,6 +72,10 @@ IRQ should be kept up all the time.
 For the command start byte, D4..D0 bits specify the command, and D7..D5 specify
 the ACSI id.
 
+Example of a real ST trace (1040 STE). Yellow (top) is CS, Pink (bottom) is A1:
+
+![CS and A1 pulse](images/cs_pulse.png)
+
 ### Command byte (ST -> peripheral)
 
          __         __

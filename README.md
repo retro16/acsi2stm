@@ -45,19 +45,20 @@ This is what you can find:
   unit.
 * [compact_pcb_manual.md](doc/compact_pcb_manual.md): Ready to use preassembled
   PCB with most features.
-* [emutos.md](doc/emutos.md): How to install EmuTOS with GemDrive support.
+* [full_pcb_manual.md](doc/full_pcb_manual.md): User manual for the full
+  featured PCB.
 * [compiling.md](doc/compiling.md): A step-by-step tutorial to compile and
   customize a new firmware. Describes compilation options.
-* [pcb_manual.md](doc/pcb_manual.md): User manual for the full featured PCB.
+* [troubleshooting.md](doc/troubleshooting.md): Having problems? Have a look
+  in here.
+* [gemdrive.md](doc/gemdrive.md): Technical details about GemDrive. How to mix
+  GemDrive with ACSI. How to install GemDrive for EmuTOS.
 * [build_pcb.md](doc/build_pcb.md): Instructions for building a unit using
   the full featured PCB.
 * [hardware.md](doc/hardware.md): How to design and build an acsi2stm unit
   from scratch (hand wired, or your own PCB design).
-* [gemdrive.md](doc/gemdrive.md): Technical details about GemDrive.
 * [protocols.md](doc/protocols.md): Technical details about the communication
   protocol between the ACSI2STM unit and the Atari ST.
-* [troubleshooting.md](doc/troubleshooting.md): Having problems? Have a look
-  in here.
 
 
 To people buying/selling hardware

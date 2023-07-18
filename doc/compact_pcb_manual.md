@@ -14,8 +14,8 @@ Ordering a unit
 authors offer no warranty for the manufactured product and don't get any money
 for your purchase. Support will be best effort.
 
-Note: EasyEda/JLCPCB are rapidly evolving tools. The procedure might be slightly
-different for you.
+**Note**: EasyEda/JLCPCB are rapidly evolving tools. The procedure might be
+slightly different for you.
 
 * If you don't have an [EasyEda](https://easyeda.com) account, you need to
   register first.
@@ -46,6 +46,9 @@ assembled by JLCPCB by default:
 * Serial/UART pins
 * The Satan/UltraSatan IDC20 connector
 
+All these parts can be built using the same 2.54mm male square pins. It's better
+to use a real IDC20 connector though.
+
 
 Flashing firmware
 -----------------
@@ -64,6 +67,11 @@ To flash the firmware:
 
 **Note:** You don't need to connect the board to an Atari for this operation. It
 can be done safely when connected to an Atari though.
+
+**Note:** You may avoid soldering the FLASH jumper and TX/RX/GND pins by using
+pogo pins or keeping pins/wires in contact with tape, just for the first time
+flashing the firmware. Afterwards, you can update the firmware using
+`HDDFLASH.TOS` on the ST.
 
 
 Installing the PCB
