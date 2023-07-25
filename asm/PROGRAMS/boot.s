@@ -18,22 +18,22 @@
 
 ; Microprograms injected by the GemDrive driver
 ; All programs are 4 bytes long
-; a4 points at the current DMA address
+; a2 points at the current DMA address
 
 PGM_NOP:
-	nop
+	nop                             ; Currently unused
 	nop
 
 PGM_TRAP:
-	trap	#0
+	trap	#0                      ; Trap number patched by the STM32
 	move.l	d0,-(sp)
 
 PGM_PUSHSP:
         move.l	sp,-(sp)
-	nop
+	nop	                        ; Align on 4 bytes boundary
 
 PGM_ADDSP:
-	lea	0(sp),sp
+	lea	0(sp),sp                ; Stack offset patched by the STM32
 
 PGM_READSPB:
 	move.l	(sp)+,a0
