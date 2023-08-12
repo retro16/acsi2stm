@@ -6,6 +6,10 @@ PCB of ACSI2STM.
 
 This PCB already integrates all components, so it doesn't need a Blue Pill.
 
+There is a **huge** advantage over using blue pills: LCSC/JLCPCB seems to be a
+reliable source for working STM32 chips, meaning no risk of having clones or
+poor quality chips that don't work 100%.
+
 
 Ordering a unit
 ---------------
@@ -34,6 +38,13 @@ slightly different for you.
   * PCB Assembly: make sure to enable this to receive a fully populated PCB.
   * Tooling holes: Set to *Added by Customer*.
 * You can then proceed with the order by clicking *Next*.
+
+**Note:** If some parts are not found when processing the BOM, check the
+"Basic part" checkbox when searching for a substitute. Extended parts can be
+much more expensive.
+
+If build costs go way beyond $60, you probably didn't select the correct parts
+or there is a supply shortage.
 
 
 Manually soldered parts
@@ -103,6 +114,8 @@ Connectors and jumpers
 Since this design doesn't use a full Blue Pill board, its configuration jumpers
 are a bit different.
 
+Some jumpers can also be permanently set by small solder blobs on the PCB.
+
 ### Serial interface
 
 The serial interface (STM32 PA9/PA10) is available on the PCB as a small 3-pin
@@ -115,13 +128,10 @@ the Blue Pill.
 
 ### ID_SHIFT
 
-The ID_SHIFT pins will change ACSI IDs of the ACSI2STM unit to 3-5 instead of
-0-2. This is equivalent to the bottom position of the Blue Pill.
-
-Put a jumper to enable (id 3-5), remove to disable (id 0-2).
-
-This allows putting 2 ACSI2STM units at the same time, or leaving id 0 free for
-another device.
+The ID_SHIFT pins will change ACSI IDs of the ACSI2STM unit. Refer to the
+template on the board to get jumper positions. With no jumper SD cards will have
+ACSI ids 0 to 2, and putting the jumper in different positions can shift IDs to
+1-3, 2-4 or 3-5.
 
 ### FLASH
 
@@ -144,4 +154,31 @@ This connector is compatible with Satan/UltraSatan cables.
 
 The connector can be used in both directions: either to connect to the ST or to
 connect additional devices.
+
+**Note:** You can use female headers with long pins to make a stackable unit.
+When building the enclosure, enable both *idc20* and *idc20p* parameters and
+disable *db19* because piggyback and DB19 connectors are mutually exclusive.
+You will have to desolder or cut DB19 pins to build a stackable unit.
+
+
+Enclosure
+---------
+
+A 3D printed enclosure is provided. It's designed under OpenSCAD. A STL file is
+provided for convenience.
+
+The **.scad** file can be customized with some parameters:
+
+* $logo: If true, adds "ACSI2STM" text on the back side.
+* $db19: If true, leaves space for the DB19 connector.
+* $idc20: If true, leaves a hole for the IDC20 SATAN port on the back side.
+* $idc20p: If true, leaves a hole for an IDC20 piggyback (stackable) port on the
+  front side. To enable this, $idc20 should be enabled and $db19 should be
+  disabled.
+
+The enclosure is optimized for 0.2mm layers and a 0.4mm nozzle. It also works
+with a 0.8mm nozzle and 0.15mm layers.
+
+The 2 parts and the PCB are bolted with 6 M2 bolts. Nuts need to be inserted
+into the 6 slots on the back side.
 

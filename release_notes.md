@@ -1,3 +1,7 @@
+TODO:
+* fix GemDrive RTC that fails after month 7 and above.
+* Test the new compact PCB design
+
 4.20: Professionally assembled PCB, EmuTOS and fixes
 ====================================================
 
@@ -19,6 +23,8 @@ sharing the port to other devices or being connected using an IDC20 cable.
 
 Note that buying from JLCPCB does not imply any warranty of any form from
 ACSI2STM authors. ACSI2STM authors don't receive any money from this.
+
+It also includes a 3D printable enclosure to have a more finished product.
 
 GemDrive loader program
 -----------------------

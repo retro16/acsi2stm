@@ -128,7 +128,7 @@ The GemDrive driver will boot before the ICD PRO driver. GemDrive will use L:
 and above as drive letters.
 
 **Alternative:** Instead of making the ICD disk bootable, just put `ICDBOOT.PRG`
-in the `AUTO` folder of the boot disk.
+in the `AUTO` folder of the GemDrive SD card.
 
 
 ### Mixing GemDrive and the PP driver (ACSID07)
@@ -142,8 +142,8 @@ To mix GemDrive with the PP driver, proceed like this:
 The GemDrive driver will load after the PP driver. GemDrive will use L: and
 above as drive letters.
 
-### Mixing GemDrive and other ACSI drivers
 
+### Mixing GemDrive and other ACSI drivers
 
 A few considerations should be made when mixing both kinds of drives:
 

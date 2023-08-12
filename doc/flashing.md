@@ -1,3 +1,7 @@
+Flashing the ACSI2STM firmware
+==============================
+
+
 Downloading the release package
 -------------------------------
 
@@ -135,6 +139,8 @@ this one:
 
 ![USB USART module](images/usb_serial.jpg)
 
+### Flashing the blue pill
+
 Set the USB dongle to 3.3V if you have a jumper for that. Connect TX to PA10, RX
 to PA9 and the GND pins together.
 
@@ -149,9 +155,14 @@ bootloader:
     |     (o)         \/ |_|       -|--
     |_______________________________|
 
+### Flashing the compact PCB
 
-On the *Compact PCB*, put a jumper on FLASH to enable serial flashing mode.
-Connect TX to RX, RX to TX and GND together.
+If you have the recommended USB USART adapter, it should plug right away in the
+*UART* port. The adapter will power the board and enable flash mode right away
+so you just have to plug it in and start flashing.
+
+If you have a different adapter, put a jumper on the FLASH pins, then connect TX
+to RX, RX to TX and GND together. Power the board through USB-C.
 
 ### Flashing using STM32CubeProg
 
@@ -186,3 +197,27 @@ slightly different syntax for the port.
 
 Once the chip is programmed, switch the BOOT0 jumper back to 0, then reset the
 STM32 (press the button or do a power cycle).
+
+
+Firmware/hardware compatibility matrix
+--------------------------------------
+
+Since the ACSI2STM project now has a rather long history with breaking changes,
+it can be difficult to keep track of what is compatible with what.
+
+Here is a compatibility matrix that shows firmware revisions and their hardware
+compatibility:
+
+|                      Hardware board | 1.x | 2.x | 3.x | 4.x | 4.x legacy |
+|------------------------------------:|:---:|:---:|:---:|:---:|:----------:|
+|         Custom board built for v1.0 | ✓   | 🛇   | 🛇   | 🛇   | 🛇          |
+|         Custom board built for v2.0 | 🛇   | ✓   | 🛇   | 🛇   | ✓          |
+|         Custom board built for v3.0 | 🛇   | 🛇   | ✓   | ✓   | ✓          |
+|         Custom board built for v4.0 | 🛇   | 🛇   | ✓   | ✓   | ✓          |
+|     Official full featured PCB v1.0 | 🛇   | 🛇   | ✓   | ✓   | ✓          |
+|     Official full featured PCB v1.1 | 🛇   | 🛇   | ✓   | ✓   | ✓          |
+|        Official SOVAJA Mega STE PCB | 🛇   | 🛇   | ✓   | ✓   | ✓          |
+|  Official ACSI2STM compact PCB v1.0 | 🛇   | 🛇   | ✓   | ✓   | ✓          |
+
+**Note:** Hardware can be upgraded by making changes. See [hardware.md](hardware.md).
+

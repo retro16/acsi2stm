@@ -12,9 +12,9 @@ devices plugged in.
 
 It can work in 3 ways:
 
-* Expose a raw SD card as a hard disk to the Atari.
-* Expose a floppy or hard disk image file on a standard SD card to the Atari.
 * Mount a standard SD card on the Atari.
+* Expose a raw SD card as an ACSI hard disk to the Atari.
+* Expose a ACSI hard disk image file on a standard SD card to the Atari.
 
 It also provides an UltraSatan compatible real-time clock if you add a simple
 3V lithium battery such as a CR2032.
@@ -29,6 +29,14 @@ See [compact_pcb_manual.md](doc/compact_pcb_manual.md).
 **WARNING**, if you built or bought a unit for older 1.xx, you need to make
 changes. See the last section of [hardware.md](doc/hardware.md) for more
 information.
+
+
+Recommended setup
+-----------------
+
+The most reliable way to use this project is to order a pre-built compact PCB,
+upload the firmware using the recommended USB-UART adapter and use GemDrive
+mode with SDXC MicroSD cards.
 
 
 Documentation
@@ -93,9 +101,15 @@ some implications:
   effort. If you bought a unit and you have issues, you should contact the
   seller first. Anyway, constructive feedback (including bug reports) is always
   appreciated.
+* If a seller refuses to provide the sources, please open a GitHub issue to let
+  me know.
 
 **Note**: the Mega STE PCB is copyrighted by Olivier Jan and is released under
 the MIT license so it does not have the same restrictions.
+
+If you sell ACSI2STM units, please consider selling the new compact PCB design
+instead of custom designs. If the compact design isn't to your taste, please
+open a GitHub issue and talk about possible improvements.
 
 
 Credits

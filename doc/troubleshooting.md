@@ -102,8 +102,8 @@ shortage really increased the odds of buying fake chips, so be careful.
 CH32F103 chips are known not to work.
 
 Some official STM32 chips are sold as STM32F103C8T6 but in reality they are
-STM32F103CBT6. The only difference is that the chip provides 128k flash instead of
-64k. Both kinds of chips will work, and only CBT6 (or 128k C8T6) will support
+STM32F103CBT6. The only difference is that the chip provides 128k flash instead
+of 64k. Both kinds of chips will work, and only CBT6 (or 128k C8T6) will support
 verbose mode (verbose mode requires 128k of flash).
 
 STM32 series other than STM32F103 work differently and won't work without
@@ -113,3 +113,4 @@ modifying the code substantially.
 caused by a hardware issue in all STM32 (including good ones). A workaround was
 implemented in version 4.00 so if you have old non-working ACSI2STM units,
 updating to the latest version may fix your issues.
+
