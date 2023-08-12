@@ -32,6 +32,10 @@ Things to check first:
   * See [protocols.md](protocols.md) and [hardware.md](hardware.md) for
     technical details that will help you do all the necessary checks.
 
+If there are signal issues, the only real way to debug things is to use an
+oscilloscope and check signal levels. You will need a digital oscilloscope with
+at least 20MHz bandwidth.
+
 
 SD cards not detected / malfunctioning
 --------------------------------------

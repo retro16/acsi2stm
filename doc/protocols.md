@@ -72,9 +72,18 @@ IRQ should be kept up all the time.
 For the command start byte, D4..D0 bits specify the command, and D7..D5 specify
 the ACSI id.
 
-Example of a real ST trace (1040 STE). Yellow (top) is CS, Pink (bottom) is A1:
+Example of a real ST trace (520 STF). Yellow (top) is A1, Pink (bottom) is CS:
 
-![CS and A1 pulse](images/cs_pulse.png)
+![A1 and CS pulse](images/a1_cs_pulse.png)
+
+Oscilloscope settings:
+
+* Single capture mode, armed during the first floppy drive access at boot.
+* 100ns/div horizontal.
+* 2V/div vertical.
+* DC coupling.
+* Trigger on CS signal, falling edge, DC coupled, 2.0V level.
+
 
 ### Command byte (ST -> peripheral)
 
@@ -97,6 +106,18 @@ A1 is kept up all the time.
 
 Note: some drivers incorrectly pull A1 on the second byte. That's what
 `ACSI_A1_WORKAROUND` is trying to cope with.
+
+Example of a real ST trace (520 STF). Yellow (top) is IRQ, Pink (bottom) is CS:
+
+![IRQ and CS pulse](images/irq_cs_pulse.png)
+
+Oscilloscope settings:
+
+* Single capture mode, armed during the first floppy drive access at boot.
+* 2µs/div horizontal.
+* 2V/div vertical.
+* DC coupling.
+* Trigger on IRQ signal, falling edge, DC coupled, 2.0V level.
 
 ### Status byte (peripheral -> ST)
 
@@ -153,6 +174,21 @@ byte in memory, it pulses ACK for a brief amount of time.
 
 It seems that data is sampled when ACK rises, but data should be kept during the
 whole exchange.
+
+Example of a real ST trace (520 STF). Yellow (top) is DRQ, Pink (bottom) is ACK:
+
+![DRQ and ACK pulse](images/drq_ack_pulse.png)
+
+Oscilloscope settings:
+
+* Single capture mode, armed during the first floppy drive access at boot.
+* 200ns/div horizontal.
+* 2V/div vertical.
+* DC coupling.
+* Trigger on DRQ signal, falling edge, DC coupled, 2.0V level.
+
+**Note:** The DRQ line drops to 3.3V when the STM32 is active. This is still
+within voltage tolerances of the ST.
 
 
 ACSI protocol
