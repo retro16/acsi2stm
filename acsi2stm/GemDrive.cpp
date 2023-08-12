@@ -1951,12 +1951,12 @@ bool GemDrive::onFdatime(const Tos::Fdatime_p &p) {
     uint16_t time = dt.time;
     uint16_t date = dt.date;
     file.timestamp(T_WRITE,
-        (date >> 9) + 1980,
-        ((date >> 5) & 0x7),
-        (date & 0x1f),
-        (time >> 11) & 0x1f,
-        (time >> 5) & 0x3f,
-        (time & 0x1f) * 2);
+        FS_YEAR(date),
+        FS_MONTH(date),
+        FS_DAY(date),
+        FS_HOUR(time),
+        FS_MINUTE(time),
+        FS_SECOND(time));
   } else {
     // Get time
     uint16_t time;

@@ -1,3 +1,10 @@
+4.12: Date handling fix
+=======================
+
+Fix a stupid bug that breaks dates with months between august and december.
+
+Backported from upcoming 4.20.
+
 4.11: Clock fix
 ===============
 

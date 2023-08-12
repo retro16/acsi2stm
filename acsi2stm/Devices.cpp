@@ -134,12 +134,12 @@ void Devices::getDateTime(uint16_t *date, uint16_t *time) {
 
 void Devices::setDateTime(uint16_t date, uint16_t time) {
   tm_t newDateTime;
-  newDateTime.year = (date >> 9) + 1980 - 1970;
-  newDateTime.month = ((date >> 5) & 0x7);
-  newDateTime.day = (date & 0x1f);
-  newDateTime.hour = (time >> 11) & 0x1f;
-  newDateTime.minute = (time >> 5) & 0x3f;
-  newDateTime.second = (time & 0x1f) * 2;
+  newDateTime.year = FS_YEAR(date) - 1970;
+  newDateTime.month = FS_MONTH(date);
+  newDateTime.day = FS_DAY(date);
+  newDateTime.hour = FS_HOUR(time);
+  newDateTime.minute = FS_MINUTE(time);
+  newDateTime.second = FS_SECOND(time);
 
   rtc.setTime(newDateTime);
 }
