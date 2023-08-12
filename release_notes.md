@@ -1,7 +1,3 @@
-TODO:
-* fix GemDrive RTC that fails after month 7 and above.
-* Test the new compact PCB design
-
 4.20: Professionally assembled PCB, EmuTOS and fixes
 ====================================================
 
@@ -43,12 +39,14 @@ Changes since 4.10
 
 * Fixed RTC clock that didn't run when unpowered.
 * Added the *Compact PCB*.
+* Added an enclosure for the compact PCB.
 * Documentation updates.
 * Added back the whole history for 4.x in release_notes.md, as it should be.
 * Fixed GemDrive letter allocation when the 1st slot is not GemDrive.
 * Fixed and added `GEMDRIVE.TOS` to load GemDrive from desktop.
 * Boot `EMUTOS.SYS` on startup if present on the SD card.
 * Introduced command 0x09 to avoid crashes if a tool reads GemDrive boot sector.
+* Fixed date handling.
 
 
 4.10: Clock support and unicode for GemDrive
