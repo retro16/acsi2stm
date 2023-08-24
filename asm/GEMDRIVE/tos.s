@@ -21,43 +21,26 @@
 
 	opt	O+
 
-; Structures
-
-devstr		rsreset
-devstr.mode	rs.b	1               ; 0 = disabled, 1 = acsi, 2 = gemdrive
-devstr.letter	rs.b	1               ; 0 = not mounted, 2 = C:, 3 = D:, ...
-devstr.product	rs.b	7               ; 'ACSI2STM'
-		rs.b	1               ; ' '
-devstr.slottype	rs.b	2               ; 'SD'
-devstr.slot	rs.b	1               ; '0'
-		rs.b	1               ; ' '
-devstr.fs 	rs.b	3               ; 'F32','EXF','IMG','RAW',...
-		rs.b	1               ; ' '
-devstr.size	rs.b	3               ; '128G'
-devstr.capped	rs.b	1               ; ' ','+'
-devstr.ro	rs.b	1               ; ' ','R'
-devstr.boot	rs.b	1               ; ' ','B'
-devstr.version	rs.b	4               ; '4.0a'
-devstr.eos	rs.b	1               ; zero byte
-		rs.b	1               ; zero byte padding
-devstr...	rs.b	0
-
 	text
 
 start	bra	main                    ; Main program is in the freed zone
 
 syshook
 	include	syshook.s
+
+	; These variables need to be in the text segment because the main
+	; entry point as well as everything after will be freed when the driver
+	; will be made resident.
 	dc.b	0
 acsiid	dc.b	$ff                     ; Patched by device detection
 prmoff	dc.w	$ff                     ; Detected during initialization
 syshook.end
 
-	ds.b	256                     ; Temporary stack for initialization
-stack		                        ;
+	; Freed zone: everything after this is freed when the driver is made
+	; resident.
 
 main
-	lea	stack,sp                ; Initialize stack in the command-line
+	lea	stack,sp                ; Initialize stack
 
 	Super	                        ; This program needs super user
 
@@ -190,6 +173,11 @@ install	; Install a hook
 alrdyin	dc.b	7,'GemDrive already installed',13,10,0
 devnfnd	dc.b	7,'No GemDrive device detected',13,10,0
 	even
+
+	bss
+
+	ds.b	256                     ; Temporary stack for initialization
+stack		                        ;
 
 end
 

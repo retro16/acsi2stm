@@ -75,13 +75,6 @@ GemDrive Devices::drives[] = {
 };
 #endif
 
-#if ! ACSI_STRICT
-bool Devices::strict = false;
-#endif
-#if ACSI_ID_OFFSET_PINS
-int Devices::acsiFirstId = ACSI_FIRST_ID;
-#endif
-
 void Devices::sense() {
 #if ACSI_RTC
   FsDateTime::setCallback(getDateTime);
@@ -116,12 +109,41 @@ end:
   pinMode(PA14, INPUT_PULLUP);
 #endif
 
+#if ! ACSI_STRICT
+  GemDrive::closeAll();
+#endif
   for(int c = 0; c < sdCount; ++c) {
     sdSlots[c].onReset();
     acsi[c].onReset();
   }
+}
+
+int Devices::acsiDeviceMask = 0;
 #if ! ACSI_STRICT
-  GemDrive::closeAll();
+int Devices::gemDriveMask = 0;
+int Devices::gemBootDrive = 8;
+
+void Devices::updateGemBootDrive() {
+  for(gemBootDrive = 0; gemBootDrive < 8; ++gemBootDrive)
+    if(gemDriveMask & 1 << gemBootDrive)
+      return;
+}
+
+void Devices::attachGemDrive(int slot) {
+  gemDriveMask |= (1 << slot);
+  updateGemBootDrive();
+}
+#endif
+
+void Devices::attachAcsi(int slot) {
+  acsiDeviceMask |= (1 << slot);
+} 
+
+void Devices::detach(int slot) {
+  acsiDeviceMask &= ~(1 << slot);
+#if ! ACSI_STRICT
+  gemDriveMask &= ~(1 << slot);
+  updateGemBootDrive();
 #endif
 }
 
@@ -152,13 +174,30 @@ bool Devices::isDateTimeSet() {
   return now.year > 1980 - 1970 && now.year < 2107 - 1970;
 }
 
+#if ! ACSI_STRICT
+bool Devices::strict = false;
+#endif
+#if ACSI_ID_OFFSET_PINS
+int Devices::acsiFirstId = ACSI_FIRST_ID;
+#endif
+
+uint8_t Devices::buf[ACSI_BLOCKSIZE * ACSI_BLOCKS];
+RTClock Devices::rtc(RTCSEL_LSE);
+
+int Devices::computeChecksum(uint8_t *block) {
+  int checksum = 0;
+  for(int i = 0; i < ACSI_BLOCKSIZE; i += 2)
+    checksum += ((int)block[i] << 8) + (block[i+1]);
+
+  return checksum & 0xffff;
+}
+
 void Devices::blocksToString(uint32_t blocks, char *target) {
   // Characters: 0123
   //            "213G"
 
-  target[3] = 'K';
-
   uint32_t sz = (blocks + 1) / 2;
+  target[3] = 'K';
   if(sz > 999) {
     sz = (sz + 1023) / 1024;
     target[3] = 'M';
@@ -182,16 +221,5 @@ void Devices::blocksToString(uint32_t blocks, char *target) {
     sz /= 10;
   }
 }
-
-int Devices::computeChecksum(uint8_t *block) {
-  int checksum = 0;
-  for(int i = 0; i < ACSI_BLOCKSIZE; i += 2)
-    checksum += ((int)block[i] << 8) + (block[i+1]);
-
-  return checksum & 0xffff;
-}
-
-uint8_t Devices::buf[ACSI_BLOCKSIZE * ACSI_BLOCKS];
-RTClock Devices::rtc(RTCSEL_LSE);
 
 // vim: ts=2 sw=2 sts=2 et

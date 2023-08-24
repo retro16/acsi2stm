@@ -170,12 +170,10 @@ struct GemDrive: public Devices, public Tos {
   // GEMDOS processing
 #define DECLARE_CALLBACK(name) \
   static bool on ## name(const Tos::name ## _p &); \
-  static void sniff ## name(const Tos::name ## _p &)
 
   DECLARE_CALLBACK(Pterm0);
   DECLARE_CALLBACK(Cconws);
   DECLARE_CALLBACK(Dsetdrv);
-  DECLARE_CALLBACK(Fsetdta);
   DECLARE_CALLBACK(Tgetdate);
   DECLARE_CALLBACK(Tsetdate);
   DECLARE_CALLBACK(Tgettime);
@@ -246,9 +244,6 @@ struct GemDrive: public Devices, public Tos {
 
   // Return the drive letter on the ST
   char letter() const;
-
-  // Return true if the drive is ready (has a SD card)
-  bool mediumReady();
 
   // Create a file descriptor for a file
   // Returns 0 if not possible

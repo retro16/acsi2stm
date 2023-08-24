@@ -140,6 +140,7 @@ access.
 
 The current implementation uses STM32 timers and its DMA engine to process
 these signals. Data flow:
+
                __________
            CLK|          |CH4
     ACK ----->|  Timer1  |-----> PA11 (DRQ)
@@ -248,7 +249,6 @@ happened.
 #define TIMEOUT_TIMER TIMER3_BASE
 #define CS_TIMER TIMER4_BASE
 
-// OK
 void DmaPort::waitBusReady() {
   // Setup hardware
 
@@ -263,7 +263,7 @@ void DmaPort::waitBusReady() {
   for(int debounce = 0; debounce < 20; ++debounce) {
     delay(5);
 
-    // Pull the bus low for a very brief moment
+    // Pull the bus low with pulldowns for a very brief moment
     // Just enough to discharge the bus if not powered
     // No need to pull it low permanently
     pinMode(CS, INPUT_PULLDOWN);
@@ -273,6 +273,7 @@ void DmaPort::waitBusReady() {
     pinMode(A1, INPUT);
 
     while(!idle())
+      // Sensed a low line: reset delay
       debounce = 0;
   }
 
@@ -283,15 +284,6 @@ void DmaPort::waitBusReady() {
   armA1();
 
   Acsi::dbg("--- Ready to go ---\n");
-}
-
-void DmaPort::checkReset() {
-#if ACSI_HAS_RESET
-  if(RESET_TIMER->SR & TIMER_SR_TIF)
-    quickReset();
-#endif
-  if(TIMEOUT_TIMER->CNT < 65535 - PORT_TIMEOUT)
-    quickReset();
 }
 
 bool DmaPort::checkCommand() {
@@ -741,6 +733,25 @@ void DmaPort::fillDma(uint8_t byte, int count) {
   Acsi::verbose(" OK\n");
 }
 
+jmp_buf DmaPort::resetJump;
+
+void DmaPort::resetTimeout() {
+  // Give 500ms to react
+  TIMEOUT_TIMER->CNT = 65535 - PORT_TIMEOUT;
+
+  // Just check if the reset line was already pulled
+  checkReset();
+}
+
+void DmaPort::checkReset() {
+#if ACSI_HAS_RESET
+  if(RESET_TIMER->SR & TIMER_SR_TIF)
+    quickReset();
+#endif
+  if(TIMEOUT_TIMER->CNT < 65535 - PORT_TIMEOUT)
+    quickReset();
+}
+
 void DmaPort::setupGpio() {
   releaseRq();
   releaseDataBus();
@@ -771,14 +782,6 @@ void DmaPort::setupResetTimer() {
   // Update and enable the timer
   TIMEOUT_TIMER->EGR |= TIMER_EGR_UG;
   TIMEOUT_TIMER->CR1 |= TIMER_CR1_CEN;
-}
-
-void DmaPort::resetTimeout() {
-  // Give 500ms to react
-  TIMEOUT_TIMER->CNT = 65535 - PORT_TIMEOUT;
-
-  // Just check if the reset line was already pulled
-  checkReset();
 }
 
 void DmaPort::setupCsTimer() {
@@ -1082,7 +1085,5 @@ void DmaPort::writeData(uint8_t byte) {
 void DmaPort::releaseDataBus() {
   GPIOB->regs->CRH = 0x44444444; // Set PORTB[8:15] to input
 }
-
-jmp_buf DmaPort::resetJump;
 
 // vim: ts=2 sw=2 sts=2 et

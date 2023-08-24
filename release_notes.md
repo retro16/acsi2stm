@@ -1,6 +1,12 @@
-4.20: Professionally assembled PCB, EmuTOS and fixes
+5.00: Professionally assembled PCB, EmuTOS and fixes
 ====================================================
 
+This is a new major version because the project shifted direction: it's not
+officially based on the Blue Pill anymore, but a custom PCB based on the exact
+same microcontroller: the STM32F103C8T6.
+
+Don't worry, your existing hardware is still supported with zero changes and is
+perfectly fine. Don't feel bad if you don't have the new PCB design.
 
 New Compact PCB
 ---------------
@@ -9,10 +15,10 @@ This release adds a new PCB with less features, but that can be built entirely
 by JLCPCB's assembly services. It does not require a Blue Pill as it integrates
 the STM32 directly.
 
-Total cost is around $50 for 5 units (this is the minimum amount you can buy).
-Prices are of 07/2023 and may vary.
+Total cost is around $40 for 2 units (this is the minimum amount you can buy).
+or $50 for 5 units. Prices are of 07/2023 and may vary.
 
-Sources for EasyEda and Gerber are included, just like the full featured PCB.
+Sources for EasyEda, Gerber, BOM and component placement are included.
 
 This PCB can also be connected using UltraSatan cables (IDC20 format), both for
 sharing the port to other devices or being connected using an IDC20 cable.
@@ -20,7 +26,12 @@ sharing the port to other devices or being connected using an IDC20 cable.
 Note that buying from JLCPCB does not imply any warranty of any form from
 ACSI2STM authors. ACSI2STM authors don't receive any money from this.
 
-It also includes a 3D printable enclosure to have a more finished product.
+It also includes a 3D printable enclosure to have a finished product.
+
+This is now the official design, all Blue Pill based units are still supported
+(and will be in the future) but it is discouraged to build new designs based on
+blue pill boards because of clone/bad chip issues found on too many Blue Pill
+boards available for sale. You **will** lose money buying these.
 
 GemDrive loader program
 -----------------------
@@ -32,21 +43,42 @@ EmuTOS loader
 -------------
 
 GemDrive can now boot `EMUTOS.SYS` from the 1st SD card slot. It needs a special
-setup to reload GemDrive from within EmuTOS, described in [gemdrive.md](doc/gemdrive.md).
+setup to reload GemDrive from within EmuTOS, described in
+[gemdrive.md](doc/gemdrive.md).
 
-Changes since 4.10
+Changes since 4.12
 ------------------
 
-* Fixed RTC clock that didn't run when unpowered.
-* Added the *Compact PCB*.
-* Added an enclosure for the compact PCB.
-* Documentation updates.
-* Added back the whole history for 4.x in release_notes.md, as it should be.
-* Fixed GemDrive letter allocation when the 1st slot is not GemDrive.
-* Fixed and added `GEMDRIVE.TOS` to load GemDrive from desktop.
-* Boot `EMUTOS.SYS` on startup if present on the SD card.
-* Introduced command 0x09 to avoid crashes if a tool reads GemDrive boot sector.
-* Fixed date handling.
+* Arduino 2.x is now the official IDE
+* arduino-cli is now the official build platform for release packages
+* Fixed RTC clock that didn't run when unpowered
+* Added the *Compact PCB*
+* Added an enclosure for the compact PCB
+* Fixed full featured PCB mounting holes size
+* Added back the whole history for 4.x in release_notes.md, as it should be
+* Fixed GemDrive letter allocation when the 1st slot is not GemDrive
+* Fixed and added `GEMDRIVE.TOS` to load GemDrive from desktop
+* Boot `EMUTOS.SYS` on startup if present on the SD card
+* Introduced command 0x09 to avoid crashes if a tool reads GemDrive boot sector
+* Fixed GemDrive boot when ACSI id 0 is not an ACSI2STM unit
+* Reworked documentation to put more emphasis on the new PCB design
+* Simplified documentation
+* Code cleanup pass (dead code removal, code formating, comments review, ...)
+
+
+4.12: Date handling fix
+=======================
+
+Fix a stupid bug that breaks dates with months between august and december.
+
+Backported from upcoming 4.20.
+
+
+4.11: Clock fix
+===============
+
+Very small bug fix for the realtime clock that didn't run correctly.
+No other change.
 
 
 4.10: Clock support and unicode for GemDrive

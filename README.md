@@ -7,37 +7,29 @@ STM32 microcontroller and a SD card.
 The aim of this project is to be very easy to build, extremely cheap, reliable
 and safe for your precious vintage machine.
 
-The module supports up to 5 SD card readers, showing them as 5 different ACSI
-devices plugged in.
+The PCB has 3 microSD card slots, and the code supports up to 5 SD card readers.
 
 It can work in 3 ways:
 
-* Mount a standard SD card on the Atari.
-* Expose a raw SD card as an ACSI hard disk to the Atari.
-* Expose a ACSI hard disk image file on a standard SD card to the Atari.
+* Mount standard FAT32/ExFAT SD cards on the Atari.
+* Expose raw SD cards as ACSI hard disks connected to the Atari.
+* Expose ACSI hard disk image files as hard disks connected to the Atari.
 
 It also provides an UltraSatan compatible real-time clock if you add a simple
 3V lithium battery such as a CR2032.
 
 See [RELEASE NOTES](release_notes.md) for details about the current version.
 
-A ready-to-use PCB with preassembled parts is now available and can be ordered
-directly from JLCPCB. No need to buy a Blue Pill, it integrates everything !
-You just need a USB-UART adapter to flash the firmware and it's ready to go.
-See [compact_pcb_manual.md](doc/compact_pcb_manual.md).
-
-**WARNING**, if you built or bought a unit for older 1.xx, you need to make
-changes. See the last section of [hardware.md](doc/hardware.md) for more
+The hardware is a custom PCB that can be order preassembled directly from
+[JLCPCB](https://jlcpcb.com). See [quick_start](doc/quick_start.md) for more
 information.
 
+Due to many issues with counterfeit or defective Blue Pill boards online,
+building new designs/units based on Blue Pill boards is discouraged.
 
-Recommended setup
------------------
-
-The most reliable way to use this project is to order a pre-built compact PCB,
-upload the firmware using the recommended USB-UART adapter and use GemDrive
-mode with SDXC MicroSD cards.
-
+Legacy hardware based on Blue Pill designs are supported to various degrees. All
+units that were built and working between firmware 2.00 and 5.00 are and will
+still be supported 100% by newer firmwares.
 
 Documentation
 -------------
@@ -47,26 +39,24 @@ implementors or curious people.
 
 This is what you can find:
 
-* [manual.md](doc/manual.md): A brief user manual for people owning a unit.
-* [flashing.md](doc/flashing.md): A tutorial on how to download and flash a
-  firmware into a STM32. For first time users or for upgrading a pre-built
-  unit.
-* [compact_pcb_manual.md](doc/compact_pcb_manual.md): Ready to use preassembled
-  PCB with most features.
-* [full_pcb_manual.md](doc/full_pcb_manual.md): User manual for the full
-  featured PCB.
-* [compiling.md](doc/compiling.md): A step-by-step tutorial to compile and
-  customize a new firmware. Describes compilation options.
-* [troubleshooting.md](doc/troubleshooting.md): Having problems? Have a look
-  in here.
-* [gemdrive.md](doc/gemdrive.md): Technical details about GemDrive. How to mix
+* [quick_start](doc/quick_start.md): A tutorial to order the hardware,
+  flash the firmware, using the unit and upgrading the unit.
+* [compatibility](doc/compatibility.md): Information about hardware, firmware
+  and software compatibility.
+* [troubleshooting](doc/troubleshooting.md): Having problems? Have a look
+  here.
+* [gemdrive](doc/gemdrive.md): Technical details about GemDrive. How to mix
   GemDrive with ACSI. How to install GemDrive for EmuTOS.
-* [build_pcb.md](doc/build_pcb.md): Instructions for building a unit using
-  the full featured PCB.
-* [hardware.md](doc/hardware.md): How to design and build an acsi2stm unit
-  from scratch (hand wired, or your own PCB design).
-* [protocols.md](doc/protocols.md): Technical details about the communication
+* [compiling](doc/compiling.md): A step-by-step tutorial to compile and
+  customize a new firmware. Describes compilation options. Also describes
+  pre-built firmware variants in the release package.
+* [hardware](doc/hardware.md): How to design and build an acsi2stm unit
+  from scratch (hand wired, or your own PCB design). Also documents jumper
+  configuration.
+* [protocols](doc/protocols.md): Technical details about the communication
   protocol between the ACSI2STM unit and the Atari ST.
+* [full_pcb_manual](doc/full_pcb_manual.md): Tutorial to build and use the
+  full-featured PCB. You should use the compact PCB instead if possible.
 
 
 To people buying/selling hardware

@@ -22,15 +22,6 @@
 const
 #include "PROGRAMS.boot.h"
 
-#if ACSI_VERBOSE
-void SysHook::pstack() {
-  execThenDmaWrite(getProgram(PGM_PUSHSP));
-  uint8_t v[4];
-  DmaPort::readDma(v, 4);
-  shiftStack(4);
-}
-#endif
-
 Long SysHook::getProgram(SysHook::Program p) {
   Long l;
   int pi = (int)p * 4;
@@ -41,6 +32,15 @@ Long SysHook::getProgram(SysHook::Program p) {
 
   return l;
 }
+
+#if ACSI_VERBOSE
+void SysHook::pstack() {
+  execThenDmaWrite(getProgram(PGM_PUSHSP));
+  uint8_t v[4];
+  DmaPort::readDma(v, 4);
+  shiftStack(4);
+}
+#endif
 
 void SysHook::shiftStack(ToWord offset)
 {
@@ -221,8 +221,6 @@ void SysHook::readStringAt(char *bytes, ToLong address, int count)
 void SysHook::clearAt(uint32_t bytes, uint32_t address) {
   if(!isDma(address))
     return;
-
-  // The algorithm could be improved. Some assistance from DmaPort could help.
 
   uint8_t blank[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 

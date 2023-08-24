@@ -16,7 +16,6 @@
 
 ; TOS definitions and macros
 
-
 ; System calls
 syscall	macro
 	move.w	#\2,-(sp)               ; Push syscall identifier
@@ -72,23 +71,6 @@ crlf	macro
 	pchar	$0a
 	movem.l	(sp)+,d0-d2/a0-a2
 	endm
-
-bell	macro	; Ring the bell
-	pchar	$07
-	endm
-
-ask	macro	; Ask: print a message, wait for a key and print its character
-	pea	\1
-	gemdos	Cconws
-	gemdos	Cconin,8
-	endm
-
-asksil	macro	; Ask silently: print a message and wait for a key
-	pea	\1
-	gemdos	Cconws
-	gemdos	Cnecin,8
-	endm
-
 
 ; GEMDOS calls
 Cconin=1

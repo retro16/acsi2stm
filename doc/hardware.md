@@ -2,31 +2,37 @@ Creating your own ACSI2STM hardware
 ===================================
 
 This page helps hardware designers to design new hardware from scratch. If you
-simply want to build the official PCB, see [build_pcb.md](build_pcb.md) or
-[compact_pcb_manual.md](compact_pcb_manual.md).
+simply want a pre-built unit, see [quick_start](quick_start.md).
+
+**Warning:** Building a unit based on Blue Pill is now heavily discouraged. Too
+many clones or bad quality units are being sold, and even though they may work
+for many projects, ACSI2STM uses many very advanced and even undocumented
+features, so it really requires 100% working original hardware.
+
+The pre-built compact PCB avoids most compatibility pitfalls by using a reliable
+supplier.
+
+If you want to sell units based on this project, please consider selling the
+compact PCB, and contribute to this project instead of creating your own
+hardware.
 
 
 Hardware needed
 ---------------
 
-* A STM32F103C8T6 or compatible board. You can find them for a few dollars
-  online. The "blue pill" works out of the box and the older "black pill"
-  requires minor modifications. The newer STMF4 "black pill" is not
-  compatible.
+* A STM32F103C8T6 or STM32F103CBT6 development board.
 * A USB-serial dongle for programming the STM32 chip, with a 3.3V USART.
 * One or more SD card port(s) for your STM32. You can also solder wires on a SD
   to microSD adapter.
 * One or more SD card(s).
-* A male DB19 port (you can modify a DB25 port to fit) with a ribbon cable.
+* A male DB19 port (you can modify a DB25 port to fit) or an IDC20 to connect to
+  a SATAN-compatible port.
 * One 10k-100k resistor if you need SD card hotplug capabilities or if you
   have multiple SD card slots.
 * One 100nF decoupling capacitor for the SD card (optional but recommended).
 * Do *NOT* connect USB data lines on the STM32. Use the +5V or +3.3V pin to
   power it if you are unsure. To power from USB, you need to modify the blue
   pill itself (see below).
-
-You can use the PCB design provided in the PCB folder. See
-[build_pcb.md](build_pcb.md) for more information.
 
 **Note:** If you build this project, please seriously think about putting
 multiple SD card slots. It quickly becomes a must have in many situations.
@@ -214,28 +220,144 @@ To use the RTC feature, you need to connect a lithium battery to the VB pin of
 the STM32. Using a CR2032 with a standard battery holder is recommended.
 
 
-Using on an old "Black pill" STM32F103 board
---------------------------------------------
+Changing operation modes with jumpers on the Compact board
+----------------------------------------------------------
 
-If you have these cheap "STM32 minimum development boards" from eBay, Amazon,
-Banggood or other chinese sellers, chances are that you have either a "blue
-pill" or a "black pill" board. "blue" or "black" refers to the color of the PCB.
+Some jumpers can also be permanently set by small solder blobs on the PCB.
 
-**WARNING**: There are newer STM32F4xx boards also called "black pill". These
-newer boards are currently not tested. This section refers to older
-STM32F103C8T6 black pill boards.
+### Serial interface
 
-The problem with black pill designs is that the onboard LED is wired on PB12
-instead of PC13, messing with data signals.
+The serial interface (STM32 PA9/PA10) is available on the PCB as a small 3-pin
+interface. This can be used for programming the unit or debug output.
 
-You will have to desolder the onboard LED (or its current-limiting resistor
-right under).
+### RESET
 
-If you want an activity LED, put an external one with a 1k resistor in series on
-PC13.
+The RESET pins will reset the STM32 when shorted, just like the push button on
+the Blue Pill.
 
-Other boards such as red pills were not tested and may require further
-adjustments.
+### ID_SHIFT
+
+The ID_SHIFT pins will change ACSI IDs of the ACSI2STM unit. Refer to the
+template on the board to get jumper positions. With no jumper SD cards will have
+ACSI ids 0 to 2, and putting the jumper in different positions can shift IDs to
+1-3, 2-4 or 3-5.
+
+### FLASH
+
+Put a jumper to enable flashing firmware. This is equivalent to the BOOT0 (top)
+jumper of a Blue Pill.
+
+Remove the jumper for normal operation.
+
+### ACSI
+
+Put a jumper to enable ACSI strict mode. GemDrive will be disabled and all 3 SD
+cards will behave like Atari hard disks. See [manual](manual.md) for more
+information about strict mode.
+
+### SATAN PORT
+
+This can be populated with an IDC20 socket.
+
+This connector is compatible with Satan/UltraSatan cables.
+
+The connector can be used in both directions: either to connect to the ST or to
+connect additional devices.
+
+**Note:** You can use female headers with long pins to make a stackable unit.
+When building the enclosure, enable both *idc20* and *idc20p* parameters and
+disable *db19* because piggyback and DB19 connectors are mutually exclusive.
+You will have to desolder or cut DB19 pins to build a stackable unit.
+
+
+Changing operation modes with jumpers on the Blue Pill board
+------------------------------------------------------------
+
+The STM32 blue pill has 2 jumpers. You can access to different operation modes
+just by switching these jumpers to different places.
+
+**WARNING:** Do not attempt any other combination than what is explained here.
+You might damage your product.
+
+ACSI id 0 to 4, GemDrive enabled
+
+     _______________________________
+    |                     _         |
+    |   [==] o        /\ | |       -|--
+    |   [==] o       /  \| |       -|--
+    |                \  /| |       -|--
+    |     (o)         \/ |_|       -|--
+    |_______________________________|
+
+
+ACSI id 1 to 5, GemDrive enabled
+
+     _______________________________
+    |                     _         |
+    |    o o o        /\ | |       -|--
+    |   [==] o       /  \| |       -|--
+    |                \  /| |       -||¨| <- Jumper here
+    |     (o)         \/ |_|       -||_|
+    |_______________________________|
+
+
+ACSI id 2 to 6, GemDrive enabled
+
+     _______________________________
+    |                     _         |
+    |    o o o        /\ | |       -|--
+    |   [==] o       /  \| |       -||¨| <- Jumper here
+    |                \  /| |       -||_|
+    |     (o)         \/ |_|       -|--
+    |_______________________________|
+
+
+ACSI id 3 to 7, GemDrive enabled
+
+     _______________________________
+    |                     _         |
+    |    o o o        /\ | |       -||¨| <- Jumper here
+    |   [==] o       /  \| |       -||_|
+    |                \  /| |       -|--
+    |     (o)         \/ |_|       -|--
+    |_______________________________|
+
+
+ACSI id 0 to 4, GemDrive disabled - ACSI mode forced
+
+     _______________________________
+    |                     _         |
+    |   [==] o        /\ | |       -|--
+    |    o [==]      /  \| |       -|--
+    |                \  /| |       -|--
+    |     (o)         \/ |_|       -|--
+    |_______________________________|
+
+
+GemDrive disabled, other ACSI ids
+
+     _______________________________
+    |                     _         |
+    |    o o o        /\ | |       -|--
+    |    o [==]      /  \| |       -|--
+    |                \  /| |       -||¨| <- Jumper here
+    |     (o)         \/ |_|       -||_|
+    |_______________________________|
+
+
+The ACSI id selection jumper on the right works the same as in GemDrive mode
+
+
+Firmware programming mode
+
+     _______________________________
+    |                     _         |
+    |    o [==]       /\ | |       -|--
+    |   [==] o       /  \| |       -|--
+    |                \  /| |       -|--
+    |     (o)         \/ |_|       -|--
+    |_______________________________|
+
 
 
 Required changes for older ACSI2STM hardware
@@ -244,11 +366,11 @@ Required changes for older ACSI2STM hardware
 If you have a unit built for 1.x or 2.x firmware, you need to make changes.
 
 
-Changes required for 2.xx units
--------------------------------
+Changes required for 2.x units
+------------------------------
 
 If you don't want to or can't make these changes, you can use the *legacy*
-firmware variant. See [flashing](flashing.md).
+firmware variant. See [compiling](compiling.md).
 
 ### Add a reset line
 
@@ -265,9 +387,9 @@ read-write. See the table mentioning these pins above for more details.
 Solder PB0, PB1, PB3, PB4 and/or PB5 to +3.3V to disable the corresponding
 slots. See the table mentioning these pins above for more details.
 
-Changes required for 1.xx units
--------------------------------
+Changes required for 1.x units
+------------------------------
 
- * Do all changes required for 2.xx units
+ * Do all changes required for 2.x units
  * Swap PA8 and PA12
 

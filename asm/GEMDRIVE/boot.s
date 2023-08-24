@@ -28,10 +28,11 @@ prmoff	dc.w	$ff                     ; patching code in the STM32
 
 load	st	flock.w                 ; Lock floppy controller
 
-	moveq	#0,d1                   ; Disable DMA
-	bsr.w	syshook.setdmaaddr      ;
+	bsr.w	syshook.setdmaaddr      ; Reset DMA chip
 	move.w	#$0088,(a1)             ; Switch to command.
-	move.w	#$0009,(a0)             ; Send command $09 (GemDrive boot)
+	moveq	#$09,d1                 ; Send command $09 (GemDrive boot)
+	or.b	acsiid(pc),d1           ; Take ACSI id into account
+	move.w	d1,(a0)                 ;
 
 	moveq	#20,d1                  ; 100ms timeout
 

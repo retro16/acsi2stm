@@ -38,7 +38,7 @@ if [ "$1" = fast ]; then
   optim=2
 fi
 
-arduino --pref build.path="$builddir/Arduino-$name" --pref build.warn_data_percentage=84 --pref compiler.warning_level=all --board "Arduino_STM32:STM32F1:genericSTM32F103C:device_variant=$device,upload_method=serialMethod,cpu_speed=speed_72mhz,opt=o${optim}std" --preserve-temp-files --verify "$srcdir/acsi2stm/acsi2stm.ino"
+arduino-cli compile --build-path "$builddir/Arduino-$name/build" --fqbn "Arduino_STM32:STM32F1:genericSTM32F103C:device_variant=$device,upload_method=serialMethod,cpu_speed=speed_72mhz,opt=o${optim}std" --output-dir "$builddir/Arduino-$name" "$srcdir/acsi2stm/acsi2stm.ino"
 
 [ -e "$builddir/Arduino-$name/acsi2stm.ino.bin" ] || exit $?
 

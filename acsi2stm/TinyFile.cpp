@@ -23,9 +23,6 @@
 
 #include "TinyFile.h"
 
-FsFile TinyFile::lastFile;
-FsFile TinyFile::lastParent;
-
 TinyFile::TinyFile() : index(0) {
 }
 
@@ -143,3 +140,6 @@ void TinyFile::setCluster(FsFile &file, uint32_t cluster) {
   else
     file.m_xFile->m_firstCluster = cluster;
 }
+
+FsFile TinyFile::lastFile;
+FsFile TinyFile::lastParent;

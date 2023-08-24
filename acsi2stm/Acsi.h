@@ -81,9 +81,6 @@ public:
   ScsiErr processBlockRead(uint32_t block, int count);
   ScsiErr processBlockWrite(uint32_t block, int count);
 
-  // Reboot the STM32
-  static void reboot();
-
   // SCSI commands
   void modeSense0(uint8_t *outBuf);
   void modeSense4(uint8_t *outBuf);

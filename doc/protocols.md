@@ -46,7 +46,7 @@ Communication is always initiated by the ST. A peripheral has no way to trigger
 an interrupt or any other way to initiate a communication, despite the
 (misnamed) IRQ pin.
 
-For a description of each pin, see [hardware.md](hardware.md).
+For a description of each pin, see [hardware](hardware.md).
 
 The protocol being very high speed, it is implemented using hardware timers and
 DMA on the STM32. See [acsi2stm/DmaPort.cpp](../acsi2stm/DmaPort.cpp) for more

@@ -55,6 +55,7 @@ public:
   bool updateBootable();
 };
 
+// Image file on a SD card
 class ImageDev: public BlockDev {
 public:
   ImageDev(SdDev &sdDev);
@@ -82,6 +83,8 @@ protected:
   uint32_t sdMediaId; // SD card owning the current image
 };
 
+// Actual SD card slot
+// Also stores globals about SD slots and GemDrive
 class SdDev: public BlockDev {
 public:
   SdDev(int slot_, int csPin_, int wpPin_):
@@ -131,19 +134,12 @@ public:
   int csPin;
   int wpPin;
 
-  static int acsiDeviceMask;
-  static int gemDriveMask;
-  static int gemBootDrive; // Set to 8 if no boot drive
-
   friend class ImageDev;
 protected:
   static const uint32_t mediaCheckPeriod = 500;
   uint32_t lastMediaId;
   uint32_t lastMediaCheckTime;
   void reset();
-#if ! ACSI_STRICT
-  void updateGemBootDrive();
-#endif
 };
 
 #endif

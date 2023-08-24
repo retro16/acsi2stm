@@ -31,6 +31,7 @@ struct Acsi;
 struct GemDrive;
 #endif
 
+// Globals associated to devices and configuration
 struct Devices {
   static SdDev sdSlots[];
   static Acsi acsi[];
@@ -45,7 +46,13 @@ struct Devices {
   static int acsiDeviceMask;
 #if ! ACSI_STRICT
   static int gemDriveMask;
+  static int gemBootDrive; // Set to 8 if no boot drive
+  static void updateGemBootDrive();
+  static void attachGemDrive(int slot);
 #endif
+
+  static void attachAcsi(int slot);
+  static void detach(int slot);
 
   // Realtime clock
   static RTClock rtc;
@@ -56,7 +63,7 @@ struct Devices {
 #if ACSI_STRICT
   static const bool strict = true;
 #else
-  // When true, all SD cards behave like hard drives / removable drives
+  // When true, all SD cards behave like ACSI hard drives
   static bool strict;
 #endif
 

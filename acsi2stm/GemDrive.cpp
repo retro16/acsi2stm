@@ -102,381 +102,6 @@ static const uint16_t translitChars[][2] = {
 static const int GEMDRIVE_boot_acsiid = 3;
 static const int GEMDRIVE_boot_prmoff = 4;
 
-// Static variables
-GemFile GemDrive::files[GemDrive::filesMax]; // File descriptors
-uint8_t GemDrive::relTableCache[ACSI_GEMDRIVE_RELTABLE_CACHE_SIZE];
-GemDrive * GemDrive::curDrive = nullptr; // Drive index. nullptr if unknown.
-Long GemDrive::os_beg;
-Word GemDrive::os_version;
-Word GemDrive::os_conf;
-Long GemDrive::p_run;
-
-GemPath::GemPath(SdDev &sd_): sd(sd_), mediaId(sd_.mediaId()) {
-  clear();
-}
-
-GemPath & GemPath::operator=(const GemPath &other) {
-  *(FsFile *)this = *(FsFile *)&other;
-  int i;
-  for(i = 0; i < maxDepth && other.indexes[i]; ++i)
-    indexes[i] = other.indexes[i];
-  if(i < maxDepth)
-    indexes[i] = 0;
-
-  mediaId = other.mediaId;
-
-  return *this;
-}
-
-bool GemPath::operator==(GemPath &other) {
-  if(sd.mediaId() != mediaId)
-    return false;
-  return mediaId == other.mediaId && TinyFile::getCluster(*this) == TinyFile::getCluster(other);
-}
-
-bool GemPath::operator!=(GemPath &other) {
-  return !(*this == other);
-}
-
-bool GemPath::parent() {
-  if(isRoot())
-    return false;
-
-  int i;
-  for(i = 1; i < maxDepth && indexes[i]; ++i);
-  indexes[i - 1] = 0;
-
-  // Traverse from root to open the parent
-  close();
-  FsFile f[2];
-  f[0].openRoot(&sd.fs);
-  f[1].openRoot(&sd.fs);
-  for(i = 0; i < maxDepth && f[i & 1] && indexes[i]; ++i) {
-    FsFile &from = f[i & 1];
-    FsFile &to = f[~i & 1];
-    to.open(&from, (uint32_t)indexes[i] - 1, O_RDONLY);
-
-    if(!to || !to.isDir()) {
-      // Don't keep an invalid path
-      clear();
-      return false;
-    }
-  }
-  *(FsFile*)this = f[i & 1];
-
-  return true;
-}
-
-void GemPath::clear() {
-  indexes[0] = 0;
-  mediaId = sd.mediaId();
-  openRoot(&sd.fs);
-}
-
-bool GemPath::append(FsFile &f) {
-  for(int i = 0; i < maxDepth; ++i) {
-    if(indexes[i] == 0) {
-      // Append file's dirIndex
-      indexes[i] = f.dirIndex() + 1;
-
-      // Terminate the index list
-      if(i < maxDepth - 1)
-        indexes[i + 1] = 0;
-
-      *(FsFile*)this = f;
-      return true;
-    }
-  }
-
-  // Path full
-  return false;
-}
-
-bool GemPath::openPath(const char *path, GemPattern &last, bool parseLastName) {
-  if(*path == '\\') {
-    ++path;
-    clear();
-  } else if(mediaId != sd.mediaId()) {
-    // Disk swapped
-
-    if(!isRoot())
-      // The only guaranteed valid path is the root path
-      return false;
-
-    mediaId = sd.mediaId();
-  }
-
-  for(;;) {
-    path = last.parseAtari(path);
-    if(!parseLastName && !*path)
-      return true;
-
-    if(*path)
-      ++path; // Skip separator
-
-    // Traverse path element
-    if(last.hasWildcards()) {
-      // Wildcards are forbidden in path elements
-      return false;
-    } else if(last.isCurDir() || last.isEmpty()) {
-      // Do nothing
-    } else if(last.isParentDir()) {
-      if(!parent())
-        return false;
-    } else {
-      FsFile child;
-      if(!openFile(last, child))
-        return false;
-      if(!child || !child.isDir())
-        // Invalid entry, just stop there
-        return false;
-
-      // Descend into the directory
-      append(child);
-    }
-
-    if(parseLastName && !*path)
-      return true;
-  }
-}
-
-bool GemPath::openFile(const GemPattern &name, FsFile &file, oflag_t oflag) {
-  if(mediaId != sd.mediaId())
-    // Disk swapped
-    return false;
-
-  rewind();
-  for(;;) {
-    file.openNext(this, O_RDONLY);
-    if(!file)
-      return false;
-
-    if(name == file) {
-      if(oflag == O_RDONLY)
-        return true;
-
-      // Reopen with the correct flags
-      auto index = file.dirIndex();
-      return file.open(this, index, oflag);
-    }
-  }
-}
-
-int GemPath::toAtari(char *out, int bufSize) const {
-  if(isRoot()) {
-    out[0] = '\\';
-    out[1] = 0;
-    return 1;
-  }
-
-  if(mediaId != sd.mediaId()) {
-    // Disk swapped
-    *out = 0;
-    return -1;
-  }
-
-  FsFile f[2];
-  f[0].openRoot(&sd.fs);
-  f[1].openRoot(&sd.fs);
-  int len = 0;
-  int i = 0;
-
-  for(i = 0; i < maxDepth && f[i & 1] && indexes[i] && bufSize - len > 14; ++i) {
-    // Append a separator
-    out[len++] = '\\';
-
-    // Point at next file
-    FsFile &from = f[i & 1];
-    FsFile &to = f[~i & 1];
-    to.open(&from, (uint32_t)indexes[i] - 1, O_RDONLY);
-
-    if(!to || !to.isDir()) {
-      // Invalid path
-      *out = 0;
-      return -1;
-    }
-
-    // Get file name
-    if((int)to.getName(&out[len], bufSize - len) >= bufSize - len - 1) {
-      // Buffer too small
-      *out = 0;
-      return -1;
-    }
-    GemPattern name;
-    if(!name.parseUnicode(&out[len])) {
-      // Invalid path
-      *out = 0;
-      return -1;
-    }
-
-    // Append Atari name
-    int nameLen = name.toAtari(&out[len]);
-    len += nameLen;
-  }
-
-  out[len] = 0;
-  return len;
-}
-
-int GemPath::toUnicode(char *out, int bufSize) const {
-  if(mediaId != sd.mediaId()) {
-    // Disk swapped
-    *out = 0;
-    return -1;
-  }
-
-  int len = 0;
-
-  out[len++] = '/';
-  --bufSize;
-
-  if(isRoot()) {
-    out[len] = 0;
-    return len;
-  }
-
-  FsFile f[2];
-  f[0].openRoot(&sd.fs);
-  f[1].openRoot(&sd.fs);
-  int i = 0;
-
-  for(i = 0; i < maxDepth && f[i & 1] && indexes[i] && bufSize > 15; ++i) {
-    // Point at next file
-    FsFile &from = f[i & 1];
-    FsFile &to = f[~i & 1];
-    to.open(&from, (uint32_t)indexes[i] - 1, O_RDONLY);
-
-    if(!to || !to.isDir()) {
-      // Invalid path
-      *out = 0;
-      return -1;
-    }
-
-    // Get file name
-    int nameLen = to.getName(&out[len], bufSize);
-
-    if(nameLen >= bufSize - 2) {
-      // Buffer too small
-      *out = 0;
-      return -1;
-    }
-
-    len += nameLen;
-    bufSize -= nameLen;
-
-    // Append separator
-    out[len++] = '/';
-    --bufSize;
-  }
-
-  out[len] = 0;
-  return len;
-}
-
-bool GemPath::isContainedBy(FsFile &file) const {
-  if(file.isDir() && !file.isSubDir())
-    return true;
-
-  uint32_t fileCluster = TinyFile::getCluster(file);
-
-  FsFile f[2];
-  f[0].openRoot(&sd.fs);
-  f[1].openRoot(&sd.fs);
-  for(int i = 0; i < maxDepth && f[i & 1] && indexes[i]; ++i) {
-    // Point at next file
-    FsFile &from = f[i & 1];
-    FsFile &to = f[~i & 1];
-    to.open(&from, (uint32_t)indexes[i] - 1, O_RDONLY);
-
-    if(!to || !to.isDir()) {
-      // Invalid path
-      return false;
-    }
-
-    if(TinyFile::getCluster(to) == fileCluster)
-      return true;
-  }
-
-  return false;
-}
-
-void GemFile::set(GemPath &parent, FsFile &file, oflag_t oflag_, Long basePage_) {
-  TinyFile::set(parent.mediaId, parent, file);
-  position = 0;
-  basePage = basePage_;
-  oflag = oflag_;
-}
-
-FsFile & GemFile::reopen() {
-  auto *drive = GemDrive::getDrive(mediaId);
-  if(!drive) {
-    lastFile.close();
-    return lastFile;
-  }
-  FsFile &file = open(drive->sd.fs, oflag);
-  if(!file.seek(position)) {
-    close();
-    file.close();
-  }
-  return file;
-}
-
-int32_t GemFile::read(uint8_t *data, int32_t size) {
-  FsFile &file = reopen();
-  if(!file)
-    return -1;
-
-  int r = file.read(data, size);
-  position = file.curPosition();
-
-  return r;
-}
-
-int32_t GemFile::write(uint8_t *data, int32_t size) {
-  FsFile &file = reopen();
-  if(!file)
-    return -1;
-
-  int w = file.write(data, size);
-  position = file.curPosition();
-
-  return w;
-}
-
-int32_t GemFile::seek(int32_t offset, int whence) {
-  FsFile &file = reopen();
-  if(!file)
-    return -1;
-
-  switch(whence) {
-    case 0:
-      if(!file.seek(offset))
-        return -1;
-      break;
-    case 1:
-      if(!file.seek(position + offset))
-        return -1;
-      break;
-    case 2:
-      if(!file.seek(file.fileSize() + offset))
-        return -1;
-      break;
-    default:
-      return -1;
-  }
-
-  position = file.curPosition();
-  return position;
-}
-
-bool GemFile::checkMedium() const {
-  return GemDrive::getDrive(mediaId);
-}
-
-bool GemFile::isWritable() const {
-  return oflag & O_RDWR;
-}
-
 GemPattern::GemPattern() {
   clear();
 }
@@ -523,9 +148,9 @@ bool GemPattern::operator==(const GemPattern &file) const {
   return true;
 }
 
-bool GemPattern::operator==(const char *name) const {
+bool GemPattern::operator==(const char *unicodeName) const {
   GemPattern namePattern;
-  if(!namePattern.parseUnicode(name))
+  if(!namePattern.parseUnicode(unicodeName))
     return false;
   return *this == namePattern;
 }
@@ -939,6 +564,372 @@ bool GemPattern::attribMatching(uint8_t attrib, uint8_t fileAttrib) {
   return !fileAttrib || (attrib & fileAttrib);
 }
 
+GemPath::GemPath(SdDev &sd_): sd(sd_), mediaId(sd_.mediaId()) {
+  clear();
+}
+
+GemPath & GemPath::operator=(const GemPath &other) {
+  *(FsFile *)this = *(FsFile *)&other;
+  int i;
+  for(i = 0; i < maxDepth && other.indexes[i]; ++i)
+    indexes[i] = other.indexes[i];
+  if(i < maxDepth)
+    indexes[i] = 0;
+
+  mediaId = other.mediaId;
+
+  return *this;
+}
+
+bool GemPath::operator==(GemPath &other) {
+  if(sd.mediaId() != mediaId)
+    return false;
+  return mediaId == other.mediaId && TinyFile::getCluster(*this) == TinyFile::getCluster(other);
+}
+
+bool GemPath::operator!=(GemPath &other) {
+  return !(*this == other);
+}
+
+bool GemPath::append(FsFile &f) {
+  for(int i = 0; i < maxDepth; ++i) {
+    if(indexes[i] == 0) {
+      // Append file's dirIndex
+      indexes[i] = f.dirIndex() + 1;
+
+      // Terminate the index list
+      if(i < maxDepth - 1)
+        indexes[i + 1] = 0;
+
+      *(FsFile*)this = f;
+      return true;
+    }
+  }
+
+  // Path full
+  return false;
+}
+
+bool GemPath::parent() {
+  if(isRoot())
+    return false;
+
+  int i;
+  for(i = 1; i < maxDepth && indexes[i]; ++i);
+  indexes[i - 1] = 0;
+
+  // Traverse from root to open the parent
+  close();
+  FsFile f[2];
+  f[0].openRoot(&sd.fs);
+  f[1].openRoot(&sd.fs);
+  for(i = 0; i < maxDepth && f[i & 1] && indexes[i]; ++i) {
+    FsFile &from = f[i & 1];
+    FsFile &to = f[~i & 1];
+    to.open(&from, (uint32_t)indexes[i] - 1, O_RDONLY);
+
+    if(!to || !to.isDir()) {
+      // Don't keep an invalid path
+      clear();
+      return false;
+    }
+  }
+  *(FsFile*)this = f[i & 1];
+
+  return true;
+}
+
+void GemPath::clear() {
+  indexes[0] = 0;
+  mediaId = sd.mediaId();
+  openRoot(&sd.fs);
+}
+
+bool GemPath::openPath(const char *path, GemPattern &last, bool parseLastName) {
+  if(*path == '\\') {
+    ++path;
+    clear();
+  } else if(mediaId != sd.mediaId()) {
+    // Disk swapped
+
+    if(!isRoot())
+      // The only guaranteed valid path is the root path
+      return false;
+
+    mediaId = sd.mediaId();
+  }
+
+  for(;;) {
+    path = last.parseAtari(path);
+    if(!parseLastName && !*path)
+      return true;
+
+    if(*path)
+      ++path; // Skip separator
+
+    // Traverse path element
+    if(last.hasWildcards()) {
+      // Wildcards are forbidden in path elements
+      return false;
+    } else if(last.isCurDir() || last.isEmpty()) {
+      // Do nothing
+    } else if(last.isParentDir()) {
+      if(!parent())
+        return false;
+    } else {
+      FsFile child;
+      if(!openFile(last, child))
+        return false;
+      if(!child || !child.isDir())
+        // Invalid entry, just stop there
+        return false;
+
+      // Descend into the directory
+      append(child);
+    }
+
+    if(parseLastName && !*path)
+      return true;
+  }
+}
+
+bool GemPath::openFile(const GemPattern &name, FsFile &file, oflag_t oflag) {
+  if(mediaId != sd.mediaId())
+    // Disk swapped
+    return false;
+
+  rewind();
+  for(;;) {
+    file.openNext(this, O_RDONLY);
+    if(!file)
+      return false;
+
+    if(name == file) {
+      if(oflag == O_RDONLY)
+        return true;
+
+      // Reopen with the correct flags
+      auto index = file.dirIndex();
+      return file.open(this, index, oflag);
+    }
+  }
+}
+
+int GemPath::toAtari(char *out, int bufSize) const {
+  if(isRoot()) {
+    out[0] = '\\';
+    out[1] = 0;
+    return 1;
+  }
+
+  if(mediaId != sd.mediaId()) {
+    // Disk swapped
+    *out = 0;
+    return -1;
+  }
+
+  FsFile f[2];
+  f[0].openRoot(&sd.fs);
+  f[1].openRoot(&sd.fs);
+  int len = 0;
+  int i = 0;
+
+  for(i = 0; i < maxDepth && f[i & 1] && indexes[i] && bufSize - len > 14; ++i) {
+    // Append a separator
+    out[len++] = '\\';
+
+    // Point at next file
+    FsFile &from = f[i & 1];
+    FsFile &to = f[~i & 1];
+    to.open(&from, (uint32_t)indexes[i] - 1, O_RDONLY);
+
+    if(!to || !to.isDir()) {
+      // Invalid path
+      *out = 0;
+      return -1;
+    }
+
+    // Get file name
+    if((int)to.getName(&out[len], bufSize - len) >= bufSize - len - 1) {
+      // Buffer too small
+      *out = 0;
+      return -1;
+    }
+    GemPattern name;
+    if(!name.parseUnicode(&out[len])) {
+      // Invalid path
+      *out = 0;
+      return -1;
+    }
+
+    // Append Atari name
+    int nameLen = name.toAtari(&out[len]);
+    len += nameLen;
+  }
+
+  out[len] = 0;
+  return len;
+}
+
+int GemPath::toUnicode(char *out, int bufSize) const {
+  if(mediaId != sd.mediaId()) {
+    // Disk swapped
+    *out = 0;
+    return -1;
+  }
+
+  int len = 0;
+
+  out[len++] = '/';
+  --bufSize;
+
+  if(isRoot()) {
+    out[len] = 0;
+    return len;
+  }
+
+  FsFile f[2];
+  f[0].openRoot(&sd.fs);
+  f[1].openRoot(&sd.fs);
+  int i = 0;
+
+  for(i = 0; i < maxDepth && f[i & 1] && indexes[i] && bufSize > 15; ++i) {
+    // Point at next file
+    FsFile &from = f[i & 1];
+    FsFile &to = f[~i & 1];
+    to.open(&from, (uint32_t)indexes[i] - 1, O_RDONLY);
+
+    if(!to || !to.isDir()) {
+      // Invalid path
+      *out = 0;
+      return -1;
+    }
+
+    // Get file name
+    int nameLen = to.getName(&out[len], bufSize);
+
+    if(nameLen >= bufSize - 2) {
+      // Buffer too small
+      *out = 0;
+      return -1;
+    }
+
+    len += nameLen;
+    bufSize -= nameLen;
+
+    // Append separator
+    out[len++] = '/';
+    --bufSize;
+  }
+
+  out[len] = 0;
+  return len;
+}
+
+bool GemPath::isContainedBy(FsFile &file) const {
+  if(file.isDir() && !file.isSubDir())
+    return true;
+
+  uint32_t fileCluster = TinyFile::getCluster(file);
+
+  FsFile f[2];
+  f[0].openRoot(&sd.fs);
+  f[1].openRoot(&sd.fs);
+  for(int i = 0; i < maxDepth && f[i & 1] && indexes[i]; ++i) {
+    // Point at next file
+    FsFile &from = f[i & 1];
+    FsFile &to = f[~i & 1];
+    to.open(&from, (uint32_t)indexes[i] - 1, O_RDONLY);
+
+    if(!to || !to.isDir()) {
+      // Invalid path
+      return false;
+    }
+
+    if(TinyFile::getCluster(to) == fileCluster)
+      return true;
+  }
+
+  return false;
+}
+
+void GemFile::set(GemPath &parent, FsFile &file, oflag_t oflag_, Long basePage_) {
+  TinyFile::set(parent.mediaId, parent, file);
+  position = 0;
+  basePage = basePage_;
+  oflag = oflag_;
+}
+
+FsFile & GemFile::reopen() {
+  auto *drive = GemDrive::getDrive(mediaId);
+  if(!drive) {
+    lastFile.close();
+    return lastFile;
+  }
+  FsFile &file = open(drive->sd.fs, oflag);
+  if(!file.seek(position)) {
+    close();
+    file.close();
+  }
+  return file;
+}
+
+int32_t GemFile::read(uint8_t *data, int32_t size) {
+  FsFile &file = reopen();
+  if(!file)
+    return -1;
+
+  int r = file.read(data, size);
+  position = file.curPosition();
+
+  return r;
+}
+
+int32_t GemFile::write(uint8_t *data, int32_t size) {
+  FsFile &file = reopen();
+  if(!file)
+    return -1;
+
+  int w = file.write(data, size);
+  position = file.curPosition();
+
+  return w;
+}
+
+int32_t GemFile::seek(int32_t offset, int whence) {
+  FsFile &file = reopen();
+  if(!file)
+    return -1;
+
+  switch(whence) {
+    case 0:
+      if(!file.seek(offset))
+        return -1;
+      break;
+    case 1:
+      if(!file.seek(position + offset))
+        return -1;
+      break;
+    case 2:
+      if(!file.seek(file.fileSize() + offset))
+        return -1;
+      break;
+    default:
+      return -1;
+  }
+
+  position = file.curPosition();
+  return position;
+}
+
+bool GemFile::checkMedium() const {
+  return GemDrive::getDrive(mediaId);
+}
+
+bool GemFile::isWritable() const {
+  return oflag & O_RDWR;
+}
+
 GemDrive::GemDrive(SdDev &sd_): sd(sd_), curPath(sd_) {}
 
 void GemDrive::process(uint8_t cmd) {
@@ -960,7 +951,7 @@ void GemDrive::process(uint8_t cmd) {
         memcpy(buf, GEMDRIVE_boot_bin, GEMDRIVE_boot_bin_len);
 
         // Patch ACSI id
-        buf[GEMDRIVE_boot_acsiid] = SdDev::gemBootDrive << 5;
+        buf[GEMDRIVE_boot_acsiid] = Devices::gemBootDrive << 5;
 
         // Patch checksum
         buf[ACSI_BLOCKSIZE - 2] = 0;
@@ -1031,7 +1022,7 @@ void GemDrive::process(uint8_t cmd) {
 void GemDrive::onBoot() {
 #ifdef ACSI_GEMDRIVE_LOAD_EMUTOS
   // Check for EmuTOS
-  auto &fs = Devices::sdSlots[SdDev::gemBootDrive].fs;
+  auto &fs = Devices::sdSlots[Devices::gemBootDrive].fs;
   if(fs.exists(ACSI_GEMDRIVE_LOAD_EMUTOS)) {
     // EmuTOS found. Load and run it.
     FsFile emutos = fs.open(ACSI_GEMDRIVE_LOAD_EMUTOS);
@@ -1051,7 +1042,7 @@ void GemDrive::onBoot() {
   memcpy(buf, GEMDRIVE_boot_bin, GEMDRIVE_boot_bin_len);
 
   // Patch ACSI id
-  buf[GEMDRIVE_boot_acsiid] = SdDev::gemBootDrive << 5;
+  buf[GEMDRIVE_boot_acsiid] = Devices::gemBootDrive << 5;
 
   // Patch parameter offset
   verbose("Query longframe\n");
@@ -1206,25 +1197,24 @@ void GemDrive::onGemdos() {
   DECLARE_CALLBACK(Tgettime);
   DECLARE_CALLBACK(Tsettime);
   DECLARE_CALLBACK(Dfree);
+  DECLARE_CALLBACK(Dcreate);
+  DECLARE_CALLBACK(Ddelete);
+  DECLARE_CALLBACK(Dsetpath);
+  DECLARE_CALLBACK(Fcreate);
+  DECLARE_CALLBACK(Fopen);
   DECLARE_CALLBACK(Fclose);
   DECLARE_CALLBACK(Fread);
   DECLARE_CALLBACK(Fwrite);
+  DECLARE_CALLBACK(Fdelete);
   DECLARE_CALLBACK(Fseek);
   DECLARE_CALLBACK(Fattrib);
   DECLARE_CALLBACK(Dgetpath);
   DECLARE_CALLBACK(Pexec);
   DECLARE_CALLBACK(Pterm);
   DECLARE_CALLBACK(Fsnext);
-  DECLARE_CALLBACK(Fdatime);
-
-  DECLARE_CALLBACK(Dcreate);
-  DECLARE_CALLBACK(Ddelete);
-  DECLARE_CALLBACK(Dsetpath);
-  DECLARE_CALLBACK(Fcreate);
-  DECLARE_CALLBACK(Fopen);
-  DECLARE_CALLBACK(Fdelete);
   DECLARE_CALLBACK(Fsfirst);
   DECLARE_CALLBACK(Frename);
+  DECLARE_CALLBACK(Fdatime);
 
   // Just log these callbacks
 #if ACSI_DEBUG
@@ -2404,6 +2394,14 @@ Word GemDrive::createFd(GemPath &parent, FsFile &file, oflag_t oflag) {
 
   return ToWord(0);
 }
+
+GemFile GemDrive::files[GemDrive::filesMax]; // File descriptors
+uint8_t GemDrive::relTableCache[ACSI_GEMDRIVE_RELTABLE_CACHE_SIZE];
+GemDrive * GemDrive::curDrive = nullptr; // Drive index. nullptr if unknown.
+Long GemDrive::os_beg;
+Word GemDrive::os_version;
+Word GemDrive::os_conf;
+Long GemDrive::p_run;
 
 #endif
 

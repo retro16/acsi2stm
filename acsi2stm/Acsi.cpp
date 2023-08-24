@@ -569,6 +569,9 @@ Acsi::ScsiErr Acsi::processBlockWrite(uint32_t block, int count) {
 }
 
 void Acsi::modeSense0(uint8_t *outBuf) {
+  // Returns a legacy mode page, following Hatari's behavior
+  // No idea what kind of hard disk returned that.
+
   uint32_t blocks = blockDev->blocks;
   if(blocks > 0xffffff) {
     dbg("Truncated block count in mode sense ", "0\n");
@@ -589,8 +592,9 @@ void Acsi::modeSense0(uint8_t *outBuf) {
 }
 
 void Acsi::modeSense4(uint8_t *outBuf) {
-  uint32_t blocks = blockDev->blocks;
+  // Mode page 4, returning disk geometry
 
+  uint32_t blocks = blockDev->blocks;
   int heads;
   int cylinders;
   for(heads = 255; heads >= 1; --heads) {

@@ -1,25 +1,51 @@
-$logo=true; // Is the ACSI2STM logo present ?
-$db19=true; // Is the DB19 present ?
-$idc20=false; // Is the IDC20 socket present ?
-$idc20p=false; // Is the IDC20 piggyback present ?
+// Add the ACSI2STM logo
+$logo=true;
+
+// Add DB19 connector
+$db19=true;
+
+// Add IDC20 Satan port socket
+$idc20=false;
+
+// Add IDC20 piggyback. Incompatible with DB19.
+$idc20p=false;
+
+// Floor height
+$f=0.41;
+
+// Outer wall width
+$outwall=0.79;
+
+// Inner wall width
+$inwall=0.79;
+
+// Screw diameter
+$screw=2;
+
+// Tapped screw hole diameter offset (positive = bigger)
+$tap_hole_offset=0;
+
+// Screw head diameter
+$screwhead=5;
+
+// Screw head height
+$screwhead_h=1;
+
+// Total back side height
+$back_height=5.6;
+
+// Total front side height
+$front_height=5.6;
+
+// PCB height
+$pcbh=1.65;
+
+/* [Hidden] */
 
 $fn=100;
-$f=0.41; // Floor height
-$outwall=0.40; // Outer wall width
-$inwall=0.79; // Inner wall width
-$nutin=4.0; // Inner nut diameter
-$nutout=4.6; // Outer nut diameter
-$nuth=2.65; // Nut height
-$nuthold=5.65; // Hut holder width
-$screw=2; // Screw diameter
-$screwhead=4.5; // Screw head diameter
-$screwhead_h=1; // Screw head height
-$back_height=4.5; // Total back side height
-$front_height=5.6; // Total front side height
-$pcbh=1.65; // PCB height
-
 e=0.01; // Epsilon
 screwhole=$screw+0.4; // Screw hole diameter
+taphole=$screw+$tap_hole_offset; // Tapped screw hole diameter
 sd_height=2.4;
 
 module pcb_poly(off=0) {
@@ -53,16 +79,16 @@ polygon([
 ]);
 }
 
-module nut_holder() {
-  sz=$nutin+$inwall*2;
-  translate([-$nuthold/2,-sz/2,0])
-    difference() {
-      cube([$nuthold,sz,$back_height-$pcbh]);
-      translate([-e,$inwall,$back_height-$pcbh-$f-$nuth])
-        cube([$nuthold+e*2,$nutin,$nuth]);
-      translate([$nuthold/2-screwhole/2,$inwall+0.3,$back_height-$pcbh-$f-e])
-        cube([screwhole,$nutin-0.6,$f+e*2]);
+module tapped_hole() {
+  difference() {
+    translate([0,0,0]) {
+      cylinder(h=$back_height-$pcbh,d=$screwhead);
+      translate([0,-$screwhead/2,0])
+        cube([$screwhead/2+$inwall,$screwhead,$back_height-$pcbh]);
     }
+    
+    cylinder(h=$back_height-$pcbh+e,d=taphole);
+  }
 }
 
 module back_side() {
@@ -79,14 +105,10 @@ module back_side() {
         pcb_poly();
  
     if($db19) {
-      hull() {
-        translate([6.0,50.9,-$f-e]) cylinder(h=$f+$back_height+2*e,d=6);
-        translate([6.0-12,50.9,-$f-e]) cylinder(h=$f+$back_height+2*e,d=6);
-      }
-      hull() {
-        translate([45.0,50.9,-$f-e]) cylinder(h=$f+$back_height+2*e,d=6);
-        translate([45.0+12,50.9,-$f-e]) cylinder(h=$f+$back_height+2*e,d=6);
-      }
+      translate([6.0,50.9,-$f-e]) cylinder(h=$f+$back_height+2*e,d=7.5);
+      translate([6.0-12,50.9-3,-$f-e]) cube([12,6,2*e+$f+$back_height]);
+      translate([45.0,50.9,-$f-e]) cylinder(h=$f+$back_height+2*e,d=7.5);
+      translate([45.0,50.9-3,-$f-e]) cube([12,6,2*e+$f+$back_height]);
     }
 
     if($idc20)
@@ -94,18 +116,18 @@ module back_side() {
         cube([33.1,9.4,$f+2*e]);
 
     if($logo)
-      translate([51.3/2,10,-$f-e])
+      translate([51.3/2,12,-$f-e])
         scale([1,-1,1])
           linear_extrude($f/2+2*e)
-            text("ACSI2STM", size=6, halign="center");
+            text("ACSI2STM", size=7, spacing=0.85, halign="center");
   }
 
-  translate([3.6,16.1,0]) nut_holder();
-  translate([3.6,39.5,0]) nut_holder();
-  translate([6.3,57.3,0]) nut_holder();
-  translate([45.0,57.3,0]) nut_holder();
-  translate([47.8,39.5,0]) nut_holder();
-  translate([47.8,16.1,0]) nut_holder();
+  translate([3.6,16.1,0]) rotate([0,0,180]) tapped_hole();
+  translate([3.6,39.5,0]) rotate([0,0,180]) tapped_hole();
+  translate([6.3,57.3,0]) rotate([0,0,180]) tapped_hole();
+  translate([45.0,57.3,0]) tapped_hole();
+  translate([47.7,39.5,0]) tapped_hole();
+  translate([47.7,16.1,0]) tapped_hole();
 }
 
 module screw_pit() {
@@ -139,15 +161,17 @@ module front_side() {
         pcb_poly(-$inwall);
 
     if($db19) {
-      translate([6.0,50.9,-$f-e]) cylinder(h=$f+$front_height+2*e,d=5.6);
-      translate([45.0,50.9,-$f-e]) cylinder(h=$f+$front_height+2*e,d=5.6);
-      translate([10.0,46.0,-$f-e])
+      translate([2.8,47.0,-$f-e])
         linear_extrude($f+2*e)
           polygon([
-            [0.0,0.0],
-            [31.0,0.0],
-            [27.0,8.8],
-            [4.0,8.8]
+            [$inwall,0],
+            [$inwall,6.5],
+            [$inwall+4,6.5],
+            [$inwall+7,9],
+            [45.7-$inwall-7,9],
+            [45.7-$inwall-4,6.5],
+            [45.7-$inwall,6.5],
+            [45.7-$inwall,0],
           ]);
     }
     
@@ -164,8 +188,8 @@ module front_side() {
     translate([3.6,39.5,-$f-e]) cylinder(h=$f+2*e, d=$screwhead);
     translate([6.3,57.3,-$f-e]) cylinder(h=$f+2*e, d=$screwhead);
     translate([45.0,57.3,-$f-e]) cylinder(h=$f+2*e, d=$screwhead);
-    translate([47.8,39.5,-$f-e]) cylinder(h=$f+2*e, d=$screwhead);
-    translate([47.8,16.1,-$f-e]) cylinder(h=$f+2*e, d=$screwhead);
+    translate([47.7,39.5,-$f-e]) cylinder(h=$f+2*e, d=$screwhead);
+    translate([47.7,16.1,-$f-e]) cylinder(h=$f+2*e, d=$screwhead);
     
     // MicroSD slots
     translate([1.9,-$outwall-e, $front_height
@@ -177,8 +201,8 @@ module front_side() {
   translate([3.6,39.5,0]) rotate([0,0,180]) screw_pit();
   translate([6.3,57.3,0]) rotate([0,0,180]) screw_pit();
   translate([45.0,57.3,0]) screw_pit();
-  translate([47.8,39.5,0]) screw_pit();
-  translate([47.8,16.1,0]) screw_pit();
+  translate([47.7,39.5,0]) screw_pit();
+  translate([47.7,16.1,0]) screw_pit();
     
 }
 
