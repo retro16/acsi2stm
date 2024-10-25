@@ -116,7 +116,6 @@ The communication protocol is detailed in [protocols](protocols.md).
 Mixing GemDrive and ACSI
 ------------------------
 
-
 ### Mixing GemDrive and ICD PRO
 
 To mix GemDrive with ICD PRO, you must proceed like this:
@@ -130,7 +129,6 @@ and above as drive letters.
 **Alternative:** Instead of making the ICD disk bootable, just put `ICDBOOT.PRG`
 in the `AUTO` folder of the GemDrive SD card.
 
-
 ### Mixing GemDrive and the PP driver (ACSID07)
 
 To mix GemDrive with the PP driver, proceed like this:
@@ -142,17 +140,31 @@ To mix GemDrive with the PP driver, proceed like this:
 The GemDrive driver will load after the PP driver. GemDrive will use L: and
 above as drive letters.
 
-
 ### Mixing GemDrive and other ACSI drivers
 
-A few considerations should be made when mixing both kinds of drives:
+If your driver has problems booting GemDrive, then only solution is to put
+`GEMDRIVE.TOS` into the `AUTO` folder.
 
-* ACSI drivers that require ACSI id 0 and break the boot chain won't allow
-  GemDrive loading itself.
-* In general putting GemDrive first and the ACSI drives last is your best bet.
 
-If your driver has problems with GemDrive, then only solution is to enable
-strict mode to force ACSI everywhere.
+Mixing ACSI2STM and other devices
+---------------------------------
+
+Instructions in the previous section also apply.
+
+You can use the ID_SHIFT jumper to change the ACSI id of the ACSI2STM unit.
+Ensure that each device has a unique id. Some drivers require a specific id,
+which can limit combinations.
+
+### Multiple ACSI2STM compact PCBs
+
+The ACSI2STM compact PCB has 3 slots, so it occupies 3 ACSI ids on the bus.
+
+To use 2 compact PCBs together at the same time:
+
+* Connect the first unit to the ST through the DB19 port.
+* Connect the 2 units together using the IDC20 port.
+* On the second unit, set the ID_SHIFT jumper to the 3-5 position.
+* Power both units through their USB-C ports.
 
 
 How to install EmuTOS with GemDrive
@@ -161,16 +173,15 @@ How to install EmuTOS with GemDrive
 Since version 4.2, GemDrive is compatible with EmuTOS. Setting it up however is
 a bit challenging. This file explains in details how to properly install it.
 
-
 ### Setting up boot SD card
 
 You need at least 2 SD cards and 2 slots on your ACSI2STM. EmuTOS cannot boot on
-GemDrive, so you need at least 1 Atari-formated SD card.
+GemDrive, so you need at least 1 Atari-formatted SD card.
 
 **Alternative:** Use a floppy disk as boot drive. In that case you need only a
 single SD card.
 
-* Create a small disk image (`hd0.img`) on the boot SD card. 30MB is
+* Create a small disk image (`hd0.img`) on the boot SD card. 5MB-30MB is
   recommended.
 * Partition the image using ICD PRO's `ICDFMT.PRG`.
   * No need to make the disk bootable.
@@ -182,15 +193,15 @@ single SD card.
 manually from GEM, then install the C: drive icon on the desktop. You may have
 to install L:, M: and so on to access GemDrive drives.
 
-
 ### Installing EmuTOS
 
 If you run EmuTOS from ROM, you can skip that section.
 
 * Download the PRG version of EmuTOS.
 * On the GemDrive SD card (**not** the boot disk),
-  * Copy `EMUTOS.PRG` at the root of the SD card
+  * Copy `EMUTOS.PRG` at the root of the SD card.
   * Rename `EMUTOS.PRG` to `EMUTOS.SYS`.
+  * Optionally, you can mark the file as hidden.
 
 ### Setting up GemDrive from within EmuTOS
 

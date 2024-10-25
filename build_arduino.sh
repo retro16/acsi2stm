@@ -5,14 +5,14 @@
 #  Commands needed in your path
 #
 #    sed
-#    arduino
+#    arduino-cli
 #    zip
 
 builddir="$PWD/build.arduino~"
 srcdir="$(dirname "$0")"
 VERSION=`cat "$srcdir/VERSION"`
 
-echo "Patch the arduino source to set VERSION to $VERSION"
+echo "Patch the arduino source to set ACSI2STM_VERSION to $VERSION"
 
 sed -i 's/^\(#define ACSI2STM_VERSION\).*/\1 "'$VERSION'"/' "$srcdir/acsi2stm/acsi2stm.h"
 
@@ -20,6 +20,8 @@ echo "Create a clean build directory"
 
 rm -rf "$builddir"
 mkdir "$builddir"
+
+set -e
 
 cp "$srcdir/acsi2stm/acsi2stm.h" "$builddir/acsi2stm.h"
 
@@ -40,7 +42,7 @@ fi
 
 arduino-cli compile --build-path "$builddir/Arduino-$name/build" --fqbn "Arduino_STM32:STM32F1:genericSTM32F103C:device_variant=$device,upload_method=serialMethod,cpu_speed=speed_72mhz,opt=o${optim}std" --output-dir "$builddir/Arduino-$name" "$srcdir/acsi2stm/acsi2stm.ino"
 
-[ -e "$builddir/Arduino-$name/acsi2stm.ino.bin" ] || exit $?
+[ -e "$builddir/Arduino-$name/acsi2stm.ino.bin" ]
 
 }
 
@@ -62,7 +64,7 @@ if [ "$1" = all ]; then
   echo "Compile debug binary"
   sed -i 's/^#define ACSI_STRICT .$/#define ACSI_STRICT 0/' "$srcdir/acsi2stm/acsi2stm.h"
   sed -i 's/^#define ACSI_VERBOSE .$/#define ACSI_VERBOSE 0/' "$srcdir/acsi2stm/acsi2stm.h"
-  compile_arduino debug 128
+  compile_arduino debug
   mv "$builddir/Arduino-debug/acsi2stm.ino.bin" ./acsi2stm-$VERSION-debug.ino.bin
 
   echo

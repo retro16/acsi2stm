@@ -22,7 +22,7 @@
 
 // acsi2stm global configuration
 
-#define ACSI2STM_VERSION "5.0a"
+#define ACSI2STM_VERSION "5.0b"
 
 // Set to 1 to enable debug output on the serial port
 #define ACSI_DEBUG 0
@@ -56,9 +56,10 @@
 //#define ACSI_MAX_BLOCKS 0x0FFFFF // 512MB limit
 
 // Maximum SD card speed in MHz.
-// Standard SD cards can go up to 50MHz.
-// The driver automatically downgrades to a slower speed on each retry.
-#define ACSI_SD_MAX_SPEED 36
+// Modern SD cards can go up to 50MHz.
+// The driver automatically downgrades to 25MHz for older standard SD cards.
+// Tries 1MHz to try to make pathological hardware work anyway.
+#define ACSI_SD_MAX_SPEED 50
 
 // SD card write lock pin behavior (PB0, PB1 and PB3-PB5).
 // In every case, soldering these pins to VCC (+3.3V) will disable the SD slot
@@ -154,10 +155,16 @@
 // In all cases, GemDrive will skip drive letters already reserved by drivers
 // loaded before it (such as ACSI drivers).
 // Define either an uppercase letter such as 'C', or 0 for dynamic mode.
-// In dynamic mode, it uses 'L' if a bootable SD card is detected, 'C'
+// In dynamic mode, it uses 'L' if an Atari bootable SD card is detected, 'C'
 // otherwise.
 //#define ACSI_GEMDRIVE_FIRST_LETTER 'C'
 #define ACSI_GEMDRIVE_FIRST_LETTER 0
+
+// If set, offset first GemDrive drive letter by the ACSI ID offset.
+// For example, if the ID_SHIFT jumper is set in 3-5 position, GemDrive letters
+// will start at F: instead of C:
+// Note: dynamic letter shift always start at L:
+#define ACSI_GEMDRIVE_LETTER_ID_OFFSET 1
 
 // Set to 1 to convert all file names to upper case.
 // If disabled, filesystem operations will preserve case and will become case

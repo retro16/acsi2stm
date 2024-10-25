@@ -564,12 +564,12 @@ bool GemPattern::attribMatching(uint8_t attrib, uint8_t fileAttrib) {
   return !fileAttrib || (attrib & fileAttrib);
 }
 
-GemPath::GemPath(SdDev &sd_): sd(sd_), mediaId(sd_.mediaId()) {
-  clear();
+GemPath::GemPath(SdDev &sd_): sd(sd_), mediaId(0) {
+  indexes[0] = 0;
 }
 
 GemPath & GemPath::operator=(const GemPath &other) {
-  *(FsFile *)this = *(FsFile *)&other;
+  close();
   int i;
   for(i = 0; i < maxDepth && other.indexes[i]; ++i)
     indexes[i] = other.indexes[i];
@@ -577,6 +577,8 @@ GemPath & GemPath::operator=(const GemPath &other) {
     indexes[i] = 0;
 
   mediaId = other.mediaId;
+
+  *(FsFile*)this = other;
 
   return *this;
 }
@@ -641,8 +643,15 @@ bool GemPath::parent() {
 
 void GemPath::clear() {
   indexes[0] = 0;
+  close();
   mediaId = sd.mediaId();
-  openRoot(&sd.fs);
+  if(sd.mountable)
+    openRoot(&sd.fs);
+}
+
+void GemPath::close() {
+  FsFile resetFile;
+  memcpy((FsFile *)this, &resetFile, sizeof(resetFile));
 }
 
 bool GemPath::openPath(const char *path, GemPattern &last, bool parseLastName) {
@@ -652,11 +661,13 @@ bool GemPath::openPath(const char *path, GemPattern &last, bool parseLastName) {
   } else if(mediaId != sd.mediaId()) {
     // Disk swapped
 
+    mediaId = 0; // Invalidate path
+
     if(!isRoot())
       // The only guaranteed valid path is the root path
       return false;
 
-    mediaId = sd.mediaId();
+    clear();
   }
 
   for(;;) {
@@ -863,21 +874,23 @@ void GemFile::set(GemPath &parent, FsFile &file, oflag_t oflag_, Long basePage_)
 FsFile & GemFile::reopen() {
   auto *drive = GemDrive::getDrive(mediaId);
   if(!drive) {
-    lastFile.close();
+    closeLast();
     return lastFile;
   }
-  FsFile &file = open(drive->sd.fs, oflag);
-  if(!file.seek(position)) {
+  open(drive->sd.fs, oflag);
+  if(!lastFile)
+    return lastFile;
+  if(!lastFile.seek(position))
     close();
-    file.close();
-  }
-  return file;
+  return lastFile;
 }
 
 int32_t GemFile::read(uint8_t *data, int32_t size) {
   FsFile &file = reopen();
-  if(!file)
+  if(!file) {
+    Monitor::verbose("Failed reopen\n");
     return -1;
+  }
 
   int r = file.read(data, size);
   position = file.curPosition();
@@ -887,8 +900,10 @@ int32_t GemFile::read(uint8_t *data, int32_t size) {
 
 int32_t GemFile::write(uint8_t *data, int32_t size) {
   FsFile &file = reopen();
-  if(!file)
+  if(!file) {
+    Monitor::verbose("Failed reopen\n");
     return -1;
+  }
 
   int w = file.write(data, size);
   position = file.curPosition();
@@ -898,8 +913,10 @@ int32_t GemFile::write(uint8_t *data, int32_t size) {
 
 int32_t GemFile::seek(int32_t offset, int whence) {
   FsFile &file = reopen();
-  if(!file)
+  if(!file) {
+    Monitor::verbose("Failed reopen\n");
     return -1;
+  }
 
   switch(whence) {
     case 0:
@@ -951,7 +968,7 @@ void GemDrive::process(uint8_t cmd) {
         memcpy(buf, GEMDRIVE_boot_bin, GEMDRIVE_boot_bin_len);
 
         // Patch ACSI id
-        buf[GEMDRIVE_boot_acsiid] = Devices::gemBootDrive << 5;
+        buf[GEMDRIVE_boot_acsiid] = (Devices::gemBootDrive + Devices::acsiFirstId) << 5;
 
         // Patch checksum
         buf[ACSI_BLOCKSIZE - 2] = 0;
@@ -988,14 +1005,6 @@ void GemDrive::process(uint8_t cmd) {
       dbg("GEMDOS ");
       onGemdos();
       break;
-
-    case 0x0f:
-      // BIOS system call hook
-      // Unused for now
-
-    case 0x10:
-      // XBIOS system call hook
-      // Unused for now
 
     case 0x11:
       // ACSI2STM direct initialization command
@@ -1042,7 +1051,7 @@ void GemDrive::onBoot() {
   memcpy(buf, GEMDRIVE_boot_bin, GEMDRIVE_boot_bin_len);
 
   // Patch ACSI id
-  buf[GEMDRIVE_boot_acsiid] = Devices::gemBootDrive << 5;
+  buf[GEMDRIVE_boot_acsiid] = (Devices::gemBootDrive + Devices::acsiFirstId) << 5;
 
   // Patch parameter offset
   verbose("Query longframe\n");
@@ -1072,6 +1081,14 @@ void GemDrive::onInit() {
   tosPrint("\eE" "ACSI2STM " ACSI2STM_VERSION " by Jean-Matthieu Coulon\r\n",
            "GPLv3 license. Source & doc at\r\n",
            " https://github.com/retro16/acsi2stm\r\n\n");
+
+#if ACSI_DEBUG
+#if ACSI_VERBOSE
+  tosPrint("Verbose output enabled\r\n\n");
+#else
+  tosPrint("Debug output enabled\r\n\n");
+#endif
+#endif
 
   // Cache OSHEADER values
   verbose("Read OSHEADER\n");
@@ -1107,21 +1124,20 @@ void GemDrive::onInit() {
 #if ACSI_GEMDRIVE_FIRST_LETTER
   static const int firstDriveLetter = ACSI_GEMDRIVE_FIRST_LETTER;
 #else
+#if ACSI_GEMDRIVE_LETTER_ID_OFFSET
+  int firstDriveLetter = 'C' + Devices::acsiFirstId;
+#else
   int firstDriveLetter = 'C';
+#endif
   for(d = 0; d < driveCount; ++d)
-    if(Devices::sdSlots[d]->bootable)
+    if(Devices::sdSlots[d].mode == SdDev::ACSI )
       // Avoid conflicts with legacy drivers that don't respect _drvbits.
       firstDriveLetter = 'L';
 #endif
   uint32_t drvbits = _drvbits();
   for(d = 0; d < driveCount; ++d) {
-    if(Devices::sdSlots[d].mode == SdDev::DISABLED)
+    if(Devices::sdSlots[d].mode != SdDev::GEMDRIVE)
       continue;
-
-    if(Devices::sdSlots[d].mode == SdDev::ACSI) {
-      dbg("ACSI mode\n");
-      continue;
-    }
 
     // Reset current path to root
     Devices::drives[d].curPath.clear();
@@ -1154,7 +1170,7 @@ void GemDrive::onInit() {
 
   // Set boot drive on the ST
   for(d = 0; d < driveCount; ++d) {
-    if(Devices::sdSlots[d].mode == SdDev::GEMDRIVE && Devices::sdSlots[d].mediaId()) {
+    if(Devices::sdSlots[d].mountable) {
       dbg("Boot on ");
       setCurDrive(Devices::drives[d].id);
       _bootdev(Devices::drives[d].id);
@@ -1173,6 +1189,12 @@ void GemDrive::onInit() {
   // Get time from the ST, in case it has an internal clock. Set unconditionally
   // if ACSI_RTC is disabled to keep file dates in sync with the ST clock.
   Devices::setDateTime(Tgetdate(), Tgettime());
+
+#if ACSI_DEBUG
+  // With a debug build, just leave a small delay to make onscreen messages
+  // easily readable.
+  delay(400);
+#endif
 
   // Continue boot sequence
   forward();
@@ -1251,6 +1273,7 @@ void GemDrive::onGemdos() {
   DECLARE_CALLBACK(Malloc);
   DECLARE_CALLBACK(Mfree);
   DECLARE_CALLBACK(Mshrink);
+  DECLARE_CALLBACK(Ptermres);
 
 #undef DECLARE_CALLBACK
 
@@ -1337,7 +1360,7 @@ bool GemDrive::onDfree(const Tos::Dfree_p &p) {
   if(!drive)
     return forward(); // Unknown device: forward
 
-  if(!drive->sd.mediaId())
+  if(!drive->sd.mountable)
     return rte(EACCDN);
 
   auto &sd = drive->sd;
@@ -1450,8 +1473,7 @@ bool GemDrive::onDsetpath(const Tos::Dsetpath_p &p) {
     // Current drive is not mounted
     return forward();
 
-  uint32_t mediaId = curDrive->sd.mediaId();
-  if(!mediaId)
+  if(!curDrive->sd.mountable)
     // Current drive has no medium
     return rte(EACCDN);
 
@@ -1463,10 +1485,6 @@ bool GemDrive::onDsetpath(const Tos::Dsetpath_p &p) {
     path += 2;
 
   GemPath newPath = curDrive->curPath;
-  if(newPath.mediaId != mediaId) {
-    newPath.clear();
-    newPath.mediaId = mediaId;
-  }
 
   GemPattern name;
   if(!newPath.openPath(path, name, true))
@@ -1479,6 +1497,7 @@ bool GemDrive::onDsetpath(const Tos::Dsetpath_p &p) {
   const char *unicodeName = toUnicode(newPath);
   dbg("-> ", unicodeName ? unicodeName : "(null)", ' ');
 #endif
+
   curDrive->curPath = newPath;
 
   return rte(E_OK);
@@ -1587,7 +1606,7 @@ bool GemDrive::onFclose(const Tos::Fclose_p &p) {
 bool GemDrive::onFread(const Tos::Fread_p &p) {
   if(!ownFd(p.handle))
     return forward();
- 
+
   GemFile &file = files[p.handle.bytes[1]];
   if(!file)
     return rte(EIHNDL);
@@ -1632,7 +1651,7 @@ bool GemDrive::onFread(const Tos::Fread_p &p) {
 bool GemDrive::onFwrite(const Tos::Fwrite_p &p) {
   if(!ownFd(p.handle))
     return forward();
- 
+
   GemFile &file = files[p.handle.bytes[1]];
   if(!file)
     return rte(EIHNDL);
@@ -1711,7 +1730,7 @@ bool GemDrive::onFdelete(const Tos::Fdelete_p &p) {
 bool GemDrive::onFseek(const Tos::Fseek_p &p) {
   if(!ownFd(p.handle))
     return forward();
- 
+
   GemFile &file = files[p.handle.bytes[1]];
   if(!file)
     return rte(EIHNDL);
@@ -1761,7 +1780,7 @@ bool GemDrive::onDgetpath(const Tos::Dgetpath_p &p) {
   if(!drive)
     return forward(); // Unknown device: forward
 
-  if(!drive->sd.mediaId())
+  if(!drive->sd.mountable)
     return rte(EACCDN);
 
   int len = drive->curPath.toAtari((char *)buf, sizeof(buf));
@@ -1934,8 +1953,10 @@ bool GemDrive::onFdatime(const Tos::Fdatime_p &p) {
     return forward();
 
   FsFile &file = files[p.handle.bytes[1]].reopen();
-  if(!file)
+  if(!file) {
+    Monitor::verbose("Failed reopen\n");
     return rte(EIHNDL);
+  }
 
   if(p.wflag) {
     // Set time
@@ -2025,11 +2046,12 @@ GemDrive * GemDrive::getDrive(const char *path, const char **outPath) {
       letter -= 'a' - 'A';
     if(letter > 'Z')
       return nullptr;
-    *outPath = &path[2];
+    if(outPath)
+      *outPath = &path[2];
     for(int i = 0; i < driveCount; ++i) {
       auto &drive = Devices::drives[i];
       if(drive.letter() == letter) {
-        if(!drive.sd.mediaId())
+        if(outPath && (drive.sd.mode != SdDev::GEMDRIVE || !drive.sd.mediaId()))
           *outPath = nullptr;
         return &drive;
       }
@@ -2043,7 +2065,7 @@ GemDrive * GemDrive::getDrive(const char *path, const char **outPath) {
 
   // Relative path: return current drive
 
-  if(curDrive && curDrive->sd.mediaId())
+  if(curDrive && curDrive->sd.mode == SdDev::GEMDRIVE)
     *outPath = path;
   else
     *outPath = nullptr;
@@ -2079,7 +2101,7 @@ GemDrive * GemDrive::getDrive(uint32_t mediaId, BlockDev::MediaIdMode mode) {
 
   for(int i = 0; i < driveCount; ++i) {
     auto &drive = Devices::drives[i];
-    if(drive.sd.mediaId(mode) == mediaId)
+    if(drive.sd.mediaId(mode) == mediaId && drive.sd.mountable)
       return &drive;
   }
 

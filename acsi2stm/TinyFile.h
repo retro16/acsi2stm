@@ -70,8 +70,12 @@ struct __attribute__((__packed__)) TinyFile {
   static const uint16_t PARENT = 0xfffe;
   static const uint16_t VOLUME = 0xfffd;
 
+  static void closeLast();
+  static void ejected(uint32_t mediaId);
+
   static FsFile lastFile;
   static FsFile lastParent;
+  static uint32_t lastMediaId;
 };
 
 #endif

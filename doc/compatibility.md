@@ -6,12 +6,13 @@ ACSI2STM was successfully tested on the following configurations:
 * Atari 520 STF, TOS 1.04, GemDrive + ICD driver
 * Atari 1040 STE, TOS 1.62, GemDrive + ICD driver
 * Atari 1040 STE, TOS 1.62, GemDrive + PP driver
+* Atari 1040 STE, TOS 1.62, GemDrive + Atari AHDI driver
 * Atari 1040 STE, TOS 2.06, GemDrive + ICD driver
 * Atari 1040 STE, EmuTOS, integrated ACSI driver + GemDrive
 * Atari TT030, ACSI mode (driver not specified)
 
 GemDrive mode is currently tested on Atari ST and STE (no TT or Falcon). It
-might work on the TT or the Falcon. If anybody owns this hardware and is
+probably works on the TT or the Falcon. If anybody owns this hardware and is
 interested, please open a GitHub issue. Testing is safe for the hardware, not
 for data.
 
@@ -56,18 +57,18 @@ SD card, partition and filesystem compatibility
 ===============================================
 
 ACSI2STM is compatible with all SD cards that can work in SPI mode, meaning most
-old SD cards, all SDHC and all SDXC cards. SDUC was not tested and probably
-won't work.
+old SD cards, all SDHC and all SDXC cards. New SDUC was not tested and probably
+won't work, but who needs more than 2TB on a ST ?
 
-In GemDrive mode, the SD card must be formated either in FAT16, FAT32 or ExFAT
+In GemDrive mode, the SD card must be formatted either in FAT16, FAT32 or ExFAT
 format, with a single partition (the standard format for SD cards). The
 partition size is limited to 2TB.
 
-In ACSI mode, the SD card must be formated with Atari tools. TOS restrictions
+In ACSI mode, the SD card must be formatted with Atari tools. TOS restrictions
 apply.
 
-In ACSI image mode, the SD card must be formated with standard SD format (like
-GemDrive) and the image itself must be formated with Atari tools.
+In ACSI image mode, the SD card must be formatted with standard SD format (like
+GemDrive) and the image itself must be formatted with Atari tools.
 
 Floppy disk images in ST format can be used as ACSI images and will appear as a
 small C drive on the ST. This won't make games compatible though since it is not
@@ -179,7 +180,6 @@ with their pros and cons.
 
 Here is the list of the free drivers I'm aware of, in no particular order:
 
-
 ## ICD PRO Festplatentreiber 6.55
 
 Free (not open source) driver that works well and is very stable.
@@ -188,8 +188,9 @@ Free (not open source) driver that works well and is very stable.
 
 * Officially supported by ACSI2STM. Tested before each release.
 * Good set of tools.
-* Supports SD card hot swapping (the new SD card must have the same number of
+* Supports SD card hot swap (the new SD card must have the same number of
   partitions).
+* Works well with GemDrive if set up correctly.
 
 **Cons:**
 
@@ -198,16 +199,17 @@ Free (not open source) driver that works well and is very stable.
   is nearly as fast as memcpy).
 * Not open source.
 
-
 ## P.Putnik's ACSID07 driver (free, 2008 version)
 
 **Pros:**
 
 * Supports MS-DOS partition tables.
 * Compatible with BigDOS.
+* Works with GemDrive.
 
 **Cons:**
 * Supports only ACSI id 0.
+* Does not support SD card hot swap.
 * Not 100% ACSI standard compliant, does funky stuff on boot (re-enables A1
   mid-command).
 
@@ -235,12 +237,31 @@ it anymore.
 **Pros:**
 
 * Authentic, "pure" Atari experience.
+* May be already installed on old hard disks.
 * None, really.
 
 **Cons:**
 
-* Unsupported by ACSI2STM. Meaning it is never tested, your mileage may vary.
 * Incompatible with BigDOS.
+* Unstable, does not always detect drives.
+* Compatible with GemDrive, but only through `GEMDRIVE.TOS`.
 * Supports only Atari partition tables.
+* Must start at ACSI id 0.
+* Does not support SD card hot swap.
 * Not open source.
 
+## EmuTOS
+
+The integrated ACSI driver found in EmuTOS.
+
+**Pros:**
+
+* Faster than Atari TOS.
+* More reliable than Atari TOS.
+* Open source.
+
+**Cons:**
+
+* EmuTOS is not compatible with all ST programs.
+* Compatible with GemDrive, but only through `GEMDRIVE.TOS`.
+* Does not support SD card hot swap.

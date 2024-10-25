@@ -314,12 +314,14 @@ Step 4: Power
    header pins on J4 and put a jumper. You can strap the 2 pins permanently if
    you are sure that you will never have conflicting power sources.
 
+
 Step 5: Floppy selector
 -----------------------
 
  * Solder a toggle switch on S1.
  * Alternatively, solder male header pins on S1 and use 2 jumpers.
  * Another possibility is to strap S1 on the right position for your hardware.
+
 
 Step 6: Atari floppy pins
 -------------------------
@@ -411,4 +413,3 @@ To use this floppy as drive A, a hardware modification of the ST is required.
 
 The PCB supports both straight and twisted ribbon cables by setting S1
 accordingly.
-

@@ -41,8 +41,7 @@ void TinyFile::set(uint32_t mediaId_, FsFile &parent) {
 FsFile & TinyFile::open(FsVolume &volume, oflag_t oflag) const {
   // Easy case
   if(!index) {
-    lastParent.close();
-    lastFile.close();
+    closeLast();
     return lastFile;
   }
 
@@ -96,6 +95,8 @@ FsFile & TinyFile::openNext(FsVolume &volume, oflag_t oflag) {
 }
 
 FsFile & TinyFile::openParent(FsVolume &volume) const {
+  closeLast();
+
   if(!dirCluster) {
     // File is in the root directory
     lastParent.openRoot(&volume);
@@ -108,13 +109,14 @@ FsFile & TinyFile::openParent(FsVolume &volume) const {
       setCluster(lastParent, dirCluster);
   }
 
-  lastFile.close();
+  lastMediaId = mediaId;
 
   return lastParent;
 }
 
 void TinyFile::close() {
   index = 0;
+  closeLast();
 }
 
 uint32_t TinyFile::getCluster(FsFile &file) {
@@ -129,6 +131,7 @@ uint32_t TinyFile::getCluster(FsFile &file) {
     cluster = file.m_fFile->m_firstCluster;
   else
     cluster = file.m_xFile->m_firstCluster;
+  file.sync();
   file.seekSet(position);
   return cluster;
 }
@@ -141,5 +144,21 @@ void TinyFile::setCluster(FsFile &file, uint32_t cluster) {
     file.m_xFile->m_firstCluster = cluster;
 }
 
+void TinyFile::closeLast() {
+  lastFile.close();
+  lastParent.close();
+  lastMediaId = 0;
+}
+
+void TinyFile::ejected(uint32_t mediaId) {
+  // Called on SD card hot swap
+  if(mediaId == lastMediaId) {
+    lastFile = FsFile();
+    lastParent = FsFile();
+    lastMediaId = 0;
+  }
+}
+
 FsFile TinyFile::lastFile;
 FsFile TinyFile::lastParent;
+uint32_t TinyFile::lastMediaId;

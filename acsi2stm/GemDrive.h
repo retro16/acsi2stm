@@ -119,6 +119,9 @@ struct GemPath: public FsFile {
   // Set to root directory
   void clear();
 
+  // Overload close() to avoid flushing caches
+  void close();
+
   // Returns true if the path points at the root directory
   bool isRoot() const {
     return indexes[0] == 0;

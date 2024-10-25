@@ -28,8 +28,9 @@ Due to many issues with counterfeit or defective Blue Pill boards online,
 building new designs/units based on Blue Pill boards is discouraged.
 
 Legacy hardware based on Blue Pill designs are supported to various degrees. All
-units that were built and working between firmware 2.00 and 5.00 are and will
-still be supported 100% by newer firmwares.
+units that were built for firmware version 3.00 and later can be upgraded to the
+latest version. Units built for firmware version 2.xx need the legacy variant.
+
 
 Documentation
 -------------

@@ -84,7 +84,6 @@ Oscilloscope settings:
 * DC coupling.
 * Trigger on CS signal, falling edge, DC coupled, 2.0V level.
 
-
 ### Command byte (ST -> peripheral)
 
          __         __
@@ -323,35 +322,37 @@ different protocol.
 The ST waits for a status byte (which becomes a command byte), then acts
 accordingly.
 
-Command bytes in the 0x80..0x8a range are followed by a 4 bytes long parameter.
+Command bytes in the 0x80..0x9f range are followed by a 4 bytes long parameter.
 These bytes are transfered in fast mode (see *GemDrive variant* above).
+For each command, if bit 0 of the command is 0, set DMA write (ST->ACSI2STM)
+after the command is executed. If bit 0 is 1, set DMA read (ACSI2STM->ST) after
+the command is executed.
 
-* 0x8b: forward hook to TOS / continue boot routine
-* 0x8a [4x bytes]: Set D0 to the *parameter* then return from exception
+* 0xa6: forward hook to TOS / continue boot routine
+* 0xa4 [4x bytes]: Trap #1
+* 0xa2 [4x bytes]: Trap #13
+* 0xa0 [4x bytes]: Trap #14
+* 0x9e [4x bytes]: Push SP to stack. Set DMA address on stack.
+* 0x9c [4x bytes]: Push *parameter* byte on the stack
+* 0x9a [4x bytes]: Push *parameter* word on the stack
+* 0x98 [4x bytes]: Push *parameter* long on the stack
+* 0x96 [4x bytes]: Add *parameter* to SP. Set DMA address on stack.
+* 0x94 [4x bytes]: Read byte at *parameter* and push it on stack.
+  Set DMA address on stack.
+* 0x92 [4x bytes]: Read word at *parameter* and push it on stack.
+  Set DMA address on stack.
+* 0x90 [4x bytes]: Read long at *parameter* and push it on stack.
+  Set DMA address on stack.
+* 0x8e [4x bytes]: Read byte from stack and write it to *parameter*
+* 0x8c [4x bytes]: Read word from stack and write it to *parameter*
+* 0x8a [4x bytes]: Read long from stack and write it to *parameter*
 * 0x88 [4x bytes]: Call pexec(4, 0, *parameter*, 0) then return from exception
 * 0x86 [4x bytes]: Call pexec(6, 0, *parameter*, 0) then return from exception
-* 0x85 [4x bytes]: execute *parameter* as machine code on the ST, set DMA read
-  on the stack then wait for another command
-* 0x84 [4x bytes]: execute *parameter* as machine code on the ST, set DMA write
-  on the stack then wait for another command
-* 0x83 [4x bytes]: set DMA read at address pointed by the *parameter* then wait
-  for another command
-* 0x82 [4x bytes]: set DMA write at address pointed by the *parameter* then wait
-  for another command
-* 0x81 [4x bytes]: read byte count from stack (word), and copy [byte count + 1]
-  bytes from stack to the address pointed by *parameter*. Then it sets DMA read
-  on stack data after the byte count and waits for another command. Stack
-  pointer is unchanged.
-* 0x80 [4x bytes]: read byte count from stack (word), and copy [byte count + 1]
-  bytes from stack to the address pointed by *parameter*. Then it sets DMA write
-  on stack data after the byte count and waits for another command. Stack
-  pointer is unchanged.
+* 0x84 [4x bytes]: Set DMA at address pointed by the *parameter*.
+* 0x83 [4x bytes]: read byte count from stack (word), and copy [byte count + 1]
+  bytes from stack to the address pointed by *parameter*. SP is unchanged.
+* 0x82 [4x bytes]: read byte count from stack (word), and copy [byte count + 1]
+  bytes to stack from the address pointed by *parameter*. SP is unchanged.
+* 0x80 [4x bytes]: Set D0 to *parameter* then return from exception.
 * Any other byte will set D0 sign extended to a long (e.g. 0xdc will set D0 to
   0xffffffdc) and return from exception. Used to return TOS error codes.
-
-For commands 0x85 and 0x84 (running machine code), microprograms are defined
-in the file [asm/PROGRAMS/boot.s](../asm/PROGRAMS/boot.s). Obviously, all
-microprograms must be exactly 4 bytes long. To execute longer programs you would
-have to upload them in the ST ram, then call them.
-Some microprograms are patched dynamically by the STM32 before being uploaded.
-

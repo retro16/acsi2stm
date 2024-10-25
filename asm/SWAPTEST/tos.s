@@ -14,9 +14,9 @@
 ; You should have received a copy of the GNU General Public License
 ; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-; Test suite for ACSI2STM >= 4.0
-; Tests ACSI drives. Targets ACSI2STM, but should be compatible with other ACSI
-; drives if they implement SCSI.
+; Tests hot swapping media.
+; WARNING: Atari TOS has so many bugs that it fails miserably and partially
+;          destroys data in the process. This is for GemDrive only.
 
 	incdir	..\inc\
 

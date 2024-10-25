@@ -457,33 +457,33 @@ struct Tos: public SysHook {
 
   template<typename Params>
   static Long gemdos(ToWord opCode, const Params &params, int extraData = 0) {
-    return sysCall(1, opCode, (uint8_t *)&params, sizeof(params), extraData);
+    return sysCall(trap1, opCode, (uint8_t *)&params, sizeof(params), extraData);
   }
 
   static Long gemdos(ToWord opCode) {
-    return sysCall(1, opCode, 0, 0, 0);
+    return sysCall(trap1, opCode, 0, 0, 0);
   }
 
   template<typename Params>
   static Long bios(ToWord opCode, const Params &params, int extraData = 0) {
-    return sysCall(13, opCode, (uint8_t *)&params, sizeof(params), extraData);
+    return sysCall(trap13, opCode, (uint8_t *)&params, sizeof(params), extraData);
   }
 
   static Long bios(ToWord opCode) {
-    return sysCall(13, opCode, 0, 0, 0);
+    return sysCall(trap13, opCode, 0, 0, 0);
   }
 
   template<typename Params>
   static Long xbios(ToWord opCode, const Params &params, int extraData = 0) {
-    return sysCall(14, opCode, (uint8_t *)&params, sizeof(params), extraData);
+    return sysCall(trap14, opCode, (uint8_t *)&params, sizeof(params), extraData);
   }
 
   static Long xbios(ToWord opCode) {
-    return sysCall(14, opCode, 0, 0, 0);
+    return sysCall(trap14, opCode, 0, 0, 0);
   }
 
   // Perform a system call with parameters
-  static Long sysCall(int trap, Word opCode, uint8_t *paramBytes, int paramSize, int extraData = 0);
+  static Long sysCall(void (*trap)(), Word opCode, uint8_t *paramBytes, int paramSize, int extraData = 0);
 
   static void tosPrint(const char c);
   static void tosPrint(const char *text);

@@ -256,7 +256,7 @@ void DmaPort::waitBusReady() {
   setupDrqTimer();
   setupCsTimer();
 
-  Acsi::dbg("Waiting for the ACSI bus ...\n");
+  Acsi::dbg("\nWaiting ACSI ...\n");
 
   // The bus must output high signals for 100ms to be considered up.
   // Pins are discharged using the pulldown to make sure the high is strong.
@@ -890,7 +890,7 @@ void DmaPort::quickReset() {
   delayMicroseconds(50);
 
   // Display a nice message
-  Acsi::dbg("\n\n--- Quick reset ---\n\n");
+  Acsi::dbg("\n\n--- Quick reset ---");
 
   // Jump back to the main loop
   longjmp(resetJump, 1);

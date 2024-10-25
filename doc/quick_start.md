@@ -100,7 +100,7 @@ The required model usually matches the following keywords on most websites:
 Pinout of the adapter:
 
 * 5V
-* VCC (linked to 3.3V or 5V by a jumper)
+* VCC (connected to 3.3V or 5V by a jumper)
 * 3.3V
 * TXD
 * RXD
@@ -113,6 +113,8 @@ soldering a female header. Just insert the adapter's pins inside matching PCB
 holes and hold it slightly slanted with a bit of force to keep good contacts
 during the flashing operation. PCB holes are metal plated so it should provide
 good enough contact.
+
+![Flashing without header](images/compact_pcb_flash.jpg)
 
 **Note:** when using this kind of adapter, you don't need to enable the FLASH
 jumper. The PCB is wired to enable flash mode when it senses power on the 5V
@@ -161,34 +163,6 @@ the virtual serial port connected to the STM32. On Windows and MacOS, it may use
 slightly different syntax for the port.
 
 
-Printing the enclosure
-----------------------
-
-The PCB has a design that does not expose too much electronics when mounted
-directly on an ST. However, you may want to 3D print an enclosure for neater
-looks and safer operation.
-
-A 3D model is provided in `pcb/Compact`. It's designed under OpenSCAD. A STL
-file is provided for convenience.
-
-The *scad* file can be customized with some parameters:
-
-* $logo: If true, adds "ACSI2STM" text on the back side.
-* $db19: If true, leaves space for the DB19 connector.
-* $idc20: If true, leaves a hole for the IDC20 SATAN port on the back side.
-* $idc20p: If true, leaves a hole for an IDC20 piggyback (stackable) port on the
-  front side. To enable this, $idc20 should be enabled and $db19 should be
-  disabled.
-
-The enclosure is optimized for 0.2mm layers and a 0.4mm nozzle. It also works
-with a 0.8mm nozzle and 0.15mm layers.
-
-Print without supports as it requires bridges for nut holders.
-
-Assembling the 2 parts and the PCB requires 6 M2 self-tapping screws (wood
-screws) between 8mm and 10m long.
-
-
 Installing the PCB
 ------------------
 
@@ -204,16 +178,15 @@ needed for keeping the clock running when the ST is off.
 * Put some screws to hold the unit in place.
   If you need screws, you can unscrew the hex screws of the Modem or Printer
   socket.
-* Power the unit via the USB-C port.
 * Optionally, you can plug other devices such as an UltraSatan on the IDC20
   socket.
 
-### Installing using the UltraSatan port
+### Installing using the UltraSatan (IDC20) port
 
 If you mounted an IDC20 socket, you can connect the ACSI2STM unit through it
 instead of the DB19 port. This is useful if you have other IDC20 devices.
 
-Power the unit via the USB-C port.
+You can connect things on both the DB19 and IDC20 ports at the same time.
 
 
 Using the unit
@@ -222,7 +195,7 @@ Using the unit
 Power the unit via its USB-C port. It has no specific power requirements, so any
 5V USB-C adapter (or PC) should be able to power the unit.
 
-Insert any microSD card in its slots. The SD card can be formated as FAT32
+Insert any microSD card in its slots. The SD card can be formatted as FAT32
 (SDHC) or ExFAT (SDXC), which are the standard formats for the SD card.
 
 Turn the ST on, the ACSI2STM unit should display a boot message and the C drive
@@ -230,6 +203,8 @@ should be readily available on the desktop.
 
 You need to manually install extra drive icons on the desktop to access the D or
 E drive.
+
+There are many more device combinations possible
 
 
 Setting date and time
@@ -250,7 +225,7 @@ CR2032 battery so it will keep time even when powered off.
 Updating a 4.0 (or later) unit from the Atari ST
 ------------------------------------------------
 
-ACSI2STM supports firmware upload via the ACSI port since version 4.0.
+ACSI2STM supports updating the firmware from the ST itself since version 4.0.
 It uses the Seagate SCSI standard command to do that.
 
 Steps to update your firmware:

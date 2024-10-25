@@ -15,16 +15,13 @@
 ; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ; File descriptors
-descr	ds.w	filecnt*testcnt
 
-; Statistics
-success	ds.w	1                       ; Successful tests
-failed	ds.w	1                       ; Failed tests
+fdread	ds.w	1                       ; Read 1 byte
+fdseek1	ds.w	1                       ; Seek to offset 1
+fdseek2	ds.w	1                       ; Seek to offset 2
+fdwri	ds.w	1                       ; Write 1 byte after swap
+fdwpend	ds.w	1                       ; Write 1 byte before write
 
-; Buffer
-buffer	ds.b	65536+4                 ; Big buffer for file operations
-
-; Request sense buffer
-sensbuf	ds.b	256                     ; Used by acsicmd.full
+buffer	ds.b	16                      ; Buffer for file operations
 
 ; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm68k tw=80

@@ -119,7 +119,14 @@ should be immune to the issue.
 For ACSI, if you use a modern driver, contact the developer. If you use an
 old legacy driver, there is nothing you can do. Use GemDrive instead.
 
-**Note:** ACSI2STM firmwares version 3.x and lower had random issues. Many
+Despite all these precautions, it seems that some Atari really have defective
+chips. This is very difficult to diagnose. If your ACSI2STM unit is working on
+one atari and not another, you can suspect the Atari. All ST and STE with TOS
+versions between 1.04 and 2.06 work exactly the same way. ACSI2STM units seem to
+work equally well on buffered and unbuffered DMA ports if the computer is
+healthy.
+
+**Warning:** ACSI2STM firmwares version 3.x and lower had random issues. Many
 people were confused by this and thought that they had a bad DMA chip because of
 this. 4.00 fixed the issue so it might be worth trying an up to date version on
 older hardware that didn't work previously.

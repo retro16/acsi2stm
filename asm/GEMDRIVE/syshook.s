@@ -70,14 +70,6 @@ syshook	macro
 
 	endm
 
-	; XBIOS hook
-	syshook	$10,$b8
-	bra.b	syshook.start
-
-	; BIOS hook
-	syshook	$0f,$b4
-	bra.b	syshook.start
-
 	; GEMDOS hook
 	syshook	$0e,$84
 	; Fall through syshook.start
@@ -97,6 +89,11 @@ syshook.start:
 
 	savereg	                        ; Save registers
 	bsr.b	syshook.setprm          ; Set a2 (DMA address) at the parameters
+
+	cmp.w	#$000e,d0               ; Don't hook Super because it breaks
+	bne.b	syshook.sendcmd         ; some programs such as ICDFMT.PRG
+	cmp.w	#$0020,(a2)             ;
+	beq.b	syshook.forward         ;
 
 syshook.sendcmd:
 	or.b	acsiid(pc),d0           ; Set ACSI identifier
@@ -118,8 +115,8 @@ syshook.reply:
 	move.w	#$008a,(a1)             ; Prepare to read command/status
 	move.w	(a0),d0                 ; Read command/status byte
 
-	cmp.b	#$8b,d0                 ; Check if command byte
-	beq.b	syshook.forward         ; Check command $8b (forward to TOS)
+	cmp.b	#$a6,d0                 ; Check if command byte
+	beq.b	syshook.forward         ; Check command $a6 (forward to TOS)
 	blt.b	syshook.execcmd         ; Other commands with parameter
 
 .qret	ext.w	d0                      ; Quick return sign-extended d0
@@ -134,7 +131,7 @@ syshook.return:
 	rte	                        ; Return
 
 syshook.forward:
-	; Command $8b: forward the call to the next handler
+	; Command $a4: forward the call to the next handler
 	sf	flock.w                 ; Unlock floppy controller
 	resreg	                        ; Restore registers
 	rts	                        ; Jump to forwarding address
@@ -153,15 +150,28 @@ syshook.execcmd:
 
 	; Route the call using a jump table
 	move.b	d0,d2                   ; Jump table for command byte
-	and.w	#$000e,d2               ; Filter out comand pair
+	and.w	#$007e,d2               ; Filter out comand pair
 	move.w	.jmptbl(pc,d2.w),d2     ;
 .jmp	jmp	.jmptbl(pc,d2.w)        ;
-.jmptbl	dc.w	syshook.byteop-.jmptbl  ; $80
-	dc.w	syshook.dmaset-.jmptbl  ; $82
-	dc.w	syshook.exec-.jmptbl    ; $84
+.jmptbl	dc.w	syshook.rte-.jmptbl     ; $80
+	dc.w	syshook.bytecp-.jmptbl  ; $82
+	dc.w	syshook.dmaset-.jmptbl  ; $84
 	dc.w	syshook.pexec6-.jmptbl  ; $86
 	dc.w	syshook.pexec4-.jmptbl  ; $88
-	dc.w	syshook.rte-.jmptbl     ; $8a
+	dc.w	syshook.wrlong-.jmptbl  ; $8a
+	dc.w	syshook.wrword-.jmptbl  ; $8c
+	dc.w	syshook.wrbyte-.jmptbl  ; $8e
+	dc.w	syshook.rdlong-.jmptbl  ; $90
+	dc.w	syshook.rdword-.jmptbl  ; $92
+	dc.w	syshook.rdbyte-.jmptbl  ; $94
+	dc.w	syshook.addsp-.jmptbl   ; $96
+	dc.w	syshook.pshlong-.jmptbl ; $98
+	dc.w	syshook.pshword-.jmptbl ; $9a
+	dc.w	syshook.pshbyte-.jmptbl ; $9c
+	dc.w	syshook.pushsp-.jmptbl  ; $9e
+	dc.w	syshook.trap14-.jmptbl  ; $a0
+	dc.w	syshook.trap13-.jmptbl  ; $a2
+	dc.w	syshook.trap01-.jmptbl  ; $a4
 
 syshook.rte
 	; Command $8c: Return long from exception
@@ -194,22 +204,75 @@ syshook.pexec:
 	resreg	                        ; Restore registers
 	rts	                        ; Forward to GEMDOS
 
-syshook.exec:
-	; Commands $85/$84: Machine code execute
-	lea	.code(pc),a0            ; Modify code to execute
-	move.l	d1,(a0)                 ;
-	move.w	d0,syshook.oldd0-.code(a0); Store d0 for later without altering
-		                        ; the stack
+syshook.wrlong:
+	move.l	d1,a0
+	move.l	(sp)+,(a0)
+	bra.b	syshook.dmanset
 
-.code	nop	                        ; This code will be self-modified
-	nop	                        ;
+syshook.wrword:
+	move.l	d1,a0
+	move.w	(sp)+,(a0)
+	bra.b	syshook.dmanset
 
-	move.w	syshook.oldd0(pc),d0    ; Restore d0
-	move.l	sp,d1                   ; Set stack pointer as DMA address
+syshook.wrbyte:
+	move.l	d1,a0
+	move.b	(sp)+,(a0)
+	bra.b	syshook.dmanset
 
-	; Commands $83/$82: DMA setup
+syshook.rdlong:
+	move.l	d1,a0
+	move.l	(a0),-(sp)
+	bra.b	syshook.dmasp
+
+syshook.rdword:
+	move.l	d1,a0
+	move.w	(a0),-(sp)
+	bra.b	syshook.dmasp
+
+syshook.rdbyte:
+	move.l	d1,a0
+	move.b	(a0),-(sp)
+	bra.b	syshook.dmasp
+
+syshook.addsp:
+	adda.l	d1,sp
+	bra.b	syshook.dmasp
+
+syshook.pshlong:
+	move.l	d1,-(sp)
+	bra.b	syshook.dmanset
+
+syshook.pshword:
+	move.w	d1,-(sp)
+	bra.b	syshook.dmanset
+
+syshook.pshbyte:
+	move.b	d1,-(sp)
+	bra.b	syshook.dmanset
+
+syshook.pushsp:
+	move.l	sp,-(sp)
+	bra.b	syshook.dmasp
+
+syshook.trap14:
+	trap	#14
+	bra.b	syshook.trapend
+
+syshook.trap13:
+	trap	#13
+	bra.b	syshook.trapend
+
+syshook.trap01:
+	trap	#01
+syshook.trapend:
+	move.l	d0,-(sp)
+syshook.dmasp:
+	move.l	sp,d1
+
+	; DMA setup
 syshook.dmaset:
 	move.l	d1,a2                   ; Set parameter as DMA address
+syshook.dmanset:
 	btst	#0,d0                   ; Check if DMA is read or write
 	beq.b	syshook.wcmd            ; DMA write
 
@@ -226,7 +289,7 @@ syshook.rcmd:
 
 	bra.w	syshook.reply
 
-syshook.byteop:
+syshook.bytecp:
 	; Commands $81/$80: Byte copy operations
 	move.l	sp,a1                   ; Use a1 to leave sp untouched
 	move.w	(a1)+,d2                ; Pop byte count and point a1 at data

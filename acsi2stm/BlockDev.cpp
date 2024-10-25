@@ -18,16 +18,17 @@
 #include <Arduino.h>
 #include "BlockDev.h"
 #include "SdFat.h"
+#if ! ACSI_STRICT
+#include "TinyFile.h"
+#endif
 
-// Uses conservative speeds to avoid issues with homemade units that are not
-// always optimally wired.
 static const uint32_t sdRates[] = {
   SD_SCK_MHZ(ACSI_SD_MAX_SPEED),
-#if ACSI_SD_MAX_SPEED > 36
-  SD_SCK_MHZ(36),
+#if ACSI_SD_MAX_SPEED > 50
+  SD_SCK_MHZ(50),
 #endif
-#if ACSI_SD_MAX_SPEED > 12
-  SD_SCK_MHZ(12),
+#if ACSI_SD_MAX_SPEED > 25
+  SD_SCK_MHZ(25),
 #endif
   SD_SCK_MHZ(1) // Fallback to a horribly slow speed (should never happen)
 };
@@ -38,12 +39,18 @@ bool BlockDev::updateBootable() {
   uint8_t bootSector[ACSI_BLOCKSIZE];
 
   // Read the boot sector
-  if(!readStart(0))
+  if(!readStart(0)) {
+    verbose("boot ", "start ", "read error ");
     return false;
-  if(!readData(bootSector, 1))
+  }
+  if(!readData(bootSector, 1)) {
+    verbose("boot ", "data ", "read error ");
     return false;
-  if(!readStop())
+  }
+  if(!readStop()) {
+    verbose("boot ", "stop ", "read error ");
     return false;
+  }
 
   bootable = (computeChecksum(bootSector) == 0x1234);
 
@@ -167,6 +174,7 @@ uint32_t ImageDev::mediaId(BlockDev::MediaIdMode mode) {
   if(!id || id != sdMediaId) {
     // No medium or SD card swapped: abort ASAP
     close();
+    verbose("image media id: no medium ");
     return 0;
   }
 
@@ -181,18 +189,13 @@ uint32_t ImageDev::mediaId(BlockDev::MediaIdMode mode) {
 }
 
 void SdDev::init() {
-  reset();
-
   // Set wp pin as input pullup to read write lock later
   pinMode(wpPin, INPUT_PULLUP);
 
-  dbg("SD", slot, ' ');
+  dbg("\n        ", "SD", slot, ' ');
 
   unsigned int rate;
   for(rate = 0; rate < sizeof(sdRates)/sizeof(sdRates[0]); ++rate) {
-    lastMediaCheckTime = millis();
-    lastMediaId = 0;
-
     for(int i = 0; i < 2; ++i)
       if(card.begin(SdSpiConfig(csPin, SHARED_SPI, sdRates[rate], &SPI)))
         goto beginOk;
@@ -200,6 +203,7 @@ void SdDev::init() {
         delay(10);
 
     verbose("error ");
+    reset();
     continue;
 
 beginOk:
@@ -234,22 +238,32 @@ beginOk:
     writable = !digitalRead(wpPin);
 #endif
 
-    mediaId(FORCE);
+    uint32_t id = mediaId(FORCE);
 
     // Open the file system
+    image.close();
     if(fs.begin(&card))
+{
       image.open(ACSI_IMAGE_FILE);
+dbgHex("TMPJM4\n");
+}
 
     // Check if bootable
-    if(!(*this)->updateBootable()) {
-      verbose("read error ");
+    if(!(*this)->updateBootable())
       continue;
-    }
+
+
+#if ! ACSI_STRICT
+    if(fs.fatType() && !image && !bootable)
+      mountable = true;
+#endif
 
     dbg(blocks, " blocks ", writable ? "rw ":"ro ");
+    dbgHex("id=", id, " ");
+
     if(image)
       dbg("image ");
-    else if(fs.fatType())
+    if(mountable)
       dbg("mountable ");
     if(bootable)
       dbg("bootable ");
@@ -280,33 +294,14 @@ void SdDev::onReset() {
   // Try to initialize the SD card
   mode = ACSI; // Enable the slot
   init();
-  dbg('\n');
 
-  // Sense mode
-  if(!Devices::strict) {
-    if(image)
-      mode = ACSI; // Images are ACSI
-    else if(bootable)
-      mode = ACSI; // Anything bootable by the Atari is ACSI
-    else if(fs.fatType())
-      mode = GEMDRIVE; // Non-bootable, mountable filesystem: use GemDrive
-    else if(!lastMediaId)
-      mode = GEMDRIVE; // No SD card: use GemDrive
-    else
-      mode = ACSI; // Unrecognized SD format: pass through as ACSI
-  } else {
-    // In strict mode, attach to the bus only if a SD card is detected at boot
-    if(lastMediaId)
-      mode = ACSI;
-    else
-      mode = DISABLED;
-  }
+  mode = computeMode();
 
   // Attach to the ACSI bus if not disabled
 #if ! ACSI_STRICT
   if(mode == GEMDRIVE)
     attachGemDrive(slot);
-  else 
+  else
 #endif
   if(mode == ACSI)
     attachAcsi(slot);
@@ -443,25 +438,38 @@ bool SdDev::isWritable() {
 }
 
 uint32_t SdDev::mediaId(BlockDev::MediaIdMode mediaIdMode) {
-  if(mode == DISABLED)
-    return 0;
+  verbose("media id ");
 
-  if(mediaIdMode == BlockDev::CACHED && !lastMediaId)
-    // Don't refresh cache if known to have an empty slot
+  if(mode == DISABLED) {
+    verbose("slot disabled ");
     return 0;
+  }
+
+  if(mediaIdMode == BlockDev::CACHED && !lastMediaId) {
+    // Don't refresh cache if known to have an empty slot
+    verbose("cached ", "empty slot ");
+    return 0;
+  }
 
   uint32_t now = millis();
   if(mediaIdMode == BlockDev::NORMAL) {
-    if(now - lastMediaCheckTime <= mediaCheckPeriod)
+    if(now - lastMediaCheckTime <= mediaCheckPeriod) {
+      verbose("cached ");
       return lastMediaId;
+    }
   }
 
   lastMediaCheckTime = now;
-  lastMediaId = 0;
 
   cid_t cid;
   if(!card.readCID(&cid)) {
     // SD has an issue
+    verbose("cid read fail ");
+
+#if ! ACSI_STRICT
+    TinyFile::ejected(lastMediaId);
+#endif
+    lastMediaId = 0;
 
     if(mediaIdMode == FORCE)
       // The caller wants the truth: don't lie
@@ -470,22 +478,42 @@ uint32_t SdDev::mediaId(BlockDev::MediaIdMode mediaIdMode) {
     // Try to recover
     init();
 
+#if ! ACSI_STRICT
+    if(mediaIdMode != FORCE && mode != computeMode()) {
+      // Switched mode: just disable the slot temporarily
+      verbose("switched mode ");
+      lastMediaId = 0;
+      return 0;
+    }
+#endif
+
     // init() called us again, just return the updated value
     return lastMediaId;
   }
+
+#if ! ACSI_STRICT
+  if(mediaIdMode != FORCE && mode != computeMode()) {
+    // Switched mode: just disable the slot temporarily
+    verbose("switched mode ");
+    lastMediaId = 0;
+    return 0;
+  }
+#endif
 
   uint32_t id = 0;
   for(unsigned int i = 0; i < sizeof(cid) / 4; ++i)
     id ^= ((const uint32_t*)&cid)[i];
 
   // Make sure the same card transfered to another slot won't give the same value
-  id += slot;
+  id += slot * 2;
 
   // Make sure that the id is never 0
   if(!id)
     ++id;
 
   lastMediaId = id;
+
+  verboseHex(id, " ");
 
   return id;
 }
@@ -496,6 +524,27 @@ void SdDev::disable() {
   mode = DISABLED;
 }
 
+SdDev::Mode SdDev::computeMode() {
+  if(mode == DISABLED)
+    // Once disabled, it stays disabled
+    return DISABLED;
+
+  if(Devices::strict)
+    return ACSI;
+
+  // Sense mode based on the current state
+  if(image)
+    return ACSI; // Images are ACSI
+  else if(bootable)
+    return ACSI; // Anything bootable by the Atari is ACSI
+  else if(mountable)
+    return GEMDRIVE; // Non-bootable, mountable filesystem: use GemDrive
+  else if(!lastMediaId)
+    return GEMDRIVE; // No SD card: use GemDrive
+  else
+    return ACSI; // Unrecognized SD format: pass through as ACSI
+}
+
 void SdDev::reset() {
   // Reset internal state
   image.close();
@@ -504,5 +553,10 @@ void SdDev::reset() {
   blocks = 0;
   writable = false;
   bootable = false;
+#if ! ACSI_STRICT
+  mountable = false;
+#endif
+  lastMediaCheckTime = millis();
+  lastMediaId = 0;
 }
 

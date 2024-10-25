@@ -24,7 +24,7 @@ struct DmaPort {
   friend struct SysHook;
   friend void flashFirmware(uint32_t);
 
-  static const unsigned int PORT_TIMEOUT = 200; // Timeout in half ms
+  static const unsigned int PORT_TIMEOUT = 1000; // Timeout in half ms
   static const int A1 = PB6; // Must be on port B
   static const int CS = PB7; // Must be on port B
 

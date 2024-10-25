@@ -23,7 +23,7 @@
 
 	text
 
-start	bra	main                    ; Main program is in the freed zone
+start	bra	main                    ; Initialization is in the freed zone
 
 syshook
 	include	syshook.s
@@ -34,6 +34,10 @@ syshook
 	dc.b	0
 acsiid	dc.b	$ff                     ; Patched by device detection
 prmoff	dc.w	$ff                     ; Detected during initialization
+
+termres:
+;	gemdos	Mshrink,12              ;
+	gemdos	Ptermres                ;
 syshook.end
 
 	; Freed zone: everything after this is freed when the driver is made
@@ -68,7 +72,9 @@ main
 	moveq	#0,d1                   ; Disable DMA
 	bsr.w	syshook.setdmaaddr      ;
 	move.w	#$0088,(a1)             ; Switch to command.
-	move.w	#$0011,(a0)             ; Send command $11 to the STM32
+	move.w	#$0011,d0               ; Send command $11 with drive ID to STM
+	add.b	d7,d0                   ;
+	move.w	d0,(a0)                 ;
 
 	moveq	#20,d1                  ; 100ms timeout
 
@@ -99,7 +105,7 @@ main
 setvars	lea	acsiid(pc),a0           ; Save ACSI id to RAM
 	move.b	d7,(a0)+                ;
 
-	move.w	#6,(a0)                 ; Compute parameter offset
+	move.w	#6,(a0)                 ; Compute parameter offset (prmoff)
 	tst.w	_longframe.w            ; Test _longframe
 	beq.b	.shrtfr                 ;
 	move.w	#8,(a0)                 ;
@@ -121,25 +127,15 @@ setvars	lea	acsiid(pc),a0           ; Save ACSI id to RAM
 
 	; Shrink memory usage, terminate and stay resident
 
-termres	lea	start-72(pc),a0         ; Copy termres code into cmdline space
-	lea	termres.start(pc),a1    ;
-	move.w	#termres.end-termres.start-1,d0
-.loop	move.w	(a1)+,(a0)+             ;
-	dbra	d0,.loop                ;
+	clr.w	-(sp)                   ; TSR return code
+	move.l	#$100+(syshook.end-start),-(sp) ; TSR memory size
 
-	bra	start-72                ; Jump to copied code
+;	move.l	#$100+(syshook.end-start),-(sp) ; Shrink memory size
+;	lea	start-$100(pc),a0       ; Base pointer
+;	move.l	a0,-(sp)                ;
+;	clr.w	-(sp)                   ;
 
-termres.start
-	move.l	#$100+(syshook.end-start),-(sp) ; Shrink memory
-	move.l	8(sp),-(sp)             ;
-	clr.w	-(sp)                   ;
-	gemdos	Mshrink,12              ;
-
-	clr.w	-(sp)                   ; Terminate and stay resident
-	gemdos	Ptermres                ;
-
-	even
-termres.end
+	bra	termres                 ; Jump to Mshrink+Ptermes code
 
 install	; Install a hook
 	; Input:

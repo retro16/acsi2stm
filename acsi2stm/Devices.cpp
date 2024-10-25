@@ -83,20 +83,20 @@ void Devices::sense() {
   strict = digitalRead(PB2);
 #endif
 
-#if ACSI_ID_OFFSET_PINS
+#if ACSI_ID_OFFSET_PINS && ! ACSI_FIRST_ID
   // Check if PA13 is set to VCC
   pinMode(PA13, INPUT_PULLDOWN);
   pinMode(PA14, INPUT);
   delay(1);
   if(digitalRead(PA13)) {
-    acsiFirstId = 1;
+    acsiFirstId = 3;
     goto end;
   }
   pinMode(PA13, INPUT);
   pinMode(PA14, INPUT_PULLUP);
   delay(1);
   if(!digitalRead(PA14)) {
-    acsiFirstId = 3;
+    acsiFirstId = 1;
     goto end;
   }
   pinMode(PA13, OUTPUT);
@@ -137,7 +137,7 @@ void Devices::attachGemDrive(int slot) {
 
 void Devices::attachAcsi(int slot) {
   acsiDeviceMask |= (1 << slot);
-} 
+}
 
 void Devices::detach(int slot) {
   acsiDeviceMask &= ~(1 << slot);
@@ -150,7 +150,7 @@ void Devices::detach(int slot) {
 void Devices::getDateTime(uint16_t *date, uint16_t *time) {
   tm_t now;
   rtc.getTime(now);
-  Monitor::dbg(now.year + 1970, '-', now.month, '-', now.day, ' ', now.hour, ':', now.minute, ':', now.second, ' ');
+  Monitor::verbose(now.year + 1970, '-', now.month, '-', now.day, ' ', now.hour, ':', now.minute, ':', now.second, ' ');
   *date = FS_DATE(now.year + 1970, now.month, now.day);
   *time = FS_TIME(now.hour, now.minute, now.second);
 }
@@ -164,8 +164,9 @@ void Devices::setDateTime(uint16_t date, uint16_t time) {
   newDateTime.minute = FS_MINUTE(time);
   newDateTime.second = FS_SECOND(time);
 
-  Monitor::dbg(newDateTime.year + 1970, '-', newDateTime.month, '-', newDateTime.day, ' ', newDateTime.hour, ':', newDateTime.minute, ':', newDateTime.second, ' ');
+  Monitor::verbose("Setting date to ");
   rtc.setTime(newDateTime);
+  Monitor::verbose(newDateTime.year + 1970, '-', newDateTime.month, '-', newDateTime.day, ' ', newDateTime.hour, ':', newDateTime.minute, ':', newDateTime.second, ' ');
 }
 
 bool Devices::isDateTimeSet() {

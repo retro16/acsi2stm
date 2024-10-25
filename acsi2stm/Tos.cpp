@@ -156,9 +156,9 @@ Long Tos::Setscreen(ToLong laddr, ToLong paddr, ToWord rez) {
   return xbios(Setscreen_op, p);
 }
 
-Long Tos::sysCall(int trapNb, Word opCode, uint8_t *paramBytes, int paramSize, int extraData)
+Long Tos::sysCall(void (*trap)(), Word opCode, uint8_t *paramBytes, int paramSize, int extraData)
 {
-  verboseHex("Call #", trapNb, ':', opCode.bytes[0], opCode.bytes[1], " (", paramSize, ")\n");
+  verboseHex(opCode.bytes[0], opCode.bytes[1], " (", paramSize, ")\n");
   // Push opcode and param bytes
   int sz = paramSize + 2;
   if(sz & 0xf)
@@ -170,7 +170,9 @@ Long Tos::sysCall(int trapNb, Word opCode, uint8_t *paramBytes, int paramSize, i
     uint8_t padding[0xf];
     DmaPort::sendDma(padding, 16 - ((paramSize + 2) & 0xf));
   }
-  trap(trapNb);
+
+  trap();
+
   Long retVal;
   DmaPort::readDma((uint8_t *)&retVal, 4);
   shiftStack(sz + extraData + 4);
@@ -186,7 +188,7 @@ void Tos::tosPrint(const char *text) {
   if(!text || !*text)
     return;
   int len = strlen(text) + 1;
-  len = (len + 0xf) & 0xff0;
+  len = (len + 0xf) & 0xfff0;
   Long textBuf = stackAlloc(len);
   DmaPort::sendDma((const uint8_t *)text, len);
   Cconws(textBuf, len);

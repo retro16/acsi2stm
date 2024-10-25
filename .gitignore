@@ -1,5 +1,6 @@
 build.*
 acsi2stm-*
+acsi2stm.log
 *.tos
 *.prg
 *.TOS
@@ -8,7 +9,6 @@ DESKTOP.INF
 *.exe
 *.bin
 *.BIN
-.DS_Store
 pcb/MegaSTE Internal/fp-info-cache
 *.gbl
 *.gbs

@@ -49,17 +49,21 @@ setup to reload GemDrive from within EmuTOS, described in
 Changes since 4.12
 ------------------
 
+* Swapped ID_SHIFT jumper positions to match the actual Compact PCB
+  configuration.
+* Fixed SD card frequencies to 50MHz, 25MHz and 1MHz to match the actual
+  standard speeds
 * Arduino 2.x is now the official IDE
 * arduino-cli is now the official build platform for release packages
-* Fixed RTC clock that didn't run when unpowered
 * Added the *Compact PCB*
-* Added an enclosure for the compact PCB
 * Fixed full featured PCB mounting holes size
 * Added back the whole history for 4.x in release_notes.md, as it should be
-* Fixed GemDrive letter allocation when the 1st slot is not GemDrive
+* Fixed GemDrive drive letter allocation
+* Improved SD card hot swapping a lot
+* Removed self-modifying code in GemDrive: it should now work with CPU cache
 * Fixed and added `GEMDRIVE.TOS` to load GemDrive from desktop
 * Boot `EMUTOS.SYS` on startup if present on the SD card
-* Introduced command 0x09 to avoid crashes if a tool reads GemDrive boot sector
+* Introduced GemDrive command 0x09 to avoid crashes when reading boot sector
 * Fixed GemDrive boot when ACSI id 0 is not an ACSI2STM unit
 * Reworked documentation to put more emphasis on the new PCB design
 * Simplified documentation

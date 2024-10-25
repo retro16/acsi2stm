@@ -225,34 +225,7 @@ struct ToLong: public Long {
 
 // System hook protocol handlers
 struct SysHook: public Monitor {
-  // Offsets in the "programs" assembly file
-  // This must match offsets in asm/programs/boot.s
-  enum Program {
-    PGM_NOP,
-    PGM_TRAP,
-    PGM_PUSHSP,
-    PGM_ADDSP,
-    PGM_READSPB,
-    PGM_READSPW,
-    PGM_READSPL,
-    PGM_WRITESPB,
-    PGM_WRITESPW,
-    PGM_WRITESPL,
-  };
-
-  static Long getProgram(Program p);
-
-#if ACSI_VERBOSE
-  // Debug function
-  static void pstack();
-#else
-  static void pstack() {}
-#endif
-
   // High level helper methods
-
-  // Shift the stack pointer and set DMA to read onto the stack
-  static void shiftStack(ToWord offset);
 
   // Push an object onto the stack, with a 16 bytes aligned padding below
   template<typename T>
@@ -275,11 +248,7 @@ struct SysHook: public Monitor {
 
   // Allocate bytes on the stack, set DMA to write onto the stack and return
   // the actual stack pointer after the shift
-  static Long stackAlloc(int16_t bytes);
-
-  // Call a trap and return D0
-  static void trap(int number);
-
+  static Long stackAlloc(int bytes);
 
   // Fixed address copy operations
 
@@ -373,35 +342,83 @@ struct SysHook: public Monitor {
   // Return a 1 byte value
   static void rte(int8_t value = 0);
 
-  // Command : Forward the call to the next handler
+  // Forward the call to the next handler
   static void forward();
 
-  // Command : Return a 32-bit value
-  static void rte(ToLong value);
+  // Execute Trap #1
+  static void trap1();
 
-  // Command : Pexec4 then rte
+  // Execute Trap #13
+  static void trap13();
+
+  // Execute Trap #14
+  static void trap14();
+
+  // Push SP on the stack.
+  // Set DMA to read on the stack.
+  static void pushSp();
+
+  // Push byte on the stack
+  static void push(uint8_t value);
+  static void push(char value) {
+    push((uint8_t)value);
+  }
+
+  // Push word on the stack
+  static void push(ToWord value);
+
+  // Push long on the stack
+  static void push(ToLong value);
+
+  // Shift the stack pointer.
+  // Set DMA to write on the stack.
+  static void shiftStack(ToLong offset);
+
+  // Shift the stack pointer.
+  // Set DMA to read on the stack.
+  static void shiftStackRead(ToLong offset);
+
+  // Read byte at address and push it on the stack.
+  // Set DMA to read on the stack.
+  static void readByteToStack(ToLong address);
+
+  // Read word at address and push it on the stack.
+  // Set DMA to read on the stack.
+  static void readWordToStack(ToLong address);
+
+  // Read long at address and push it on the stack
+  // Set DMA to read on the stack.
+  static void readLongToStack(ToLong address);
+
+  // Pop byte from the stack and write it to address.
+  static void writeByteFromStack(ToLong address);
+
+  // Pop word from the stack and write it to address.
+  static void writeWordFromStack(ToLong address);
+
+  // Pop long from the stack and write it to address.
+  static void writeLongFromStack(ToLong address);
+
+  // Pexec4 then rte
   static void pexec4ThenRte(ToLong pd);
 
-  // Command : Pexec6 then rte
+  // Pexec6 then rte
   static void pexec6ThenRte(ToLong pd);
 
-  // Command : Setup DMA read
+  // Setup DMA read
   static void setDmaRead(ToLong address);
 
-  // Command : Setup DMA write
+  // Setup DMA write
   static void setDmaWrite(ToLong address);
 
-  // Command : Execute 4 bytes as machine code, then setup DMA read on stack
-  static void execThenDmaRead(ToLong code);
-
-  // Command : Execute 4 bytes as machine code, then setup DMA write on stack
-  static void execThenDmaWrite(ToLong code);
-
-  // Command : Copy a sized buffer from the stack to an address
+  // Copy a sized buffer from the stack to an address
   static void copyFromStack(ToLong address);
 
-  // Command : Copy a sized buffer from an address to the stack
+  // Copy a sized buffer from an address to the stack
   static void copyToStack(ToLong address);
+
+  // Return a 32-bit value
+  static void rte(ToLong value);
 
   // Wait for a dummy command byte that indicates command completion
   static void waitCommand();

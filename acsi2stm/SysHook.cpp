@@ -19,37 +19,6 @@
 #include "SysHook.h"
 #include "DmaPort.h"
 
-const
-#include "PROGRAMS.boot.h"
-
-Long SysHook::getProgram(SysHook::Program p) {
-  Long l;
-  int pi = (int)p * 4;
-  l.bytes[0] = PROGRAMS_boot_bin[pi++];
-  l.bytes[1] = PROGRAMS_boot_bin[pi++];
-  l.bytes[2] = PROGRAMS_boot_bin[pi++];
-  l.bytes[3] = PROGRAMS_boot_bin[pi];
-
-  return l;
-}
-
-#if ACSI_VERBOSE
-void SysHook::pstack() {
-  execThenDmaWrite(getProgram(PGM_PUSHSP));
-  uint8_t v[4];
-  DmaPort::readDma(v, 4);
-  shiftStack(4);
-}
-#endif
-
-void SysHook::shiftStack(ToWord offset)
-{
-  Long addSp = getProgram(PGM_ADDSP);
-  addSp.bytes[2] = offset.bytes[0];
-  addSp.bytes[3] = offset.bytes[1];
-  execThenDmaRead(addSp);
-}
-
 void SysHook::push(uint8_t *bytes, int count)
 {
   int sz = count;
@@ -63,24 +32,18 @@ void SysHook::push(uint8_t *bytes, int count)
   }
 }
 
-Long SysHook::stackAlloc(int16_t bytes)
+Long SysHook::stackAlloc(int bytes)
 {
   // Read the stack pointer address
-  execThenDmaWrite(getProgram(PGM_PUSHSP));
-  Long sp = readLong();
+  pushSp();
+  Long sp;
+  DmaPort::readDma((uint8_t *)&sp, sizeof(sp));
 
-  // Allocate on the stack, compensating for the 4 bytes of PGM_PUSHSP
+  // Allocate on the stack, compensating for the 4 bytes of pushSp
   shiftStack(4 - bytes);
 
   // Return
   return ToLong(sp - bytes);
-}
-
-void SysHook::trap(int number) {
-  Long trapProgram = getProgram(PGM_TRAP);
-  trapProgram.bytes[1] |= number; // Inject trap vector
-
-  execThenDmaWrite(trapProgram);
 }
 
 void SysHook::sendAt(uint32_t address, const uint8_t *bytes, int count)
@@ -142,7 +105,7 @@ void SysHook::readAt(uint8_t *bytes, uint32_t source, int count)
 
   if(source & 1) {
     // Unaligned access: read first byte in indirect mode
-    *bytes = readByteAtIndirect(source);
+    *bytes = readByteAt(source);
     ++bytes;
     ++source;
     --count;
@@ -156,41 +119,28 @@ void SysHook::readAt(uint8_t *bytes, uint32_t source, int count)
 
 uint8_t SysHook::readByteAt(ToLong address)
 {
-  if(!isDma(address))
-    return readByteAtIndirect(address);
-
-  if(address & 1) {
-    Word data;
-    setDmaWrite(address - 1);
-    DmaPort::readDma((uint8_t *)&data, sizeof(data));
-    return data.bytes[1];
-  }
-
+  readByteToStack(address);
   uint8_t data;
-  setDmaWrite(address);
   DmaPort::readDma((uint8_t *)&data, sizeof(data));
+  shiftStack(2);
   return data;
 }
 
 Word SysHook::readWordAt(ToLong address)
 {
-  if(!isDma(address))
-    return readWordAtIndirect(address);
-
+  readWordToStack(address);
   Word data;
-  setDmaWrite(address);
   DmaPort::readDma((uint8_t *)&data, sizeof(data));
+  shiftStack(2);
   return data;
 }
 
 Long SysHook::readLongAt(ToLong address)
 {
-  if(!isDma(address))
-    return readLongAtIndirect(address);
-
+  readLongToStack(address);
   Long data;
-  setDmaWrite(address);
   DmaPort::readDma((uint8_t *)&data, sizeof(data));
+  shiftStack(4);
   return data;
 }
 
@@ -339,35 +289,10 @@ end_of_string:
   shiftStack(34);
 }
 
-uint8_t SysHook::readByteAtIndirect(ToLong source) {
-  Word result;
-  push(source);
-  execThenDmaWrite(getProgram(PGM_READSPB));
-  read(result);
-  shiftStack(16 - sizeof(source) + sizeof(result));
-  return result.bytes[0];
-}
-
-Word SysHook::readWordAtIndirect(ToLong source) {
-  Word result;
-  push(source);
-  execThenDmaWrite(getProgram(PGM_READSPW));
-  read(result);
-  shiftStack(16 - sizeof(source) + sizeof(result));
-  return result;
-}
-
-Long SysHook::readLongAtIndirect(ToLong source) {
-  Long result;
-  push(source);
-  execThenDmaWrite(getProgram(PGM_READSPL));
-  read(result);
-  shiftStack(16 - sizeof(source) + sizeof(result));
-  return result;
-}
+// Low level hook commands implementation
 
 void SysHook::rte(int8_t value) {
-  if(value <= (int8_t)0x8b)
+  if(value <= (int8_t)0xa6)
     rte(ToLong(value));
   dbgHex("rte(", (uint32_t)(uint8_t)value, ") ");
   DmaPort::sendIrq(value);
@@ -375,22 +300,86 @@ void SysHook::rte(int8_t value) {
 
 void SysHook::forward() {
   dbg("forward ");
-  DmaPort::sendIrq(0x8b);
+  DmaPort::sendIrq(0xa6);
 }
 
-void SysHook::rte(ToLong value) {
-  dbgHex("rte(", (uint32_t)value, ") ");
-  uint8_t bytes[5];
-  bytes[0] = 0x8a;
-  bytes[1] = value.bytes[0];
-  bytes[2] = value.bytes[1];
-  bytes[3] = value.bytes[2];
-  bytes[4] = value.bytes[3];
-  DmaPort::sendIrqFast(bytes, 5);
+void SysHook::trap1() {
+  verbose("trap #1 ");
+  sendCommand(0xa4, 0);
+}
+
+void SysHook::trap13() {
+  verbose("trap #13 ");
+  sendCommand(0xa2, 0);
+}
+
+void SysHook::trap14() {
+  verbose("trap #14 ");
+  sendCommand(0xa0, 0);
+}
+
+void SysHook::pushSp() {
+  verbose("pushSp ");
+  sendCommand(0x9e, 0);
+}
+
+void SysHook::push(uint8_t value) {
+  verbose("pushByte ");
+  sendCommand(0x9c, ToLong(value));
+}
+
+void SysHook::push(ToWord value) {
+  verbose("pushWord ");
+  sendCommand(0x9a, ToLong(value));
+}
+
+void SysHook::push(ToLong value) {
+  verbose("pushLong ");
+  sendCommand(0x98, value);
+}
+
+void SysHook::shiftStack(ToLong offset) {
+  verbose("shiftStack ");
+  sendCommand(0x97, offset);
+}
+
+void SysHook::shiftStackRead(ToLong offset) {
+  verbose("shiftStackRead ");
+  sendCommand(0x96, offset);
+}
+
+void SysHook::readByteToStack(ToLong address) {
+  verbose("readByteToStack ");
+  sendCommand(0x94, address);
+}
+
+void SysHook::readWordToStack(ToLong address) {
+  verbose("readWordToStack ");
+  sendCommand(0x92, address);
+}
+
+void SysHook::readLongToStack(ToLong address) {
+  verbose("readLongToStack ");
+  sendCommand(0x90, address);
+}
+
+void SysHook::writeByteFromStack(ToLong address) {
+  verbose("writeByteFromStack ");
+  sendCommand(0x8e, address);
+}
+
+void SysHook::writeWordFromStack(ToLong address) {
+  verbose("writeWordFromStack ");
+  sendCommand(0x8c, address);
+}
+
+void SysHook::writeLongFromStack(ToLong address) {
+  verbose("writeLongFromStack ");
+  sendCommand(0x8a, address);
 }
 
 void SysHook::pexec4ThenRte(ToLong pd) {
-  dbg("pexec4 ");
+  verbose("pexec4 ");
   uint8_t bytes[5];
   bytes[0] = 0x88;
   bytes[1] = pd.bytes[0];
@@ -401,7 +390,7 @@ void SysHook::pexec4ThenRte(ToLong pd) {
 }
 
 void SysHook::pexec6ThenRte(ToLong pd) {
-  dbg("pexec6 ");
+  verbose("pexec6 ");
   uint8_t bytes[5];
   bytes[0] = 0x86;
   bytes[1] = pd.bytes[0];
@@ -411,40 +400,39 @@ void SysHook::pexec6ThenRte(ToLong pd) {
   DmaPort::sendIrqFast(bytes, 5);
 }
 
-void SysHook::execThenDmaRead(ToLong code)
-{
-  verbose("\nexec&read:");
-  sendCommand(0x85, code);
-}
-
-void SysHook::execThenDmaWrite(ToLong code)
-{
-  verbose("\nexec&write:");
-  sendCommand(0x84, code);
-}
-
 void SysHook::setDmaRead(ToLong address)
 {
   verbose("\nsetDmaRead:");
-  sendCommand(0x83, address);
+  sendCommand(0x85, address);
 }
 
 void SysHook::setDmaWrite(ToLong address)
 {
   verbose("\nsetDmaWrite:");
-  sendCommand(0x82, address);
+  sendCommand(0x84, address);
 }
 
 void SysHook::copyFromStack(ToLong address)
 {
   verbose("\ncopyFromStack:");
-  sendCommand(0x81, address);
+  sendCommand(0x83, address);
 }
 
 void SysHook::copyToStack(ToLong address)
 {
   verbose("\ncopyToStack:");
-  sendCommand(0x80, address);
+  sendCommand(0x82, address);
+}
+
+void SysHook::rte(ToLong value) {
+  dbgHex("rte(", (uint32_t)value, ") ");
+  uint8_t bytes[5];
+  bytes[0] = 0x80;
+  bytes[1] = value.bytes[0];
+  bytes[2] = value.bytes[1];
+  bytes[3] = value.bytes[2];
+  bytes[4] = value.bytes[3];
+  DmaPort::sendIrqFast(bytes, 5);
 }
 
 void SysHook::waitCommand() {

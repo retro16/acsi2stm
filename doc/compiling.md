@@ -82,6 +82,7 @@ modifications. If you cannot do that (or don't want to), use the legacy variant.
 Compiling and installing a new firmware
 =======================================
 
+
 Software needed
 ---------------
 
@@ -243,48 +244,103 @@ Release package test procedure
 
 Test procedure that must be done when releasing a new major version.
 
+The hardware must be flashed with the previous stable version.
+
 ### Needed programs / files
 
 * The ACSI2STM release package
 * ICD Pro files
 * `CONTROL.ACC` from a language disk
-* GenST 2.x
+* `GENST2.PRG` from Devpac 2.x
+* `SYSINFO.PRG`
 * A few big desktop apps, at least one that runs correctly under EmuTOS
-* A disk image with the PP driver installed
+* A disk image with the PP driver installed (bootable)
+* A disk image with the Atari AHDI 6.061 driver installed (bootable)
+* A file between 5MB and 30MB to use as a disk image (content doesn't matter)
+* The latest EmuTOS in PRG format: `EMUTOS.PRG`
 
-### SD cards preparation
+### Needed hardware
 
-* 2 unformated SD cards
-* 1 floppy disk
-* 1 FAT32 card
-  * Unzip the release package in it
-  * Copy the firmware to `HDDFLASH.BIN`
-  * Copy ICD drivers package
-  * Copy `CONTROL.ACC` from a language disk
-  * Copy desktop apps
+* An ACSI2STM unit flashed with the previous version of the firmware
+* A secondary ACSI2STM unit with the latest firmware and strict mode jumper set
+* 1 empty FAT32 card
 * 1 empty ExFAT card
+* 1 unformatted SD card (no partition table)
+* 1 formatted floppy disk
+
+### FAT32 SD card preparation
+
+* Unzip the release package to the SD card
+* Rename the standard firmware to `HDDFLASH.BIN`
+* Rename the strict firmware to `STRICT.BIN`
+* Copy ICD drivers package
+* Copy `CONTROL.ACC`
+* Copy desktop apps
+* Copy `EMUTOS.PRG`
+* Copy `SYSINFO.PRG`
+
+### ExFAT SD card preparation
+
+* Create a directory named `acsi2stm`
+* Copy the PP image into `acsi2stm`
+* Copy the AHDI image into `acsi2stm`
+* Copy the 5-30MB file into `acsi2stm`
+* Make sure no disk image is named `hd0.img`
 
 ### On a single TOS version (either 1.04, 1.62 or 2.06)
 
+* Reset the RTC by removing the backup battery and emptying capacitors
+* Boot the ST with the FAT32 and ExFAT cards
 * Upgrade the firmware with `HDDFLASH.TOS`
-* Test ST reset
-* Test setting date via `CONTROL.ACC`
-* Run ICD to format the 2 SD cards
-  * Make one of them bootable with the ICD driver
+  * Check version number on the splash screen
+* Test setting date via `CONTROL.ACC` then power cycle the ST to test RTC
+* Run `SWAPTEST.TOS` on GemDrive cards
+  * Use the FAT32 card as SD card 1
+  * Use the ExFAT card as SD card 2
+* Run `CHARGEN.TOS` and check the result on the ST and on a PC
+* Copy `GEMDRIVE.TOS` to the floppy disk
+* Check hotplug card type change
+  * Eject the ExFAT card
+  * Rename the 5-30MB disk image to `hd0.img`
+  * Re-insert the ExFAT card
+  * Check that the card cannot be accessed anymore
+* Reboot the ST with the 3 cards inserted
+* Open ICD folder
+  * Run `ICDBOOT.PRG`
+  * Run `ICDFMT.PRG`
+  * On both the unformatted SD card and the ExFAT card with the image
+    * Create 1 partition, size does not matter
+    * Reboot the ST
+    * Make the raw SD card bootable with `HDUTIL.PRG`
 * Test ICD hot swapping (must indicate "media change")
 * Test ICD `IDCHECK.PRG`
 * Test ICD `RATEHD.PRG`
-* Run `SWAPTEST.TOS` on GemDrive cards
-* Run `CHARGEN.TOS` and check the result on the ST and on a PC
-* Copy `GEMDRIVE.TOS` to the floppy disk
+* Run `ACSITEST.TOS` on an ICD card
+* Copy the release package onto one ICD card
+* Copy the release package between the 2 ICD cards
+* Copy the release package back to another folder of the GemDrive card. Check
+  the result on a PC with diff.
 * Reboot with no ACSI2STM, then hot plug it and run `GEMDRIVE.TOS` from floppy
-* On the ExFAT card, copy an image with the PP driver and boot the PP driver
+* On the ExFAT card, rename the PP driver to `hd0.img` and boot the PP driver
   along with GemDrive. Do a few file operations from the desktop to test it.
 * Follow the doc to setup and test EmuTOS
 * Run a compatible desktop app under EmuTOS on GemDrive
 * If any ASM file was changed, check that the program still assembles with GenST
   2.x and runs fine.
-* Enable ACSI strict mode and check that GemDrive doesn't boot.
+* Enable ACSI strict mode via jumper and check that GemDrive doesn't boot but
+  ICD does.
+* Turn power off.
+* Set the ACSI2STM id offset to 3 with a jumper.
+* Plug the secondary ACSI2STM unit.
+* Insert the Atari AHDI SD card in the first slot of the secondary unit.
+* On the main ACSI2STM unit, insert only the GemDrive card.
+* Boot the ST and run `GEMDRIVE.TOS` from floppy.
+* Check that both C: (AHDI) and F: (GemDrive) are available.
+* Check that available RAM is reasonable by running `SYSINFO.PRG`
+* Copy `EMUTOS.PRG` from F: to C:.
+* On F: copy `EMUTOS.PRG` to `EMUTOS.SYS`
+* Reboot on the GemDrive card, EmuTOS should boot
+* Delete `EMUTOS.SYS` from the GemDrive card
 
 ### On 3 TOS versions (1.04, 1.62, 2.06)
 
@@ -296,8 +352,18 @@ At least one pass must be done with a different ID_SHIFT jumper position
 * Copy files back from ICD to GemDrive
 * On a PC, check that the 2 copies are identical
 * On the ST, delete the directory
-* Run `TOSTEST.TOS` on a floppy disk
+* Run `TOSTEST.TOS` on a floppy disk if it changed since the last release
 * Run `TOSTEST.TOS` on a GemDrive card
 * Run a few big desktop programs on GemDrive, use the file selector
-* Run `ACSITEST.TOS` on an ICD card
 
+### On a single TOS version
+
+* Boot on FAT32 GemDrive.
+* Install `HDDFLASH.TOS` for BIN files.
+* Double-click `STRICT.BIN` to flash the strict firmware variant.
+* Reboot the ST.
+* Boot the PP driver image.
+* Check that files can be read.
+* Boot the Atari AHDI image.
+* Test EmuTOS with the Atari AHDI image.
+* Check that files can be read.

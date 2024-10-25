@@ -17,7 +17,7 @@
 	incdir	..\inc\
 	include	tos.i
 
-start	org	0
+start:
 
 	bra.b	load                    ; Send the load ACSI command
 

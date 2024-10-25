@@ -16,41 +16,39 @@
  */
 
 #include "acsi2stm.h"
-#include "DmaPort.h"
-#include "Acsi.h"
 #include "Monitor.h"
-#include "Devices.h"
-#include "GemDrive.h"
 #include <libmaple/gpio.h>
 
-// Main setup function
-void setup() {
+// Use a class to run initialization before constructing other globals
+struct PreBoot {
+  PreBoot() {
+    Monitor::ledOn(); // Enable activity LED on power up to signal init activity.
 #if ACSI_ID_OFFSET_PINS
-  // Disable JTAG to allow using PB3, PB4, PA13, PA14 and PA15
-  // Remap TIM2 on PA15 to sense RST asynchronously
-  AFIO_BASE->MAPR = AFIO_MAPR_SWJ_CFG_NO_JTAG_NO_SW | AFIO_MAPR_TIM2_REMAP_FULL;
+    // Disable JTAG to allow using PB3, PB4, PA13, PA14 and PA15
+    // Remap TIM2 on PA15 to sense RST asynchronously
+    AFIO_BASE->MAPR = AFIO_MAPR_SWJ_CFG_NO_JTAG_NO_SW | AFIO_MAPR_TIM2_REMAP_FULL;
 #else
-  // Disable JTAG to allow using PB3, PB4 and PA15
-  // Remap TIM2 on PA15 to sense RST asynchronously
-  AFIO_BASE->MAPR = AFIO_MAPR_SWJ_CFG_NO_JTAG_SW | AFIO_MAPR_TIM2_REMAP_FULL;
+    // Disable JTAG to allow using PB3, PB4 and PA15
+    // Remap TIM2 on PA15 to sense RST asynchronously
+    AFIO_BASE->MAPR = AFIO_MAPR_SWJ_CFG_NO_JTAG_SW | AFIO_MAPR_TIM2_REMAP_FULL;
 #endif
+  }
+};
+PreBoot preBoot;
 
-  Monitor::ledOn(); // Enable activity LED on power up to signal init activity.
+#include "DmaPort.h"
+#include "Acsi.h"
+#include "Devices.h"
+#include "GemDrive.h"
+
+void setup() {
+    // Delay for connecting serial monitor
+    delay(50);
 
 #if ACSI_DEBUG
-  Monitor::beginDbg();
-
-  // Send a few characters to synchronize autoconfigured USB-serial dongles.
-  Monitor::dbg("\n\n");
-  delay(150);
-  Monitor::dbg('\n');
-  delay(50);
-
-  Monitor::dbg("ACSI2STM v" ACSI2STM_VERSION "\n\n");
+    Monitor::beginDbg();
+    Monitor::dbg("\nACSI2STM v" ACSI2STM_VERSION "\n\n");
 #endif
-
-  // Delay to stabilize SD cards power
-  delay(100);
 }
 
 #if ACSI_DEBUG && ACSI_STACK_CANARY
@@ -64,14 +62,19 @@ void __attribute__ ((noinline)) checkCanary() {
   // Allocate canaries on the stack
   volatile uint32_t canary[stackWords];
 
+  int revived = 0;
+
   // Check canaries.
   // Canaries are more packed on top of the stack than at the bottom.
-  for(int i = 1; i <= canaryWords; i *= 2) {
-    if(canary[canaryWords - i - 1] != 0xdeadbeef) {
-      canary[canaryWords - i - 1] = 0xdeadbeef;
-      Monitor::dbg("Canary ", i, " died\n");
+  for(int i = canaryWords; i > 1; i /= 2) {
+    if(canary[i - 2] != 0xdeadbeef) {
+      canary[i - 2] = 0xdeadbeef;
+      revived = i - 2;
     }
   }
+
+  if(revived)
+    Monitor::dbgHex("Canary @", (uint32_t)(&canary[0]), " revived ", revived, "/", canaryWords - 1, " revived\n");
 }
 #endif
 

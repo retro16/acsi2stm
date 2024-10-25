@@ -206,7 +206,7 @@ void Acsi::process(uint8_t cmd) {
     DmaPort::sendDma(buf, cmdBuf[4]);
 
     // Do not overwrite lastErr
-    dbg("Success\n");
+    dbg("Success");
     DmaPort::sendIrq(0);
     return;
   case 0x1a: // Mode sense
@@ -218,12 +218,8 @@ void Acsi::process(uint8_t cmd) {
         DmaPort::sendDma(buf, 16);
         break;
       case 0x04:
-        buf[0] = 27;
-        buf[1] = 0;
-        buf[2] = blockDev->isWritable() ? 0x00 : 0x80;
-        buf[3] = 0;
-        modeSense4(buf + 4);
-        DmaPort::sendDma(buf, 28);
+        modeSense4(buf);
+        DmaPort::sendDma(buf, 24);
         break;
       case 0x3f:
         buf[0] = 43;
@@ -355,7 +351,7 @@ void Acsi::process(uint8_t cmd) {
       }
       switch(cmdBuf[1]) {
       case 0x02: // Data buffer write
-        dbg("Write buffer: offset=", offset, " length=", length, '\n');
+        dbg("Write buffer: offset=", offset, " length=", length, ' ');
 
         if(offset >= bufSize || offset + length > bufSize) {
           verbose("Out of range\n");
@@ -407,7 +403,7 @@ void Acsi::process(uint8_t cmd) {
           return;
         }
 
-        dbg("Read buffer: offset=", offset, " length=", length, '\n');
+        dbg("Read buffer: offset=", offset, " length=", length, ' ');
 
         if(offset >= bufSize || offset + length > bufSize) {
           dbg("Out of range\n");
@@ -484,16 +480,16 @@ void Acsi::commandStatus(ScsiErr err) {
 
 void Acsi::sendCommandStatus() {
   if(lastErr == ERR_OK) {
-    dbg("Success\n");
+    dbg("Success");
     DmaPort::sendIrq(0);
   } else {
-    dbgHex("Error ", lastErr, '\n');
+    dbgHex("Error ", lastErr);
     DmaPort::sendIrq(2);
   }
 }
 
 Acsi::ScsiErr Acsi::processBlockRead(uint32_t block, int count) {
-  dbg("Read ", count, " blocks from ", block, " on SD", blockDev.slot, '\n');
+  dbg("Read ", count, " blocks from ", block, " on SD", blockDev.slot, ' ');
 
   if(block >= blockDev->blocks || block + count - 1 >= blockDev->blocks) {
     dbg("Out of range\n");
@@ -526,7 +522,7 @@ Acsi::ScsiErr Acsi::processBlockRead(uint32_t block, int count) {
 }
 
 Acsi::ScsiErr Acsi::processBlockWrite(uint32_t block, int count) {
-  dbg("Write ", count, " blocks from ", block, " on SD", blockDev.slot, '\n');
+  dbg("Write ", count, " blocks from ", block, " on SD", blockDev.slot, ' ');
 
 #if ACSI_READONLY == 2
   for(int s = 0; s < count; ++s)
@@ -605,6 +601,8 @@ void Acsi::modeSense4(uint8_t *outBuf) {
       break;
     }
   }
+
+  verbose("blocks=", blocks, " cylinders=", cylinders, " heads=", heads, "\n");
 
   for(uint8_t b = 0; b < 24; ++b)
     outBuf[b] = 0;

@@ -87,6 +87,12 @@ protected:
 // Also stores globals about SD slots and GemDrive
 class SdDev: public BlockDev {
 public:
+  enum Mode {
+    ACSI = 0,
+    GEMDRIVE,
+    DISABLED
+  };
+
   SdDev(int slot_, int csPin_, int wpPin_):
     image(*this),
     mode(ACSI),
@@ -119,17 +125,21 @@ public:
   // Permanently disable the slot
   void disable();
 
+  // Get the actual mode
+  Mode computeMode();
+
   SdSpiCard card;
   FsVolume fs;
   ImageDev image;
 
-  enum {
-    ACSI = 0,
-    GEMDRIVE,
-    DISABLED
-  } mode;
+  Mode mode;
 
   bool writable;
+#if ! ACSI_STRICT
+  bool mountable;
+#else
+  static const bool mountable = false;
+#endif
   int slot;
   int csPin;
   int wpPin;

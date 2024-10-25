@@ -223,7 +223,8 @@ the STM32. Using a CR2032 with a standard battery holder is recommended.
 Changing operation modes with jumpers on the Compact board
 ----------------------------------------------------------
 
-Some jumpers can also be permanently set by small solder blobs on the PCB.
+**Note:** Some jumpers can also be permanently set by small solder blobs on the
+PCB.
 
 ### Serial interface
 
@@ -264,10 +265,9 @@ This connector is compatible with Satan/UltraSatan cables.
 The connector can be used in both directions: either to connect to the ST or to
 connect additional devices.
 
-**Note:** You can use female headers with long pins to make a stackable unit.
-When building the enclosure, enable both *idc20* and *idc20p* parameters and
-disable *db19* because piggyback and DB19 connectors are mutually exclusive.
-You will have to desolder or cut DB19 pins to build a stackable unit.
+**NOTE:** You can use female headers with long pins to make a stackable unit.
+The female part must be on the inner side (backup battery side).
+In that case, you won't be able to plug the unit on the DB19 socket anymore.
 
 
 Changing operation modes with jumpers on the Blue Pill board
@@ -294,10 +294,10 @@ ACSI id 1 to 5, GemDrive enabled
 
      _______________________________
     |                     _         |
-    |    o o o        /\ | |       -|--
-    |   [==] o       /  \| |       -|--
-    |                \  /| |       -||¨| <- Jumper here
-    |     (o)         \/ |_|       -||_|
+    |    o o o        /\ | |       -||¨| <- Jumper here
+    |   [==] o       /  \| |       -||_|
+    |                \  /| |       -|--
+    |     (o)         \/ |_|       -|--
     |_______________________________|
 
 
@@ -316,10 +316,10 @@ ACSI id 3 to 7, GemDrive enabled
 
      _______________________________
     |                     _         |
-    |    o o o        /\ | |       -||¨| <- Jumper here
-    |   [==] o       /  \| |       -||_|
-    |                \  /| |       -|--
-    |     (o)         \/ |_|       -|--
+    |    o o o        /\ | |       -|--
+    |   [==] o       /  \| |       -|--
+    |                \  /| |       -||¨| <- Jumper here
+    |     (o)         \/ |_|       -||_|
     |_______________________________|
 
 
@@ -387,9 +387,9 @@ read-write. See the table mentioning these pins above for more details.
 Solder PB0, PB1, PB3, PB4 and/or PB5 to +3.3V to disable the corresponding
 slots. See the table mentioning these pins above for more details.
 
+
 Changes required for 1.x units
 ------------------------------
 
  * Do all changes required for 2.x units
  * Swap PA8 and PA12
-
