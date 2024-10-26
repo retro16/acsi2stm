@@ -115,8 +115,8 @@ syshook.reply:
 	move.w	#$008a,(a1)             ; Prepare to read command/status
 	move.w	(a0),d0                 ; Read command/status byte
 
-	cmp.b	#$a6,d0                 ; Check if command byte
-	beq.b	syshook.forward         ; Check command $a6 (forward to TOS)
+	cmp.b	#$98,d0                 ; Check if command byte
+	beq.b	syshook.forward         ; Check command $98 (forward to TOS)
 	blt.b	syshook.execcmd         ; Other commands with parameter
 
 .qret	ext.w	d0                      ; Quick return sign-extended d0
@@ -131,7 +131,7 @@ syshook.return:
 	rte	                        ; Return
 
 syshook.forward:
-	; Command $a4: forward the call to the next handler
+	; Command $98: forward the call to the next handler
 	sf	flock.w                 ; Unlock floppy controller
 	resreg	                        ; Restore registers
 	rts	                        ; Jump to forwarding address
@@ -158,23 +158,16 @@ syshook.execcmd:
 	dc.w	syshook.dmaset-.jmptbl  ; $84
 	dc.w	syshook.pexec6-.jmptbl  ; $86
 	dc.w	syshook.pexec4-.jmptbl  ; $88
-	dc.w	syshook.wrlong-.jmptbl  ; $8a
-	dc.w	syshook.wrword-.jmptbl  ; $8c
-	dc.w	syshook.wrbyte-.jmptbl  ; $8e
-	dc.w	syshook.rdlong-.jmptbl  ; $90
-	dc.w	syshook.rdword-.jmptbl  ; $92
-	dc.w	syshook.rdbyte-.jmptbl  ; $94
-	dc.w	syshook.addsp-.jmptbl   ; $96
-	dc.w	syshook.pshlong-.jmptbl ; $98
-	dc.w	syshook.pshword-.jmptbl ; $9a
-	dc.w	syshook.pshbyte-.jmptbl ; $9c
-	dc.w	syshook.pushsp-.jmptbl  ; $9e
-	dc.w	syshook.trap14-.jmptbl  ; $a0
-	dc.w	syshook.trap13-.jmptbl  ; $a2
-	dc.w	syshook.trap01-.jmptbl  ; $a4
+	dc.w	syshook.rdlong-.jmptbl  ; $8a
+	dc.w	syshook.rdword-.jmptbl  ; $8c
+	dc.w	syshook.rdbyte-.jmptbl  ; $8e
+	dc.w	syshook.addsp-.jmptbl   ; $90
+	dc.w	syshook.pshword-.jmptbl ; $92
+	dc.w	syshook.pushsp-.jmptbl  ; $94
+	dc.w	syshook.trap01-.jmptbl  ; $96
 
 syshook.rte
-	; Command $8c: Return long from exception
+	; Command $80: Return long from exception
 	move.l	d1,d0                   ; Put parameter in d0
 	bra.b	syshook.return          ; Return from exception
 
@@ -204,21 +197,6 @@ syshook.pexec:
 	resreg	                        ; Restore registers
 	rts	                        ; Forward to GEMDOS
 
-syshook.wrlong:
-	move.l	d1,a0
-	move.l	(sp)+,(a0)
-	bra.b	syshook.dmanset
-
-syshook.wrword:
-	move.l	d1,a0
-	move.w	(sp)+,(a0)
-	bra.b	syshook.dmanset
-
-syshook.wrbyte:
-	move.l	d1,a0
-	move.b	(sp)+,(a0)
-	bra.b	syshook.dmanset
-
 syshook.rdlong:
 	move.l	d1,a0
 	move.l	(a0),-(sp)
@@ -238,29 +216,13 @@ syshook.addsp:
 	adda.l	d1,sp
 	bra.b	syshook.dmasp
 
-syshook.pshlong:
-	move.l	d1,-(sp)
-	bra.b	syshook.dmanset
-
 syshook.pshword:
 	move.w	d1,-(sp)
-	bra.b	syshook.dmanset
-
-syshook.pshbyte:
-	move.b	d1,-(sp)
 	bra.b	syshook.dmanset
 
 syshook.pushsp:
 	move.l	sp,-(sp)
 	bra.b	syshook.dmasp
-
-syshook.trap14:
-	trap	#14
-	bra.b	syshook.trapend
-
-syshook.trap13:
-	trap	#13
-	bra.b	syshook.trapend
 
 syshook.trap01:
 	trap	#01
@@ -290,7 +252,7 @@ syshook.rcmd:
 	bra.w	syshook.reply
 
 syshook.bytecp:
-	; Commands $81/$80: Byte copy operations
+	; Commands $82/$83: Byte copy operations
 	move.l	sp,a1                   ; Use a1 to leave sp untouched
 	move.w	(a1)+,d2                ; Pop byte count and point a1 at data
 	move.l	a1,a2                   ; Set DMA on stack data
@@ -299,7 +261,7 @@ syshook.bytecp:
 	btst	#0,d0                   ; Check if read or write
 	beq.b	syshook.byteread        ;
 
-	; Command $81: Copy from stack to memory
+	; Command $83: Copy from stack to memory
 
 .cpy    move.b	(a1)+,(a0)+             ; Byte copy from stack to memory
 	dbra	d2,.cpy                 ;
@@ -307,7 +269,7 @@ syshook.bytecp:
 	bra.b	syshook.rcmd
 
 syshook.byteread:
-	; Command $80: Copy from memory to stack
+	; Command $82: Copy from memory to stack
 
 .cpy    move.b	(a0)+,(a1)+             ; Byte copy from memory to stack
 	dbra	d2,.cpy                 ;

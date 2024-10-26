@@ -17,25 +17,12 @@
 
 #include "SysHook.h"
 
-void SysHook::push(uint8_t *bytes, int count)
-{
-  int sz = count;
-  if(sz & 0xf)
-    sz += 16 - (sz & 0xf);
-  shiftStack(-sz);
-  DmaPort::sendDma(bytes, count);
-  if(count & 0xf) {
-    uint8_t padding[0xf];
-    DmaPort::sendDma(padding, 16 - (count & 0xf));
-  }
-}
-
 Long SysHook::stackAlloc(int bytes)
 {
   // Read the stack pointer address
   pushSp();
   Long sp;
-  DmaPort::readDma((uint8_t *)&sp, sizeof(sp));
+  read(sp);
 
   // Allocate on the stack, compensating for the 4 bytes of pushSp
   shiftStack(4 - bytes);
@@ -152,11 +139,12 @@ Long SysHook::readLongAt(ToLong address)
 
 void SysHook::readStringAt(char *bytes, ToLong address, int count)
 {
+  if(!count)
+    return;
+
   if(!isDma(address))
     return readStringAtIndirect(bytes, address, count);
 
-  if(!count)
-    return;
   if(address.bytes[3] & 1) {
     // Unaligned access
     *bytes = readByteAt(address);
@@ -323,7 +311,7 @@ end_of_string:
 // Low level hook commands implementation
 
 void SysHook::rte(int8_t value) {
-  if(value <= (int8_t)0xa6)
+  if(value <= (int8_t)0x98)
     rte(ToLong(value));
   dbgHex("rte(", (uint32_t)(uint8_t)value, ") ");
   DmaPort::sendIrq(value);
@@ -331,139 +319,68 @@ void SysHook::rte(int8_t value) {
 
 void SysHook::forward() {
   dbg("forward ");
-  DmaPort::sendIrq(0xa6);
+  DmaPort::sendIrq(0x98);
 }
 
 void SysHook::trap1() {
-  verbose("trap #1 ");
-  sendCommand(0xa4, 0);
-}
-
-void SysHook::trap13() {
-  verbose("trap #13 ");
-  sendCommand(0xa2, 0);
-}
-
-void SysHook::trap14() {
-  verbose("trap #14 ");
-  sendCommand(0xa0, 0);
+  sendCommand(0x96, 0);
 }
 
 void SysHook::pushSp() {
-  verbose("pushSp ");
-  sendCommand(0x9e, 0);
-}
-
-void SysHook::push(uint8_t value) {
-  verbose("pushByte ");
-  sendCommand(0x9c, ToLong(value));
+  sendCommand(0x94, 0);
 }
 
 void SysHook::push(ToWord value) {
-  verbose("pushWord ");
-  sendCommand(0x9a, ToLong(value));
-}
-
-void SysHook::push(ToLong value) {
-  verbose("pushLong ");
-  sendCommand(0x98, value);
+  sendCommand(0x92, ToLong(value));
 }
 
 void SysHook::shiftStack(ToLong offset) {
-  verbose("shiftStack ");
-  sendCommand(0x97, offset);
-}
-
-void SysHook::shiftStackRead(ToLong offset) {
-  verbose("shiftStackRead ");
-  sendCommand(0x96, offset);
+  sendCommand(0x91, offset);
 }
 
 void SysHook::readByteToStack(ToLong address) {
-  verbose("readByteToStack ");
-  sendCommand(0x94, address);
-}
-
-void SysHook::readWordToStack(ToLong address) {
-  verbose("readWordToStack ");
-  sendCommand(0x92, address);
-}
-
-void SysHook::readLongToStack(ToLong address) {
-  verbose("readLongToStack ");
-  sendCommand(0x90, address);
-}
-
-void SysHook::writeByteFromStack(ToLong address) {
-  verbose("writeByteFromStack ");
   sendCommand(0x8e, address);
 }
 
-void SysHook::writeWordFromStack(ToLong address) {
-  verbose("writeWordFromStack ");
+void SysHook::readWordToStack(ToLong address) {
   sendCommand(0x8c, address);
 }
 
-void SysHook::writeLongFromStack(ToLong address) {
-  verbose("writeLongFromStack ");
+void SysHook::readLongToStack(ToLong address) {
   sendCommand(0x8a, address);
 }
 
 void SysHook::pexec4ThenRte(ToLong pd) {
-  verbose("pexec4 ");
-  uint8_t bytes[5];
-  bytes[0] = 0x88;
-  bytes[1] = pd.bytes[0];
-  bytes[2] = pd.bytes[1];
-  bytes[3] = pd.bytes[2];
-  bytes[4] = pd.bytes[3];
-  DmaPort::sendIrqFast(bytes, 5);
+  sendCommandNoWait(0x88, pd);
 }
 
 void SysHook::pexec6ThenRte(ToLong pd) {
-  verbose("pexec6 ");
-  uint8_t bytes[5];
-  bytes[0] = 0x86;
-  bytes[1] = pd.bytes[0];
-  bytes[2] = pd.bytes[1];
-  bytes[3] = pd.bytes[2];
-  bytes[4] = pd.bytes[3];
-  DmaPort::sendIrqFast(bytes, 5);
+  sendCommandNoWait(0x86, pd);
 }
 
 void SysHook::setDmaRead(ToLong address)
 {
-  verbose("\nsetDmaRead:");
   sendCommand(0x85, address);
 }
 
 void SysHook::setDmaWrite(ToLong address)
 {
-  verbose("\nsetDmaWrite:");
   sendCommand(0x84, address);
 }
 
 void SysHook::copyFromStack(ToLong address)
 {
-  verbose("\ncopyFromStack:");
   sendCommand(0x83, address);
 }
 
 void SysHook::copyToStack(ToLong address)
 {
-  verbose("\ncopyToStack:");
   sendCommand(0x82, address);
 }
 
 void SysHook::rte(ToLong value) {
   dbgHex("rte(", (uint32_t)value, ") ");
-  uint8_t bytes[5];
-  bytes[0] = 0x80;
-  bytes[1] = value.bytes[0];
-  bytes[2] = value.bytes[1];
-  bytes[3] = value.bytes[2];
-  bytes[4] = value.bytes[3];
-  DmaPort::sendIrqFast(bytes, 5);
+  sendCommandNoWait(0x80, value);
 }
 
 void SysHook::waitCommand() {
@@ -474,6 +391,12 @@ void SysHook::waitCommand() {
 
 void SysHook::sendCommand(int command, ToLong param)
 {
+  sendCommandNoWait(command, param);
+  waitCommand();
+}
+
+void SysHook::sendCommandNoWait(int command, ToLong param)
+{
   uint8_t bytes[5];
   bytes[0] = command;
   bytes[1] = param.bytes[0];
@@ -481,7 +404,6 @@ void SysHook::sendCommand(int command, ToLong param)
   bytes[3] = param.bytes[2];
   bytes[4] = param.bytes[3];
   DmaPort::sendIrqFast(bytes, 5);
-  waitCommand();
 }
 
 // vim: ts=2 sw=2 sts=2 et

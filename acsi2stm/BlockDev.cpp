@@ -70,7 +70,7 @@ bool ImageDev::open(const char *path) {
   if(!sd.fs.fatType())
     return false;
 
-  verbose("Searching image ", path, " ... ");
+  verbose("image ", path);
 
   oflag_t oflag = O_RDONLY;
 #if ! ACSI_READONLY
@@ -81,20 +81,20 @@ bool ImageDev::open(const char *path) {
     close();
 #if ! ACSI_READONLY
     if(image.open(&sd.fs, path, O_RDONLY)) {
-      verbose("read-only\n");
+      verbose(" read-only\n");
     } else {
       close();
-      verbose("not found\n");
+      verbose(" not found\n");
       return false;
     }
 #else
-    verbose("not found\n");
+    verbose(" not found\n");
     return false;
 #endif
   }
 
   blocks = image.fileSize() / ACSI_BLOCKSIZE;
-  verbose("opened\n");
+  verbose(" opened\n");
 
   return true;
 }
@@ -174,7 +174,7 @@ uint32_t ImageDev::mediaId(BlockDev::MediaIdMode mode) {
   if(!id || id != sdMediaId) {
     // No medium or SD card swapped: abort ASAP
     close();
-    verbose("image media id: no medium ");
+    verbose("no medium ");
     return 0;
   }
 
@@ -192,7 +192,7 @@ void SdDev::init() {
   // Set wp pin as input pullup to read write lock later
   pinMode(wpPin, INPUT_PULLUP);
 
-  dbg("\n        ", "SD", slot, ' ');
+  dbg("\n        SD", slot, ' ');
 
   unsigned int rate;
   for(rate = 0; rate < sizeof(sdRates)/sizeof(sdRates[0]); ++rate) {
@@ -256,7 +256,6 @@ beginOk:
 #endif
 
     dbg(blocks, " blocks ", writable ? "rw ":"ro ");
-    dbgHex("id=", id, " ");
 
     if(image)
       dbg("image ");
@@ -435,7 +434,7 @@ bool SdDev::isWritable() {
 }
 
 uint32_t SdDev::mediaId(BlockDev::MediaIdMode mediaIdMode) {
-  verbose("media id ");
+  verbose("id ");
 
   if(mode == DISABLED) {
     verbose("slot disabled ");
@@ -461,7 +460,7 @@ uint32_t SdDev::mediaId(BlockDev::MediaIdMode mediaIdMode) {
   cid_t cid;
   if(!card.readCID(&cid)) {
     // SD has an issue
-    verbose("cid read fail ");
+    verbose("CID error ");
 
 #if ! ACSI_STRICT
     TinyFile::ejected(lastMediaId);
@@ -474,18 +473,8 @@ uint32_t SdDev::mediaId(BlockDev::MediaIdMode mediaIdMode) {
 
     // Try to recover
     init();
-
-#if ! ACSI_STRICT
-    if(mediaIdMode != FORCE && mode != computeMode()) {
-      // Switched mode: just disable the slot temporarily
-      verbose("switched mode ");
-      lastMediaId = 0;
-      return 0;
-    }
-#endif
-
-    // init() called us again, just return the updated value
-    return lastMediaId;
+  } else {
+    lastMediaId = 0;
   }
 
 #if ! ACSI_STRICT
@@ -496,6 +485,10 @@ uint32_t SdDev::mediaId(BlockDev::MediaIdMode mediaIdMode) {
     return 0;
   }
 #endif
+
+  if(lastMediaId)
+    // init() called us again, just return the updated value
+    return lastMediaId;
 
   uint32_t id = 0;
   for(unsigned int i = 0; i < sizeof(cid) / 4; ++i)

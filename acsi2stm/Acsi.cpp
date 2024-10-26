@@ -44,15 +44,15 @@ void Acsi::refresh() {
 
   mediaId = realId;
 
-  dbg("Refreshing SD", blockDev.slot, ':');
+  dbg("Refresh SD", blockDev.slot, ':');
 
   if(mediaId) {
-    dbg("New SD card\n");
+    dbg("New SD\n");
     lastMediumState = MEDIUM_CHANGED;
     return;
   }
 
-  dbg("No SD card\n");
+  dbg("No SD\n");
   lastMediumState = MEDIUM_REMOVED;
 }
 
@@ -232,7 +232,7 @@ void Acsi::process(uint8_t cmd) {
         DmaPort::sendDma(buf, 44);
         break;
       default:
-        verboseHex("Error: unsupported mode sense ", (int)cmdBuf[3], '\n');
+        verboseHex("Unsupported sense ", (int)cmdBuf[3], '\n');
         commandStatus(ERR_INVARG);
         return;
       }
@@ -244,15 +244,16 @@ void Acsi::process(uint8_t cmd) {
 #if ACSI_RTC
     if(memcmp(&cmdBuf[1], "USCurntFW", 9) == 0) {
       verbose("UltraSatan:");
-      verbose("firmware query\n");
+      verbose("query\n");
       // Fake the firmware
-      DmaPort::sendDma((const uint8_t *)("ACSI2STM " ACSI2STM_VERSION "\r\n"), 16);
+      memcpy(buf, "ACSI2STM " ACSI2STM_VERSION "\r\n", 16);
+      DmaPort::sendDma(buf, 16);
       commandStatus(ERR_OK);
       return;
     }
     if(memcmp(&cmdBuf[1], "USRdClRTC", 9) == 0) {
       verbose("UltraSatan:");
-      verbose("clock read\n");
+      verbose("RTC read\n");
       tm_t now;
       rtc.getTime(now);
 
@@ -272,12 +273,12 @@ void Acsi::process(uint8_t cmd) {
     }
     if(memcmp(&cmdBuf[1], "USWrClRTC", 9) == 0) {
       verbose("UltraSatan:");
-      verbose("clock set\n");
+      verbose("RTC set\n");
 
       DmaPort::readDma(buf, 9);
 
       if(buf[0] != 'R' || buf[1] != 'T' || buf[2] != 'C') {
-        verbose("Invalid date\n");
+        verbose("Wrong date\n");
         commandStatus(ERR_INVARG);
         return;
       }
@@ -346,7 +347,7 @@ void Acsi::process(uint8_t cmd) {
       uint32_t length = (((uint32_t)cmdBuf[6]) << 16) | (((uint32_t)cmdBuf[7]) << 8) | (uint32_t)(cmdBuf[8]);
       DmaPort::dmaStartDelay();
       if(cmdBuf[2] != 0) {
-        verbose("Invalid buffer id\n");
+        verbose("Invalid buffer ", "id\n");
         commandStatus(ERR_INVARG);
         return;
       }
@@ -376,7 +377,7 @@ void Acsi::process(uint8_t cmd) {
         flashFirmware(length);
         // This function never returns !
       }
-      verboseHex("Invalid buffer mode ", cmdBuf[1], '\n');
+      verboseHex("Invalid buffer ", "mode ", cmdBuf[1], '\n');
       commandStatus(ERR_INVARG);
       return;
     }
@@ -399,7 +400,7 @@ void Acsi::process(uint8_t cmd) {
 
       case 0x02: // Data buffer read
         if(cmdBuf[2] != 0) {
-          verbose("Invalid buffer id\n");
+          verbose("Invalid buffer ", "id\n");
           commandStatus(ERR_INVARG);
           return;
         }
@@ -424,7 +425,7 @@ void Acsi::process(uint8_t cmd) {
         commandStatus(ERR_OK);
         return;
       }
-      verboseHex("Invalid read buffer mode ", cmdBuf[1], '\n');
+      verboseHex("Invalid buffer ", "read mode ", cmdBuf[1], '\n');
       commandStatus(ERR_INVARG);
       return;
     }

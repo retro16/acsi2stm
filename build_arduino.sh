@@ -32,13 +32,6 @@ compile_arduino() {
 local name="$1"; shift
 local device=STM32F103C8
 local optim=s
-if [ "$1" = 128 ]; then
-  device=STM32F103CB
-  shift
-fi
-if [ "$1" = fast ]; then
-  optim=2
-fi
 
 arduino-cli compile --build-path "$builddir/Arduino-$name/build" --fqbn "Arduino_STM32:STM32F1:genericSTM32F103C:device_variant=$device,upload_method=serialMethod,cpu_speed=speed_72mhz,opt=o${optim}std" --output-dir "$builddir/Arduino-$name" "$srcdir/acsi2stm/acsi2stm.ino"
 
@@ -51,7 +44,7 @@ if [ "$1" = all ]; then
   echo "Compile verbose binary"
   sed -i 's/^#define ACSI_VERBOSE .$/#define ACSI_VERBOSE 1/' "$srcdir/acsi2stm/acsi2stm.h"
   sed -i 's/^#define ACSI_DEBUG .$/#define ACSI_DEBUG 1/' "$srcdir/acsi2stm/acsi2stm.h"
-  compile_arduino verbose 128
+  compile_arduino verbose
   mv "$builddir/Arduino-verbose/acsi2stm.ino.bin" ./acsi2stm-$VERSION-verbose.ino.bin
 
   echo
@@ -84,6 +77,7 @@ if [ "$1" = all ]; then
   sed -i 's/^#define ACSI_STRICT .$/#define ACSI_STRICT 0/' "$srcdir/acsi2stm/acsi2stm.h"
   sed -i 's/^#define ACSI_HAS_RESET .$/#define ACSI_HAS_RESET 0/' "$srcdir/acsi2stm/acsi2stm.h"
   sed -i 's/^#define ACSI_SD_WRITE_LOCK .$/#define ACSI_SD_WRITE_LOCK 0/' "$srcdir/acsi2stm/acsi2stm.h"
+  sed -i 's/^#define ACSI_FAST_DMA .$/#define ACSI_FAST_DMA 1/' "$srcdir/acsi2stm/acsi2stm.h"
   compile_arduino legacy
   cp "$builddir/Arduino-legacy/acsi2stm.ino.bin" ./acsi2stm-$VERSION-legacy.ino.bin
 else

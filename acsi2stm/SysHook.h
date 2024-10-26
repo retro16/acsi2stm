@@ -229,25 +229,6 @@ struct ToLong: public Long {
 struct SysHook: public Monitor {
   // High level helper methods
 
-  // Push an object onto the stack, with a 16 bytes aligned padding below
-  template<typename T>
-  static void push(const T& t) {
-    push((uint8_t *)&t, sizeof(t));
-  }
-
-  // Push data onto the stack, with 16 bytes aligned padding below
-  static void push(uint8_t *bytes, int count);
-
-  // Unwind stack for an object of the given size, with 16 bytes padding
-  template<typename T>
-  static void pop(const T& t) {
-    (void)t;
-    int sz = sizeof(t);
-    if(sz & 0xf)
-      sz += 16 - (sz & 0xf);
-    shiftStack(sz);
-  }
-
   // Allocate bytes on the stack, set DMA to write onto the stack and return
   // the actual stack pointer after the shift
   static Long stackAlloc(int bytes);
@@ -300,16 +281,6 @@ struct SysHook: public Monitor {
     DmaPort::sendDma((uint8_t *)&value, sizeof(value));
   }
 
-  // Send an object using DMA and flush the DMA buffer with padding if needed
-  template<typename T>
-  static void sendPadded(const T& value) {
-    DmaPort::sendDma((uint8_t *)&value, sizeof(value));
-    if(sizeof(value) & 0xf) {
-      uint8_t padding[0xf];
-      DmaPort::sendDma(padding, 16 - (sizeof(value) & 0xf));
-    }
-  }
-
   // Read a data structure from the current DMA source address
   template<typename T>
   static void read(T& value) {
@@ -335,9 +306,6 @@ struct SysHook: public Monitor {
   static void readAtIndirect(uint8_t *bytes, ToLong source, int count);
   static void readAtIndirectShort(uint8_t *bytes, ToLong source, int count);
   static void readStringAtIndirect(char *bytes, ToLong source, int count);
-  static uint8_t readByteAtIndirect(ToLong source);
-  static Word readWordAtIndirect(ToLong source);
-  static Long readLongAtIndirect(ToLong source);
 
   // Hook commands
 
@@ -350,35 +318,16 @@ struct SysHook: public Monitor {
   // Execute Trap #1
   static void trap1();
 
-  // Execute Trap #13
-  static void trap13();
-
-  // Execute Trap #14
-  static void trap14();
-
   // Push SP on the stack.
   // Set DMA to read on the stack.
   static void pushSp();
 
-  // Push byte on the stack
-  static void push(uint8_t value);
-  static void push(char value) {
-    push((uint8_t)value);
-  }
-
   // Push word on the stack
   static void push(ToWord value);
-
-  // Push long on the stack
-  static void push(ToLong value);
 
   // Shift the stack pointer.
   // Set DMA to write on the stack.
   static void shiftStack(ToLong offset);
-
-  // Shift the stack pointer.
-  // Set DMA to read on the stack.
-  static void shiftStackRead(ToLong offset);
 
   // Read byte at address and push it on the stack.
   // Set DMA to read on the stack.
@@ -391,15 +340,6 @@ struct SysHook: public Monitor {
   // Read long at address and push it on the stack
   // Set DMA to read on the stack.
   static void readLongToStack(ToLong address);
-
-  // Pop byte from the stack and write it to address.
-  static void writeByteFromStack(ToLong address);
-
-  // Pop word from the stack and write it to address.
-  static void writeWordFromStack(ToLong address);
-
-  // Pop long from the stack and write it to address.
-  static void writeLongFromStack(ToLong address);
 
   // Pexec4 then rte
   static void pexec4ThenRte(ToLong pd);
@@ -427,6 +367,9 @@ struct SysHook: public Monitor {
 
   // Send a command and wait for completion
   static void sendCommand(int command, ToLong param);
+
+  // Send a command without waiting for completion
+  static void sendCommandNoWait(int command, ToLong param);
 
   // Test for DMA-compatible memory
   static bool isDma(uint32_t address) {

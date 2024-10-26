@@ -65,9 +65,11 @@ Changes since 4.12
 * Improved SD card hot swapping a lot
 * Removed self-modifying code in GemDrive: it should now work with CPU cache
 * Added support for TT-RAM in GemDrive
+* Found and fixed the root cause for memory corruptions with ACSI_FAST_DMA = 5
 * Fixed and added `GEMDRIVE.TOS` to load GemDrive from desktop
 * Boot `EMUTOS.SYS` on startup if present on the SD card
 * Introduced GemDrive command 0x09 to avoid crashes when reading boot sector
+* Verbose firmware is now less than 64k allowing to flash it with `HDDFLASH.TOS`
 * Fixed GemDrive boot when ACSI id 0 is not an ACSI2STM unit
 * Reworked documentation to put more emphasis on the new PCB design
 * Simplified documentation

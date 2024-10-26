@@ -310,25 +310,18 @@ transfered in fast mode (see *GemDrive variant* above). For each command, if bit
 executed. If bit 0 is 1, set DMA read (ACSI2STM->ST) after the command is
 executed.
 
-* 0xa6: forward hook to TOS / continue boot routine
-* 0xa4 [4x bytes]: Trap #1. *parameter* ignored.
-* 0xa2 [4x bytes]: Trap #13. *parameter* ignored.
-* 0xa0 [4x bytes]: Trap #14. *parameter* ignored.
-* 0x9e [4x bytes]: Push SP to stack. *parameter* ignored. Set DMA address on
+* 0x98: forward hook to TOS / continue boot routine
+* 0x96 [4x bytes]: Trap #1. *parameter* ignored.
+* 0x94 [4x bytes]: Push SP to stack. *parameter* ignored. Set DMA address on
   stack.
-* 0x9c [4x bytes]: Push *parameter* byte on the stack
-* 0x9a [4x bytes]: Push *parameter* word on the stack
-* 0x98 [4x bytes]: Push *parameter* long on the stack
-* 0x96 [4x bytes]: Add *parameter* to SP. Set DMA address on stack.
-* 0x94 [4x bytes]: Read byte at *parameter* and push it on stack.
+* 0x92 [4x bytes]: Push *parameter* word on the stack
+* 0x90 [4x bytes]: Add *parameter* to SP. Set DMA address on stack.
+* 0x8e [4x bytes]: Read byte at *parameter* and push it on stack.
   Set DMA address on stack.
-* 0x92 [4x bytes]: Read word at *parameter* and push it on stack.
+* 0x8c [4x bytes]: Read word at *parameter* and push it on stack.
   Set DMA address on stack.
-* 0x90 [4x bytes]: Read long at *parameter* and push it on stack.
+* 0x8a [4x bytes]: Read long at *parameter* and push it on stack.
   Set DMA address on stack.
-* 0x8e [4x bytes]: Read byte from stack and write it to *parameter*
-* 0x8c [4x bytes]: Read word from stack and write it to *parameter*
-* 0x8a [4x bytes]: Read long from stack and write it to *parameter*
 * 0x88 [4x bytes]: Call pexec(4, 0, *parameter*, 0) then return from exception
 * 0x86 [4x bytes]: Call pexec(6, 0, *parameter*, 0) then return from exception
 * 0x84 [4x bytes]: Set DMA at address pointed by the *parameter*.

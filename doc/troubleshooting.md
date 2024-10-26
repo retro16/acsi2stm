@@ -169,8 +169,8 @@ CH32F103 chips are known not to work.
 
 Some official STM32 chips are sold as STM32F103C8T6 but in reality they are
 STM32F103CBT6. The only difference is that the chip provides 128k flash instead
-of 64k. Both kinds of chips will work, and only CBT6 (or 128k C8T6) will support
-verbose mode (verbose mode requires 128k of flash).
+of 64k. Both kinds of chips will work equally well with the same binary firmware
+image.
 
 STM32 series other than STM32F103 work differently and won't work without
 modifying the code substantially.

@@ -110,10 +110,12 @@
 // fastest. It seems that the STM32 has hardware glitches in some corner cases,
 // and different algorithms do different tradeoffs for speed and compatibility.
 // Versions 3.x used algorithm 5 (the fastest) but had known issues.
+// The main issue is STM32 flash being too slow for DMA, now all DMA uploads are
+// done from STM32 RAM to make sure data is correct.
 //
 // Algorithms apply to STM32->ST transfers, for ST->STM32 any non-zero value
 // will enable fast DMA.
-#define ACSI_FAST_DMA 1
+#define ACSI_FAST_DMA 5
 
 // Adds an additional delay between the last command byte received and the
 // beginning of a DMA transfer. There is an inherent write hole in the ST and

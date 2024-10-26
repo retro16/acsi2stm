@@ -32,8 +32,6 @@ Compile-time options:
 
 The standard firmware, with verbose debug output. Very slow.
 
-Requires 128k of flash on the STM32.
-
 Compile-time options:
 
     #define ACSI_DEBUG 1
@@ -41,8 +39,7 @@ Compile-time options:
 
 ### acsi2stm-XXXX-strictverbose.ino.bin
 
-Same as the strict variant, with verbose debug output. Requires only 64k of
-flash on the STM32, unlike the full featured verbose variant.
+Same as the strict variant, with verbose debug output.
 
 Compile-time options:
 
@@ -53,12 +50,14 @@ Compile-time options:
 ### acsi2stm-XXXX-legacy.ino.bin
 
 Same as standard firmware, but for older 2.x units that don't have the necessary
-hardware modifications (reset line and read-only switch).
+hardware modifications (reset line and read-only switch). Also has more
+conservative speeds.
 
 Compile-time options:
 
     #define ACSI_HAS_RESET 0
     #define ACSI_SD_WRITE_LOCK 0
+    #define ACSI_FAST_DMA 1
 
 
 ## Which variant should I choose ?

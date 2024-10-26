@@ -17,6 +17,8 @@
 
 #include "Tos.h"
 
+#include "Devices.h"
+
 Long Tos::Cconout(char c) {
   Cconout_p p;
   p.c.bytes[0] = 0;
@@ -98,7 +100,7 @@ Long Tos::Pexec_4(ToLong basepage) {
   p.z1 = 0;
   p.basepage = basepage;
   p.z2 = 0;
-  verbose("Pexec(4)\n");
+  verbose("Pexec\n");
   return gemdos(Pexec_op, p);
 }
 
@@ -108,7 +110,7 @@ Long Tos::Pexec_5(ToLong cmdline, ToLong env) {
   p.z1 = 0;
   p.cmdline = cmdline;
   p.env = env;
-  verbose("Pexec(5)\n");
+  verbose("Pexec\n");
   return gemdos(Pexec_op, p);
 }
 
@@ -118,7 +120,7 @@ Long Tos::Pexec_6(ToLong basepage) {
   p.z1 = 0;
   p.basepage = basepage;
   p.z2 = 0;
-  verbose("Pexec(6)\n");
+  verbose("Pexec\n");
   return gemdos(Pexec_op, p);
 }
 
@@ -128,31 +130,8 @@ Long Tos::Pexec_7(ToLong prgflags, ToLong cmdline, ToLong env) {
   p.prgflags = prgflags;
   p.cmdline = cmdline;
   p.env = env;
-  verbose("Pexec(7)\n");
+  verbose("Pexec\n");
   return gemdos(Pexec_op, p);
-}
-
-Long Tos::Physbase() {
-  verboseHex("Physbase()\n");
-  return xbios(Physbase_op);
-}
-
-Long Tos::Logbase() {
-  verboseHex("Logbase()\n");
-  return xbios(Logbase_op);
-}
-
-Long Tos::Getrez() {
-  verboseHex("Getrez()\n");
-  return xbios(Getrez_op);
-}
-
-Long Tos::Setscreen(ToLong laddr, ToLong paddr, ToWord rez) {
-  Setscreen_p p;
-  p.laddr = laddr;
-  p.paddr = paddr;
-  p.rez = rez;
-  return xbios(Setscreen_op, p);
 }
 
 Long Tos::sysCall(void (*trap)(), Word opCode, uint8_t *paramBytes, int paramSize, int extraData)
@@ -187,9 +166,10 @@ void Tos::tosPrint(const char *text) {
   if(!text || !*text)
     return;
   int len = strlen(text) + 1;
+  memcpy(Devices::buf, text, len);
   len = (len + 0xf) & 0xfff0;
   Long textBuf = stackAlloc(len);
-  DmaPort::sendDma((const uint8_t *)text, len);
+  DmaPort::sendDma(Devices::buf, len);
   Cconws(textBuf, len);
 }
 

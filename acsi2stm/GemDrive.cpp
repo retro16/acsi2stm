@@ -884,10 +884,8 @@ FsFile & GemFile::reopen() {
 
 int32_t GemFile::read(uint8_t *data, int32_t size) {
   FsFile &file = reopen();
-  if(!file) {
-    Monitor::verbose("Failed reopen\n");
+  if(!file)
     return -1;
-  }
 
   int r = file.read(data, size);
   position = file.curPosition();
@@ -897,10 +895,8 @@ int32_t GemFile::read(uint8_t *data, int32_t size) {
 
 int32_t GemFile::write(uint8_t *data, int32_t size) {
   FsFile &file = reopen();
-  if(!file) {
-    Monitor::verbose("Failed reopen\n");
+  if(!file)
     return -1;
-  }
 
   int w = file.write(data, size);
   position = file.curPosition();
@@ -910,10 +906,8 @@ int32_t GemFile::write(uint8_t *data, int32_t size) {
 
 int32_t GemFile::seek(int32_t offset, int whence) {
   FsFile &file = reopen();
-  if(!file) {
-    Monitor::verbose("Failed reopen\n");
+  if(!file)
     return -1;
-  }
 
   switch(whence) {
     case 0:
@@ -1045,7 +1039,6 @@ void GemDrive::onBoot() {
 #endif
 
   // Prepare the driver binary
-  verbose("Prep driver\n");
   memcpy(buf, GEMDRIVE_boot_bin, GEMDRIVE_boot_bin_len);
 
   // Patch ACSI id
@@ -1059,12 +1052,10 @@ void GemDrive::onBoot() {
   uint32_t driverSize = (GEMDRIVE_boot_bin_len + 0xf) & 0xfffffff0;
   ToLong driverMem = Malloc(driverSize);
 
-  verbose("Upload\n");
   sendAt(driverMem, buf, GEMDRIVE_boot_bin_len);
 
   // Install system call hooks
   // Warning: installed system calls must be the same as in asm/GEMDRIVE/tos.s
-  verbose("Install\n");
   installHook(driverMem, 0x84); // GEMDOS
 
   onInit();
@@ -1080,14 +1071,13 @@ void GemDrive::onInit() {
 
 #if ACSI_DEBUG
 #if ACSI_VERBOSE
-  tosPrint("Verbose output enabled\r\n\n");
+  tosPrint("Verbose log enabled\r\n\n");
 #else
-  tosPrint("Debug output enabled\r\n\n");
+  tosPrint("Debug log enabled\r\n\n");
 #endif
 #endif
 
   // Cache OSHEADER values
-  verbose("OSHEADER\n");
   os_beg = _sysbase();
   os_beg = readLongAt(os_beg + offsetof(OSHEADER, os_beg));
 
@@ -1113,7 +1103,6 @@ void GemDrive::onInit() {
     Devices::drives[d].id = -1;
 
   // Mount drives
-  verbose("Get drive\n");
   setCurDrive(Dgetdrv());
 
   // Compute first drive letter
@@ -1167,7 +1156,7 @@ void GemDrive::onInit() {
   // Set boot drive on the ST
   for(d = 0; d < driveCount; ++d) {
     if(Devices::sdSlots[d].mountable) {
-      dbg("Boot on ");
+      dbg("\n        Boot on ");
       setCurDrive(Devices::drives[d].id);
       _bootdev(Devices::drives[d].id);
       Dsetdrv(Devices::drives[d].id);
@@ -1949,10 +1938,8 @@ bool GemDrive::onFdatime(const Tos::Fdatime_p &p) {
     return forward();
 
   FsFile &file = files[p.handle.bytes[1]].reopen();
-  if(!file) {
-    Monitor::verbose("Failed reopen\n");
+  if(!file)
     return rte(EIHNDL);
-  }
 
   if(p.wflag) {
     // Set time
@@ -2216,11 +2203,9 @@ uint32_t GemDrive::loadPrg(FsFile &prgFile, Long cmdline, Long env, uint32_t &ba
   pd.p_blen = ph.ph_blen;
   sendAt(pd, basepage);
 
-  if(!(ph.ph_prgflags.bytes[3] & 1)) {
-    verbose("Clear BSS ");
+  if(!(ph.ph_prgflags.bytes[3] & 1))
     // FASTLOAD not set: clear BSS
     clearAt(ph.ph_blen, pd.p_bbase);
-  }
 
   // The relocation table itself starts with a 32-bit value which marks the
   // offset of the first value to be relocated relative to the start of the

@@ -418,41 +418,6 @@ struct Tos: public SysHook {
     Word handle;
     Word wflag;
   };
-
-  // BIOS functions
-
-  DECLARE_FUNCTION(Rwabs, 4, (ToWord rwflag, ToLong buff, ToWord cnt, ToWord recnr, ToWord dev, ToLong lrecno)) {
-    Word rwflag;
-    Long buff;
-    Word cnt;
-    Word recnr;
-    Word dev;
-    Long lrecno;
-  };
-  DECLARE_FUNCTION(Getbpb, 7, (ToWord dev)) {
-    Word dev;
-  };
-  DECLARE_FUNCTION(Mediach, 9, (ToWord dev)) {
-    Word dev;
-  };
-  DECLARE_FUNCTION(Drvmap, 10, ()) {
-  };
-
-  // XBIOS functions
-  DECLARE_FUNCTION(Physbase, 2, ()) {
-  };
-
-  DECLARE_FUNCTION(Logbase, 3, ()) {
-  };
-
-  DECLARE_FUNCTION(Getrez, 4, ()) {
-  };
-
-  DECLARE_FUNCTION(Setscreen, 5, (ToLong laddr, ToLong paddr, ToWord rez)) {
-    Long laddr;
-    Long paddr;
-    Word rez;
-  };
 #undef DECLARE_FUNCTION
 
   // System call templates
@@ -464,24 +429,6 @@ struct Tos: public SysHook {
 
   static Long gemdos(ToWord opCode) {
     return sysCall(trap1, opCode, 0, 0, 0);
-  }
-
-  template<typename Params>
-  static Long bios(ToWord opCode, const Params &params, int extraData = 0) {
-    return sysCall(trap13, opCode, (uint8_t *)&params, sizeof(params), extraData);
-  }
-
-  static Long bios(ToWord opCode) {
-    return sysCall(trap13, opCode, 0, 0, 0);
-  }
-
-  template<typename Params>
-  static Long xbios(ToWord opCode, const Params &params, int extraData = 0) {
-    return sysCall(trap14, opCode, (uint8_t *)&params, sizeof(params), extraData);
-  }
-
-  static Long xbios(ToWord opCode) {
-    return sysCall(trap14, opCode, 0, 0, 0);
   }
 
   // Perform a system call with parameters

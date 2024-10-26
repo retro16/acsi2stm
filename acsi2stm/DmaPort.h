@@ -80,6 +80,7 @@ struct DmaPort {
   static void readDmaString(char *bytes, int count);
 
   // Send bytes using the DRQ/ACK method.
+  // WARNING: data must be in RAM, flash is not fast enough.
   static void sendDma(const uint8_t *bytes, int count);
 
   // Fill memory with a byte value.
@@ -140,10 +141,6 @@ protected:
 
   // Return true if the bus is completely idle
   static bool idle();
-
-  // Wait until the bus is idle.
-  // Times out quickly.
-  static void waitIdle();
 
   // Setup the hardware to read incoming data on the next A1 pulse
   static void armA1();

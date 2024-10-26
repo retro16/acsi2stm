@@ -412,7 +412,7 @@ void DmaPort::sendIrqFast(uint8_t *bytes, int count) {
 
   for(int i = 0; i < count; ++i)
     Acsi::verboseHex(bytes[i], '}');
- 
+
   Acsi::verboseHex("]");
 }
 
@@ -607,7 +607,7 @@ void DmaPort::sendDma(const uint8_t *bytes, int count) {
           while(!ackReceived()) \
             checkReset(); \
     } while(0)
-#else
+#elif ACSI_FAST_DMA >= 5
 #define ACSI_SEND_BYTE(b) do { \
       triggerDrq(); \
       writeData(bytes[b]); \
@@ -906,31 +906,6 @@ bool DmaPort::idle() {
   return (GPIOA->regs->IDR & idleMask) == idleMask && csUp();
 }
 
-void DmaPort::waitIdle() {
-  // Super fast polling
-  if(idle())
-    return;
-  if(idle())
-    return;
-  if(idle())
-    return;
-  if(idle())
-    return;
-  if(idle())
-    return;
-  if(idle())
-    return;
-
-  // Poll in a more controlled fashion
-  for(int i = 0; i < 5; ++i) {
-    delayMicroseconds(1);
-    if(idle())
-      return;
-  }
-
-  quickReset();
-}
-
 void DmaPort::armA1() {
   waitCsUp();
   CS_TIMER->CNT = 0;
@@ -963,8 +938,6 @@ bool DmaPort::irqUp() {
 
 void DmaPort::waitIrqUp() {
   // Quick check
-  if(irqUp())
-    return;
   if(irqUp())
     return;
   if(irqUp())
@@ -1030,7 +1003,7 @@ void DmaPort::waitCs() {
 
 uint8_t DmaPort::csData() {
   return (CS_TIMER->CCR4) >> 8;
-} 
+}
 
 void DmaPort::armDma() {
   DMA1_BASE->IFCR = DMA_IFCR_CTCIF6; // Reset DMA transfer flag
