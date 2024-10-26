@@ -21,6 +21,7 @@ if ! [ "$FORCE" ]; then
   || ! grep 'ACSI_SD_WRITE_LOCK 2' "$srcdir/acsi2stm/acsi2stm.h" >/dev/null \
   || ! grep 'ACSI_HAS_RESET 1' "$srcdir/acsi2stm/acsi2stm.h" >/dev/null \
   || ! grep 'ACSI_A1_WORKAROUND 1' "$srcdir/acsi2stm/acsi2stm.h" >/dev/null \
+  || ! grep 'ACSI_GEMDRIVE_NO_DIRECT_DMA 0' "$srcdir/acsi2stm/acsi2stm.h" >/dev/null \
   || grep -ri 'deadbeef' "$srcdir/asm" >/dev/null \
   || grep -ri 'cafe' "$srcdir/asm" >/dev/null \
   || grep -ri 'badc0de' "$srcdir/asm" >/dev/null \
@@ -61,7 +62,7 @@ echo "... and the legal stuff"
 
 cat > "$zipdir/README.txt" << EOF
 ACSI2STM Atari hard drive emulator
-Copyright (C) 2019-2023 by Jean-Matthieu Coulon
+Copyright (C) 2019-2024 by Jean-Matthieu Coulon
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

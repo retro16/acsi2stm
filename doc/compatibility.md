@@ -6,9 +6,9 @@ ACSI2STM was successfully tested on the following configurations:
 * Atari 520 STF, TOS 1.04, GemDrive + ICD driver
 * Atari 1040 STE, TOS 1.62, GemDrive + ICD driver
 * Atari 1040 STE, TOS 1.62, GemDrive + PP driver
-* Atari 1040 STE, TOS 1.62, GemDrive + Atari AHDI driver
+* Atari 1040 STE, TOS 2.06, GemDrive + Atari AHDI driver
 * Atari 1040 STE, TOS 2.06, GemDrive + ICD driver
-* Atari 1040 STE, EmuTOS, integrated ACSI driver + GemDrive
+* Atari 1040 STE, EmuTOS, EmuTOS ACSI driver + GemDrive
 * Atari TT030, ACSI mode (driver not specified)
 
 GemDrive mode is currently tested on Atari ST and STE (no TT or Falcon). It

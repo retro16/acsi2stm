@@ -1,5 +1,5 @@
 /* ACSI2STM Atari hard drive emulator
- * Copyright (C) 2019-2023 by Jean-Matthieu Coulon
+ * Copyright (C) 2019-2024 by Jean-Matthieu Coulon
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,8 +18,10 @@
 #ifndef SYSHOOK_H
 #define SYSHOOK_H
 
-#include "Monitor.h"
+#include "acsi2stm.h"
+
 #include "DmaPort.h"
+#include "Monitor.h"
 
 // Atari structures
 
@@ -427,7 +429,14 @@ struct SysHook: public Monitor {
   static void sendCommand(int command, ToLong param);
 
   // Test for DMA-compatible memory
-  static bool isDma(uint32_t address);
+  static bool isDma(uint32_t address) {
+#if ACSI_GEMDRIVE_NO_DIRECT_DMA
+    return false;
+#else
+    return address < phystop;
+#endif
+  }
+
   static const uint32_t phystop = 0xe00000; // DMA-compatible range
 };
 

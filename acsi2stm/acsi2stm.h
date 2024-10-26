@@ -1,5 +1,5 @@
 /* ACSI2STM Atari hard drive emulator
- * Copyright (C) 2019-2021 by Jean-Matthieu Coulon
+ * Copyright (C) 2019-2024 by Jean-Matthieu Coulon
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,7 +22,7 @@
 
 // acsi2stm global configuration
 
-#define ACSI2STM_VERSION "5.0b"
+#define ACSI2STM_VERSION "5.0c"
 
 // Set to 1 to enable debug output on the serial port
 #define ACSI_DEBUG 0
@@ -36,7 +36,7 @@
 
 // Serial port and speed used for debug/verbose output.
 #define ACSI_SERIAL Serial
-#define ACSI_SERIAL_SPEED 2000000
+#define ACSI_SERIAL_SPEED 1000000
 
 // Number of SD cards (1 to 5)
 #define ACSI_SD_CARDS 5
@@ -52,7 +52,8 @@
 // Falls back to mode 1 if strict mode is enabled.
 #define ACSI_READONLY 0
 
-// Set this to limit SD capacity artificially.
+// Set this to limit SD capacity artificially in ACSI mode.
+// Does not apply to disk images.
 //#define ACSI_MAX_BLOCKS 0x0FFFFF // 512MB limit
 
 // Maximum SD card speed in MHz.
@@ -199,6 +200,9 @@
 
 // Maximum depth of a path, in folders. Impacts RAM usage on the STM32.
 #define ACSI_GEMDRIVE_MAX_PATH 64
+
+// Disable direct DMA access in GemDrive (used for testing/debug)
+#define ACSI_GEMDRIVE_NO_DIRECT_DMA 0
 
 // vim: ts=2 sw=2 sts=2 et
 #endif

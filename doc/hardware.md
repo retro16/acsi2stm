@@ -228,8 +228,8 @@ PCB.
 
 ### Serial interface
 
-The serial interface (STM32 PA9/PA10) is available on the PCB as a small 3-pin
-interface. This can be used for programming the unit or debug output.
+The serial interface (STM32 PA9/PA10) is available on the PCB. This can be used
+for programming the unit or debug output.
 
 ### RESET
 
@@ -253,8 +253,10 @@ Remove the jumper for normal operation.
 ### ACSI
 
 Put a jumper to enable ACSI strict mode. GemDrive will be disabled and all 3 SD
-cards will behave like Atari hard disks. See [manual](manual.md) for more
-information about strict mode.
+cards will behave like Atari hard disks.
+
+**NOTE:** This jumper must be removed to program the STM32 using the serial
+port. This limitation is not present for `HDDFLASH.TOS`.
 
 ### SATAN PORT
 

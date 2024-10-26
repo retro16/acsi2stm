@@ -1,5 +1,5 @@
 /* ACSI2STM Atari hard drive emulator
- * Copyright (C) 2019-2021 by Jean-Matthieu Coulon
+ * Copyright (C) 2019-2024 by Jean-Matthieu Coulon
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,15 +15,12 @@
  * along with the program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <cstddef>
-#include "acsi2stm.h"
-#include "SysHook.h"
-#include "Tos.h"
-#include "TinyFile.h"
 #include "GemDrive.h"
+
 #include "DmaPort.h"
-#include "Devices.h"
-#include "BlockDev.h"
+#include "SysHook.h"
+
+#include <cstddef>
 
 #if ! ACSI_STRICT
 
@@ -1048,27 +1045,26 @@ void GemDrive::onBoot() {
 #endif
 
   // Prepare the driver binary
+  verbose("Prep driver\n");
   memcpy(buf, GEMDRIVE_boot_bin, GEMDRIVE_boot_bin_len);
 
   // Patch ACSI id
   buf[GEMDRIVE_boot_acsiid] = (Devices::gemBootDrive + Devices::acsiFirstId) << 5;
 
   // Patch parameter offset
-  verbose("Query longframe\n");
   buf[GEMDRIVE_boot_prmoff + 1] = _longframe() ? 8 : 6;
 
   // Upload the driver to resident memory
-  verbose("Allocate memory\n");
 
   uint32_t driverSize = (GEMDRIVE_boot_bin_len + 0xf) & 0xfffffff0;
   ToLong driverMem = Malloc(driverSize);
 
-  verbose("Upload driver\n");
+  verbose("Upload\n");
   sendAt(driverMem, buf, GEMDRIVE_boot_bin_len);
 
   // Install system call hooks
   // Warning: installed system calls must be the same as in asm/GEMDRIVE/tos.s
-  verbose("Install hooks\n");
+  verbose("Install\n");
   installHook(driverMem, 0x84); // GEMDOS
 
   onInit();
@@ -1078,9 +1074,9 @@ void GemDrive::onInit() {
   int d;
 
   // Driver splash screen
-  tosPrint("\eE" "ACSI2STM " ACSI2STM_VERSION " by Jean-Matthieu Coulon\r\n",
-           "GPLv3 license. Source & doc at\r\n",
-           " https://github.com/retro16/acsi2stm\r\n\n");
+  tosPrint("\eE", "ACSI2STM " ACSI2STM_VERSION " by Jean-Matthieu Coulon", "\r\n",
+           "GPLv3 license. Source & doc at", "\r\n",
+           " https://github.com/retro16/acsi2stm", "\r\n\n");
 
 #if ACSI_DEBUG
 #if ACSI_VERBOSE
@@ -1091,7 +1087,7 @@ void GemDrive::onInit() {
 #endif
 
   // Cache OSHEADER values
-  verbose("Read OSHEADER\n");
+  verbose("OSHEADER\n");
   os_beg = _sysbase();
   os_beg = readLongAt(os_beg + offsetof(OSHEADER, os_beg));
 
@@ -1117,7 +1113,7 @@ void GemDrive::onInit() {
     Devices::drives[d].id = -1;
 
   // Mount drives
-  verbose("Get boot drive\n");
+  verbose("Get drive\n");
   setCurDrive(Dgetdrv());
 
   // Compute first drive letter
@@ -2123,7 +2119,8 @@ void GemDrive::closeProcessFiles() {
     }
   }
 #if ACSI_DEBUG
-  dbg("Leaked ", total, " fd ");
+  if(total)
+    dbg("Leaked ", total, " fd ");
 #endif
 }
 
@@ -2208,12 +2205,6 @@ uint32_t GemDrive::loadPrg(FsFile &prgFile, Long cmdline, Long env, uint32_t &ba
   else
     basepage = Pexec_7(ph.ph_prgflags, cmdline, env);
 
-  if(!isDma(basepage)) {
-    dbg("Not in ST RAM ");
-    Mfree(basepage);
-    return EIMBA;
-  }
-
   // Setup basepage
   PD pd;
   readAt(pd, basepage);
@@ -2225,9 +2216,11 @@ uint32_t GemDrive::loadPrg(FsFile &prgFile, Long cmdline, Long env, uint32_t &ba
   pd.p_blen = ph.ph_blen;
   sendAt(pd, basepage);
 
-  if(!(ph.ph_prgflags.bytes[3] & 1))
+  if(!(ph.ph_prgflags.bytes[3] & 1)) {
+    verbose("Clear BSS ");
     // FASTLOAD not set: clear BSS
     clearAt(ph.ph_blen, pd.p_bbase);
+  }
 
   // The relocation table itself starts with a 32-bit value which marks the
   // offset of the first value to be relocated relative to the start of the
@@ -2290,7 +2283,7 @@ uint32_t GemDrive::loadPrg(FsFile &prgFile, Long cmdline, Long env, uint32_t &ba
 
         // Apply current relocation vector
         ToLong value(&buf[relOffset]);
-        verboseHex("Patching offset ", relOffset + prgOffset, ": ", (uint32_t)value);
+        verboseHex("Patch ", relOffset + prgOffset, ": ", (uint32_t)value);
         value += prgStart;
         verboseHex(" -> ", (uint32_t)value, '\n');
         value.set(&buf[relOffset]);
@@ -2301,7 +2294,7 @@ loadRelocationInfo:
           // Need to load more relocation info
           relTableSize = relFile.read(relTableCache, sizeof(relTableCache));
           relTableIndex = 0;
-          verbose("Loaded ", relTableSize, " bytes of relocation\n");
+          verbose("Loaded ", relTableSize, " bytes\n");
           if(relTableSize < 0)
             goto relocationFailed;
           else if(!relTableSize) {
@@ -2339,7 +2332,7 @@ loadRelocationInfo:
   return E_OK;
 
 relocationFailed:
-  verbose("Relocation error\n");
+  verbose("Reloc failed\n");
   Mfree(basepage);
   return EPLFMT;
 }

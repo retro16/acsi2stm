@@ -41,7 +41,7 @@ appear, check this section.
 * The activity LED must turn off nearly immediately when powering the ST on. If
   it doesn't, you may have a hardware fault on the ST or a bad STM32 chip.
 * Flash the debug firmware in case of issues. Debug messages help a lot. The
-  debug firmware outputs data at 2Mbps.
+  debug firmware outputs data at 1Mbps.
 
 ### Check that your ST actually works
 
@@ -81,11 +81,14 @@ even include the whole packaging and look very convincing.
 The SdFat library uses SD cards in SPI mode. Normally, all cards are compatible,
 but some full size SD cards may not support this mode.
 
-Some old SD cards don't work at 36MHz and will fall back at 12MHz.
+Some old SD cards don't work at 50MHz and will fall back at 25MHz.
 
 If SD cards aren't detected, check connections and make sure you don't use a SD
 slot board with logic level adapters for 5V Arduinos. Connections between the SD
 card and the microcontroller must be direct.
+
+If you need slower speed, change `ACSI_SD_MAX_SPEED` to *25* or to *1* in
+`acsi2stm.h` and recompile the firmware.
 
 
 Read-Only SD cards
@@ -94,6 +97,9 @@ Read-Only SD cards
 You need to solder PB0..PB5 pins. See [hardware](hardware.md).
 
 If you use the full featured PCB, you need solder blobs on JP0..JP3.
+
+If you can't change hardware, change `ACSI_SD_WRITE_LOCK` to *0* in `acsi2stm.h`
+and recompile the firmware.
 
 
 Programs not working in GemDrive mode
@@ -106,6 +112,23 @@ were adapted to work on hard disks should work though.
 
 See [compatibility](compatibility.md) for information about software
 compatibility.
+
+
+No debug output with debug/verbose firmware variants
+----------------------------------------------------
+
+First, check that you effectively have a debug variant. GemDrive mentions this
+on its splash screen on the ST.
+
+Make sure you have the correct settings on your serial port:
+
+* 1000000 bauds (1Mbps)
+* 8 bits
+* 1 stop bit
+* no parity
+
+If you need a slower speed, change `ACSI_SERIAL_SPEED` in `acsi2stm.h' and
+recompile the firmware.
 
 
 "Bad DMA" chips

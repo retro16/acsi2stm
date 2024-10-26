@@ -1,5 +1,5 @@
 /* ACSI2STM Atari hard drive emulator
- * Copyright (C) 2019-2022 by Jean-Matthieu Coulon
+ * Copyright (C) 2019-2024 by Jean-Matthieu Coulon
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,14 +15,15 @@
  * along with the program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "acsi2stm.h"
 #include "FlashFirmware.h"
+
 #include "DmaPort.h"
 #include "Monitor.h"
+
 #include <libmaple/dma.h>
 #include <libmaple/flash.h>
-#include <libmaple/rcc.h>
 #include <libmaple/pwr.h>
+#include <libmaple/rcc.h>
 #include <libmaple/scb.h>
 
 #define DMA_TIMER TIMER1_BASE

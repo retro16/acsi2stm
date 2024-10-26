@@ -1,5 +1,5 @@
 /* ACSI2STM Atari hard drive emulator
- * Copyright (C) 2019-2022 by Jean-Matthieu Coulon
+ * Copyright (C) 2019-2024 by Jean-Matthieu Coulon
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 #ifndef FLASH_FIRMWARE_H
 #define FLASH_FIRMWARE_H
 
-#include <Arduino.h>
+#include "acsi2stm.h"
 
 // Flashing firmware above 64k is harder, so keep it simple
 static const uint32_t FLASH_SIZE = 0x10000;

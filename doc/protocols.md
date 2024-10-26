@@ -137,8 +137,8 @@ whole IRQ pulse to be safe.
 
 #### GemDrive variant: status byte with parameter
 
-GemDrive uses status bytes as reverse commands in hook mode. Commands 0x80 to
-0x8a transmit a 4 bytes long parameter in fast mode (without waiting for IRQ):
+GemDrive uses status bytes as reverse commands in hook mode. Some commands
+transmit a 4 bytes long parameter in fast mode (without waiting for IRQ):
 
          __      _                           ___
     IRQ    |____| |_________________________|
@@ -282,24 +282,6 @@ mode.
 
 DMA is set at the correct address to read GEMDOS call parameters.
 
-#### 0x0f: BIOS hook
-
-Signals the ACSI2STM that a BIOS trap just happened. Enters in *Hook protocol*
-mode.
-
-This hook is not installed as it is currently unused.
-
-DMA is set at the correct address to read BIOS call parameters.
-
-#### 0x10: XBIOS hook
-
-Signals the ACSI2STM that an XBIOS trap just happened. Enters in *Hook protocol*
-mode.
-
-This hook is not installed as it is currently unused.
-
-DMA is set at the correct address to read XBIOS call parameters.
-
 #### 0x11: Initialize GemDrive
 
 Ask the ACSI2STM to initialize GemDrive. The ST enters in hook mode, then
@@ -322,17 +304,18 @@ different protocol.
 The ST waits for a status byte (which becomes a command byte), then acts
 accordingly.
 
-Command bytes in the 0x80..0x9f range are followed by a 4 bytes long parameter.
-These bytes are transfered in fast mode (see *GemDrive variant* above).
-For each command, if bit 0 of the command is 0, set DMA write (ST->ACSI2STM)
-after the command is executed. If bit 0 is 1, set DMA read (ACSI2STM->ST) after
-the command is executed.
+Most command are followed by a 4 bytes long parameter. These bytes are
+transfered in fast mode (see *GemDrive variant* above). For each command, if bit
+0 of the command is 0, set DMA write (ST->ACSI2STM) after the command is
+executed. If bit 0 is 1, set DMA read (ACSI2STM->ST) after the command is
+executed.
 
 * 0xa6: forward hook to TOS / continue boot routine
-* 0xa4 [4x bytes]: Trap #1
-* 0xa2 [4x bytes]: Trap #13
-* 0xa0 [4x bytes]: Trap #14
-* 0x9e [4x bytes]: Push SP to stack. Set DMA address on stack.
+* 0xa4 [4x bytes]: Trap #1. *parameter* ignored.
+* 0xa2 [4x bytes]: Trap #13. *parameter* ignored.
+* 0xa0 [4x bytes]: Trap #14. *parameter* ignored.
+* 0x9e [4x bytes]: Push SP to stack. *parameter* ignored. Set DMA address on
+  stack.
 * 0x9c [4x bytes]: Push *parameter* byte on the stack
 * 0x9a [4x bytes]: Push *parameter* word on the stack
 * 0x98 [4x bytes]: Push *parameter* long on the stack

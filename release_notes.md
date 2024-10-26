@@ -1,6 +1,8 @@
 5.00: Professionally assembled PCB, EmuTOS and fixes
 ====================================================
 
+5.00 is the final version of this project. Development is officially stopped.
+
 This is a new major version because the project shifted direction: it's not
 officially based on the Blue Pill anymore, but a custom PCB based on the exact
 same microcontroller: the STM32F103C8T6.
@@ -51,6 +53,7 @@ Changes since 4.12
 
 * Swapped ID_SHIFT jumper positions to match the actual Compact PCB
   configuration.
+* Changed debug output speed to 1Mbps: helps with laggy USB-UART converters
 * Fixed SD card frequencies to 50MHz, 25MHz and 1MHz to match the actual
   standard speeds
 * Arduino 2.x is now the official IDE
@@ -61,6 +64,7 @@ Changes since 4.12
 * Fixed GemDrive drive letter allocation
 * Improved SD card hot swapping a lot
 * Removed self-modifying code in GemDrive: it should now work with CPU cache
+* Added support for TT-RAM in GemDrive
 * Fixed and added `GEMDRIVE.TOS` to load GemDrive from desktop
 * Boot `EMUTOS.SYS` on startup if present on the SD card
 * Introduced GemDrive command 0x09 to avoid crashes when reading boot sector

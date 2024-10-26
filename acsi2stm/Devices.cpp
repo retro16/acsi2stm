@@ -1,5 +1,5 @@
 /* ACSI2STM Atari hard drive emulator
- * Copyright (C) 2019-2022 by Jean-Matthieu Coulon
+ * Copyright (C) 2019-2024 by Jean-Matthieu Coulon
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,11 +15,12 @@
  * along with the program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <Arduino.h>
 #include "Devices.h"
-#include "BlockDev.h"
+
 #include "Acsi.h"
+#include "BlockDev.h"
 #include "GemDrive.h"
+
 #include <libmaple/iwdg.h>
 
 // SD slots table, with physical slot ID, SD CS pin and SD write protect pin

@@ -1,5 +1,5 @@
 /* ACSI2STM Atari hard drive emulator
- * Copyright (C) 2019-2022 by Jean-Matthieu Coulon
+ * Copyright (C) 2019-2024 by Jean-Matthieu Coulon
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,8 +15,8 @@
  * along with the program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <Arduino.h>
 #include "BlockDev.h"
+
 #include "SdFat.h"
 #if ! ACSI_STRICT
 #include "TinyFile.h"
@@ -243,10 +243,7 @@ beginOk:
     // Open the file system
     image.close();
     if(fs.begin(&card))
-{
       image.open(ACSI_IMAGE_FILE);
-dbgHex("TMPJM4\n");
-}
 
     // Check if bootable
     if(!(*this)->updateBootable())

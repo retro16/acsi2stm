@@ -1,5 +1,5 @@
 /* ACSI2STM Atari hard drive emulator
- * Copyright (C) 2019-2023 by Jean-Matthieu Coulon
+ * Copyright (C) 2019-2024 by Jean-Matthieu Coulon
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,9 +18,11 @@
 #ifndef TOS_H
 #define TOS_H
 
-#define TOS_PACKED __attribute__((__packed__))
+#include "acsi2stm.h"
 
 #include "SysHook.h"
+
+#define TOS_PACKED __attribute__((__packed__))
 
 // TOS handlers
 struct Tos: public SysHook {

@@ -30,5 +30,5 @@ fi
 
 stm32flash -g 0x08000000 -w "$srcdir/acsi2stm-$VERSION.ino.bin" "$uart" || exit $?
 
-stty -F $uart 2000000 cs8 -cstopb -parenb || exit $?
+stty -F $uart 1000000 cs8 -cstopb -parenb || exit $?
 tee acsi2stm.log < "$uart"

@@ -1,5 +1,5 @@
 /* ACSI2STM Atari hard drive emulator
- * Copyright (C) 2019-2023 by Jean-Matthieu Coulon
+ * Copyright (C) 2019-2024 by Jean-Matthieu Coulon
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,11 +19,12 @@
 #define GEM_DRIVE_H
 
 #include "acsi2stm.h"
+
+#include "BlockDev.h"
 #include "Devices.h"
-#include "Tos.h"
 #include "SdFat.h"
 #include "TinyFile.h"
-#include "BlockDev.h"
+#include "Tos.h"
 
 struct TOS_PACKED GemPattern {
   GemPattern();

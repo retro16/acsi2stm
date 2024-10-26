@@ -22,7 +22,7 @@ Compile-time options:
 ### acsi2stm-XXXX-debug.ino.bin
 
 The standard firmware, with limited debug output. Debug output is on the USART
-port of the STM32 (PA9) at 2Mbps.
+port of the STM32 (PA9) at 1Mbps.
 
 Compile-time options:
 
@@ -161,7 +161,7 @@ Once the chip is programmed, switch the BOOT0 jumper back to 0.
 require to change debug output to Serial0 and may consume more memory. Serial
 programming is the only supported upload method.
 
-**Note:** The debug output sends data at 2Mbps. Set the serial monitor
+**Note:** The debug output sends data at 1Mbps. Set the serial monitor
 accordingly.
 
 

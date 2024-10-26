@@ -1,5 +1,5 @@
 /* ACSI2STM Atari hard drive emulator
- * Copyright (C) 2019-2021 by Jean-Matthieu Coulon
+ * Copyright (C) 2019-2024 by Jean-Matthieu Coulon
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,9 +15,7 @@
  * along with the program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "acsi2stm.h"
 #include "SysHook.h"
-#include "DmaPort.h"
 
 void SysHook::push(uint8_t *bytes, int count)
 {
@@ -51,19 +49,27 @@ void SysHook::sendAt(uint32_t address, const uint8_t *bytes, int count)
   if(count <= 0)
     return;
 
-  if(count < 16) {
+  if(count < 16 || !isDma(address + count - 1)) {
     // Indirect copy
 
     shiftStack(-32);
 
     uint8_t data[32];
-    Word dCount = ToWord(count - 1);
-    data[0] = dCount.bytes[0];
-    data[1] = dCount.bytes[1];
-    memcpy(&data[2], bytes, count);
-    DmaPort::sendDma(data, 32);
 
-    copyFromStack(address);
+    while(count > 0) {
+      int c = count > 30 ? 30 : count;
+      Word dCount = ToWord(c - 1);
+      data[0] = dCount.bytes[0];
+      data[1] = dCount.bytes[1];
+      memcpy(&data[2], bytes, c);
+      shiftStack(0);
+      DmaPort::sendDma(data, 32);
+      copyFromStack(address);
+
+      address += c;
+      bytes += c;
+      count -= c;
+    }
 
     shiftStack(32);
     return;
@@ -77,7 +83,7 @@ void SysHook::sendAt(uint32_t address, const uint8_t *bytes, int count)
     --count;
   }
 
-  if(count >= 16) {
+  while(count >= 16) {
     int blockSize = count & 0x1fff0;
 
     setDmaRead(address);
@@ -97,7 +103,7 @@ void SysHook::readAt(uint8_t *bytes, uint32_t source, int count)
   if(count <= 0)
     return;
 
-  if(!isDma(source)) {
+  if(!isDma(source + count - 1)) {
     // Read from outside DMA RAM: use slow indirect copy
     readAtIndirect(bytes, source, count);
     return;
@@ -169,15 +175,35 @@ void SysHook::readStringAt(char *bytes, ToLong address, int count)
 }
 
 void SysHook::clearAt(uint32_t bytes, uint32_t address) {
-  if(!isDma(address))
-    return;
+  uint8_t blank[32] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                       0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
-  uint8_t blank[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+  if(!isDma(address + bytes - 1)) {
+    // Upload some blank bytes on the stack
+    shiftStack(-32);
+    DmaPort::sendDma(blank, 32);
+
+    while(bytes > 0) {
+      int c = bytes > 32 ? 32 : bytes;
+
+      push(ToWord(c));
+      copyFromStack(address);
+      shiftStack(2);
+
+      address += c;
+      bytes -= c;
+    }
+
+    // Free data from stack
+    shiftStack(32);
+
+    return;
+  }
 
   if(address & 1) {
-    --bytes;
     sendAt(address, blank, 1);
     ++address;
+    --bytes;
   }
 
   if(bytes >= 16) {
@@ -219,19 +245,21 @@ void SysHook::readAtIndirect(uint8_t *bytes, ToLong source, int count) {
   }
 
   // Make room for a 32 bytes buffer on the ST stack
-  shiftStack(-34);
+  shiftStack(-32);
   while(count) {
     int l = count > 32 ? 32 : count;
 
     // Write byte count on the stack
-    shiftStack(0);
-    sendPadded(ToWord(l - 1));
+    push(ToWord(l - 1));
 
     // Do the copy on the ST side
     copyToStack(source);
 
     // Fetch data
     DmaPort::readDma(bytes, l);
+
+    // Pop byte count
+    shiftStack(2);
 
     count -= l;
     bytes += l;
@@ -254,18 +282,17 @@ void SysHook::readAtIndirectShort(uint8_t *bytes, ToLong source, int count) {
   DmaPort::readDma(bytes, count);
 
   // Free stack buffer
-  shiftStack(14);
+  shiftStack(16);
 }
 
 void SysHook::readStringAtIndirect(char *bytes, ToLong source, int count) {
   // Make room for a 32 bytes buffer on the ST stack, plus a byte count word
-  shiftStack(-34);
+  shiftStack(-32);
   while(count) {
     int l = count > 32 ? 32 : count;
 
     // Write byte count on the stack
-    shiftStack(0);
-    sendPadded(ToWord(l - 1));
+    push(ToWord(l - 1));
 
     // Do the copy on the ST side
     copyToStack(source);
@@ -276,17 +303,21 @@ void SysHook::readStringAtIndirect(char *bytes, ToLong source, int count) {
       DmaPort::readDma(lbuf, l);
       for(int i = 0; i < l; ++i) {
         bytes[i] = (char)lbuf[i];
-        if(!lbuf[i])
+        if(!lbuf[i]) {
+          shiftStack(2);
           goto end_of_string;
+        }
       }
     }
+
+    shiftStack(2);
 
     count -= l;
     bytes += l;
     source += l;
   }
 end_of_string:
-  shiftStack(34);
+  shiftStack(32);
 }
 
 // Low level hook commands implementation
@@ -451,10 +482,6 @@ void SysHook::sendCommand(int command, ToLong param)
   bytes[4] = param.bytes[3];
   DmaPort::sendIrqFast(bytes, 5);
   waitCommand();
-}
-
-bool SysHook::isDma(uint32_t address) {
-  return address < phystop;
 }
 
 // vim: ts=2 sw=2 sts=2 et

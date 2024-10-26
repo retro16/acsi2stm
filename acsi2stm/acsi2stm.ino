@@ -1,5 +1,5 @@
 /* ACSI2STM Atari hard drive emulator
- * Copyright (C) 2019-2022 by Jean-Matthieu Coulon
+ * Copyright (C) 2019-2024 by Jean-Matthieu Coulon
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,7 +16,9 @@
  */
 
 #include "acsi2stm.h"
+
 #include "Monitor.h"
+
 #include <libmaple/gpio.h>
 
 // Use a class to run initialization before constructing other globals
@@ -36,9 +38,9 @@ struct PreBoot {
 };
 PreBoot preBoot;
 
-#include "DmaPort.h"
 #include "Acsi.h"
 #include "Devices.h"
+#include "DmaPort.h"
 #include "GemDrive.h"
 
 void setup() {
@@ -47,7 +49,11 @@ void setup() {
 
 #if ACSI_DEBUG
     Monitor::beginDbg();
-    Monitor::dbg("\nACSI2STM v" ACSI2STM_VERSION "\n\n");
+    Monitor::dbg("\n\n",
+      "ACSI2STM " ACSI2STM_VERSION " by Jean-Matthieu Coulon", "\n",
+      "GPLv3 license. Source & doc at", "\n",
+      " https://github.com/retro16/acsi2stm", "\n\n");
+
 #endif
 }
 
