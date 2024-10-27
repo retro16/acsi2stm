@@ -135,6 +135,10 @@ Then, you will be able to upload the program to the STM32.
 the same idea. Arduino 1.x is not officially supported anymore, but efforts
 will be done to avoid breaking compatibility.
 
+**Warning:** ST-Link is **not** supported. When compiling with ST-Link enabled,
+it injects some extra code and generates broken firmware. UART is the only
+supported way of programming/debugging ACSI2STM.
+
 
 Programming the STM32
 ---------------------

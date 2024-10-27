@@ -86,9 +86,10 @@ main:
 
 	rts
 
-.header	dc.b	$1b,'E','Disk swap TOS tester v'
+.header	dc.b	$1b,'E','Character generator v'
 	incbin	..\..\VERSION
-	dc.b	$0d,'by Jean-Matthieu Coulon',$0d,$0a
+	dc.b	$0d,$0a
+	dc.b	'By Jean-Matthieu Coulon',$0d,$0a
 	dc.b	'https://github.com/retro16/acsi2stm',$0d,$0a
 	dc.b	'License: GPLv3',$0d,$0a
 	dc.b	$0a

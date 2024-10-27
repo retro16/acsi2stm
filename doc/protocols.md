@@ -293,7 +293,7 @@ Used by `GEMDRIVE.TOS`.
 
 You can send any ACSI command, just as if the drive was in ACSI mode.
 
-**Warning**: modifying the content of the SD using SCSI block write commands
+**Warning:** modifying the content of the SD using SCSI block write commands
 may conflict with the GemDrive driver and corrupt data.
 
 ### Hook protocol

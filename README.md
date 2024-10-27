@@ -53,6 +53,7 @@ This is what you can find:
 * [compiling](doc/compiling.md): A step-by-step tutorial to compile and
   customize a new firmware. Describes compilation options. Also describes
   pre-built firmware variants in the release package.
+* [tools](doc/tools.md): Documentation for tools provided with ACSI2STM.
 * [hardware](doc/hardware.md): How to design and build an acsi2stm unit
   from scratch (hand wired, or your own PCB design). Also documents jumper
   configuration.

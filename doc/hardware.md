@@ -106,9 +106,9 @@ Use this table to match pins on the ACSI port and the STM32:
 |  18  | (nc)  | R/W | Read/Write       |
 |  19  | PA11  | DRQ | Data request     |
 
-**WARNING**: Pinout changed since v1.0: PA8 and PA12 are swapped.
+**Warning:** Pinout changed since v1.0: PA8 and PA12 are swapped.
 
-**Notes**:
+**Notes:**
 
 * GND is soldered together on the ST side. You can use a single wire for
   ground.
@@ -171,10 +171,10 @@ SD cards:
 
 Leave unused CS pins unconnected.
 
-**WARNING**: Pinout changed in v2.0: PA0 was added, PBx were removed and unused
+**Warning:** Pinout changed in v2.0: PA0 was added, PBx were removed and unused
 SD card CS pins *must not* be grounded anymore.
 
-**Notes**:
+**Notes:**
 
 * If you need to hot swap your SD card, or if you want multiple SD slots, you
   need to put a 10k-100k pull-up resistor between +3.3V and PA6. A single
@@ -278,7 +278,7 @@ Changing operation modes with jumpers on the Blue Pill board
 The STM32 blue pill has 2 jumpers. You can access to different operation modes
 just by switching these jumpers to different places.
 
-**WARNING:** Do not attempt any other combination than what is explained here.
+**Warning:** Do not attempt any other combination than what is explained here.
 You might damage your product.
 
 ACSI id 0 to 4, GemDrive enabled

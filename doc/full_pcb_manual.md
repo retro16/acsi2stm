@@ -40,7 +40,7 @@ you can make the best choices for your use case.
 Power sources
 -------------
 
-**Warning**: Do not use the onboard USB socket of the Blue Pill without making
+**Warning:** Do not use the onboard USB socket of the Blue Pill without making
 hardware modifications. USB data lines are connected to the hard drive port,
 this **will** break things.
 
@@ -76,7 +76,7 @@ JP1 to JP3 configure slots SD1 to SD3, respectively. If set in the top position,
 the slot is completely disabled. This way, you can build a PCB with less SD
 slots. The bottom position serves the same purpose as JP0.
 
-**Warning**: Never solder the 3 pads of a same JP element together, this will
+**Warning:** Never solder the 3 pads of a same JP element together, this will
 create a short.
 
 
@@ -115,7 +115,7 @@ select 5V or 3V3. 3V3 is strapped to VCC and 5V is left unconnected.
 You can power the whole board using this kind of adapter by connecting J4. You
 can put a jumper on J4 to enable this temporarily.
 
-**Warning**: When powering the board using the adapter, make sure not to power
+**Warning:** When powering the board using the adapter, make sure not to power
 it with any other method, power supplies may conflict and this could destroy
 hardware.
 
