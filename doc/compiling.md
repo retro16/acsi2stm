@@ -354,6 +354,7 @@ At least one pass must be done with a different ID_SHIFT jumper position
 * Run `TOSTEST.TOS` on a floppy disk if it changed since the last release
 * Run `TOSTEST.TOS` on a GemDrive card
 * Run a few big desktop programs on GemDrive, use the file selector
+* Eject the GemDrive SD card and try to open it
 
 ### On a single TOS version
 

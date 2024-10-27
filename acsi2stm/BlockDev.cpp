@@ -434,22 +434,14 @@ bool SdDev::isWritable() {
 }
 
 uint32_t SdDev::mediaId(BlockDev::MediaIdMode mediaIdMode) {
-  verbose("id ");
-
-  if(mode == DISABLED) {
-    verbose("slot disabled ");
+  if(mode == DISABLED)
     return 0;
-  }
 
-  if(mediaIdMode == BlockDev::CACHED && !lastMediaId) {
-    // Don't refresh cache if known to have an empty slot
-    verbose("cached ", "empty slot ");
-    return 0;
-  }
+  verbose("id", slot, " ", mediaIdMode ," ");
 
   uint32_t now = millis();
-  if(mediaIdMode == BlockDev::NORMAL) {
-    if(now - lastMediaCheckTime <= mediaCheckPeriod) {
+  if(mediaIdMode != BlockDev::FORCE) {
+    if(mediaIdMode == BlockDev::CACHED || now - lastMediaCheckTime <= mediaCheckPeriod) {
       verbose("cached ");
       return lastMediaId;
     }
@@ -473,6 +465,10 @@ uint32_t SdDev::mediaId(BlockDev::MediaIdMode mediaIdMode) {
 
     // Try to recover
     init();
+
+    if(!lastMediaId)
+      // Recover failed
+      return 0;
   } else {
     lastMediaId = 0;
   }
