@@ -72,6 +72,7 @@ Changes since 4.12
 * Verbose firmware is now less than 64k allowing to flash it with `HDDFLASH.TOS`
 * Fixed GemDrive boot when ACSI id 0 is not an ACSI2STM unit
 * Reworked documentation to put more emphasis on the new PCB design
+* Removed "full-featured" PCB as it's not really safe nor easy to build
 * Simplified documentation
 * Code cleanup pass (dead code removal, code formating, comments review, ...)
 

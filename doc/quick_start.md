@@ -186,6 +186,8 @@ needed for keeping the clock running when the ST is off.
 If you mounted an IDC20 socket, you can connect the ACSI2STM unit through it
 instead of the DB19 port. This is useful if you have other IDC20 devices.
 
+![Compact PCB on IDC20 port](images/compact_idc20.png)
+
 You can connect things on both the DB19 and IDC20 ports at the same time.
 
 

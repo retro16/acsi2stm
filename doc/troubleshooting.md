@@ -131,6 +131,46 @@ If you need a slower speed, change `ACSI_SERIAL_SPEED` in `acsi2stm.h' and
 recompile the firmware.
 
 
+Random errors while copying a lot of files
+------------------------------------------
+
+TOS has a poor FAT filesystem implementation, with a lot of bugs. This gets
+better with each new version, especially TOS 2.06, but it still has issues.
+
+Some workaround programs were released, patching various parts of the filesystem
+but this may have adverse effects with GemDrive:
+
+* FOLDR100.PRG (and its variants)
+* CACHE064.PRG (and its variants)
+* BigDOS
+
+Even with this, the filesystem is laden with bugs, memory leaks, bad error code
+handling and other quirks.
+
+The best way to limit possible interaction between these patching tools is to
+load GemDrive through `GEMDRIVE.TOS` and make sure it's loaded after all these
+tools. That way access to GemDrive drives will be done with pristine system
+calls.
+
+The safest solution is to stay away from TOS/ACSI as much as possible and use
+GemDrive only. If you really need to do ACSI file management, use EmuTOS.
+
+
+Issues with multiple ACSI2STM units on the same computer
+--------------------------------------------------------
+
+It should be possible to use multiple units at the same time when using ACSI
+strict mode. Just make sure you don't have ACSI id conflicts (use ID_SHIFT).
+
+GemDrive should theoretically work, but in practice it has bugs: some commands
+are handled by the wrong device, and because of how GemDrive works, it fails
+fast and hard.
+
+Because ACSI2STM provides many SD card slots and GemDrive has no size
+limitation, motivation to debug multi-GemDrive mode is very low, so it will
+probably be left unfixed.
+
+
 "Bad DMA" chips
 ---------------
 

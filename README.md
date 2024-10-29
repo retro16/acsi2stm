@@ -59,8 +59,6 @@ This is what you can find:
   configuration.
 * [protocols](doc/protocols.md): Technical details about the communication
   protocol between the ACSI2STM unit and the Atari ST.
-* [full_pcb_manual](doc/full_pcb_manual.md): Tutorial to build and use the
-  full-featured PCB. You should use the compact PCB instead if possible.
 
 
 To people buying/selling hardware

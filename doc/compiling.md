@@ -350,7 +350,7 @@ The hardware must be flashed with the previous stable version.
 At least one pass must be done with a different ID_SHIFT jumper position
 
 * Boot an ICD + GemDrive combination
-* Copy files from GemDrive to ICD
+* Copy files from GemDrive to ICD, at least one file must be over 1M
 * Create a directory on GemDrive
 * Copy files back from ICD to GemDrive
 * On a PC, check that the 2 copies are identical
