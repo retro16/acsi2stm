@@ -15,6 +15,7 @@
 ; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ; Hooks TOS system calls into the STM32
+; This is the PIO version: it doesn't use DMA transfers at all
 
 savereg	macro
 	; Save registers on stack
@@ -80,10 +81,8 @@ syshook.exec:
 	savereg	                        ; Save registers
 	bsr.b	syshook.setprm          ; Set a2 (DMA address) at the parameters
 
-	cmp.w	#$000e,d0               ; Don't hook Super because it breaks
-	bne.b	syshook.sendcmd         ; some programs such as ICDFMT.PRG
-	cmp.w	#$0020,(a2)             ;
-	beq.b	syshook.forward         ;
+	cmp.w	#$0020,(a2)             ; Don't hook Super because it breaks
+	beq.b	syshook.forward         ; some programs such as ICDFMT.PRG
 
 syshook.sendcmd:
 	or.b	acsiid(pc),d0           ; Set ACSI identifier
@@ -91,10 +90,8 @@ syshook.sendcmd:
 	st	flock.w                 ; Lock floppy controller
 	bsr.w	syshook.setdmaaddr      ; Set DMA address on chip
 
-	move.w	#$00ff,(a0)             ; Send 255 blocks.
 	move.w	#$0188,(a1)             ; Switch to command.
 	move.w	d0,(a0)                 ; Send command byte to the STM32
-	move.w	#$0100,(a1)             ; Start DMA
 
 syshook.reply:
 	; Handle single byte reply
@@ -155,6 +152,7 @@ syshook.execcmd:
 	dc.w	syshook.pshword-.jmptbl ; $92
 	dc.w	syshook.pushsp-.jmptbl  ; $94
 	dc.w	syshook.trap01-.jmptbl  ; $96
+	dc.w	syshook.piocpy-.jmptbl  ; $98
 
 syshook.rte
 	; Command $80: Return long from exception
@@ -220,26 +218,49 @@ syshook.trap01:
 	trap	#01
 	move.l	d0,-(sp)
 	move.l	syshook.oldd0(pc),d0
+	bra.b	syshook.dmasp
+
+syshook.piocpy:
+	bsr.b	syshook.await           ; Wait for IRQ
+
+	moveq	#0,d2                   ; d2 = byte buffer
+	subq	#1,d1                   ; Adjust for DBRA
+
+	btst	#0,d0                   ;
+	bne.b	.piord                  ;
+
+	move.w	#$018a,(a1)             ; Enable write mode
+
+.wloop	move.b	(a2)+,d2                ; Do the transfer byte per byte
+	move.w	d2,(a0)                 ;
+	dbra	d1,.wloop               ;
+
+	move.w	#$008a,(a1)             ; Disable write mode
+
+	bra.w	syshook.reply           ;
+
+.piord	move.w	#$008a,(a1)             ;
+
+.rloop	move.w	(a0),d2                 ; Do the transfer byte per byte
+	move.b	d2,(a2)+                ;
+	dbra	d1,.rloop               ;
+
+	bra.w	syshook.reply           ;
+
 syshook.dmasp:
-	move.l	sp,d1
+	move.l	sp,d1                   ;
 
 	; DMA setup
 syshook.dmaset:
 	move.l	d1,a2                   ; Set parameter as DMA address
 syshook.dmanset:
-	btst	#0,d0                   ; Check if DMA is read or write
-	beq.b	syshook.wcmd            ; DMA write
 
-syshook.rcmd:
 	; Continue the command stream in DMA read mode
 	; This sends a command byte $00 to signal the STM32 that we are ready.
 	bsr.b	syshook.setdmaaddr      ; Set DMA address to a2
 
-	move.w	#$0090,(a1)             ; Set block count
-	move.w	#$00ff,(a0)             ; Send 255 blocks
-	move.w	#$008a,(a1)             ; Switch to command
+	move.w	#$018a,(a1)             ; Switch to command
 	clr.w	(a0)                    ; Send zero command byte
-	clr.w	(a1)                    ; Enable DMA
 
 	bra.w	syshook.reply
 
@@ -258,7 +279,7 @@ syshook.bytecp:
 .cpy    move.b	(a1)+,(a0)+             ; Byte copy from stack to memory
 	dbra	d2,.cpy                 ;
 
-	bra.b	syshook.rcmd
+	bra.b	syshook.dmanset
 
 syshook.byteread:
 	; Command $82: Copy from memory to stack
@@ -266,19 +287,12 @@ syshook.byteread:
 .cpy    move.b	(a0)+,(a1)+             ; Byte copy from memory to stack
 	dbra	d2,.cpy                 ;
 
-	; Fall through syshook.wcmd
+	bra.b	syshook.dmanset
 
-syshook.wcmd:
-	; Continue the command stream in DMA write mode
-	; This sends a command byte $88 to signal the STM32 that we are ready.
-	bsr.b	syshook.setdmaaddr      ; Set DMA address to a2
-
-	move.w	#$00ff,(a0)             ; Send 255 blocks
-	move.w	#$018a,(a1)             ; Switch to command
-	move.w	#$0088,(a0)             ; Send $88 command byte
-	move.w	#$0100,(a1)             ; Enable DMA
-
-	bra.w	syshook.reply
+syshook.await:
+	btst.b	#5,gpip.w               ; Test command acknowledge
+	bne.b	syshook.await           ;
+	rts	                        ;
 
 syshook.setdmaaddr:
 	; Set DMA address and size
@@ -286,16 +300,6 @@ syshook.setdmaaddr:
 	;  a2: DMA address to set
 
 	movem.w	syshook.dmareg(pc),a0-a1; Set DMA controller registers
-
-	move.w	#$0090,(a1)             ; Reset DMA pipeline
-	move.w	#$0190,(a1)             ;
-
-	move.l	a2,d1                   ; Set DMA address
-	move.b	d1,dmalow.w             ;
-	lsr.l	#8,d1                   ;
-	move.b	d1,dmamid.w             ;
-	lsr.l	#8,d1                   ;
-	move.b	d1,dmahigh.w            ;
 
 	rts
 

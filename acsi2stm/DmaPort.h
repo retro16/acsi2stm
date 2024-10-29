@@ -62,16 +62,16 @@ struct DmaPort {
   // Read one byte using the IRQ/CS method.
   static uint8_t readIrq();
 
-  // Read one byte using the CS method without pulling IRQ.
-  static uint8_t readNoIrq();
-
   // Send one byte using the IRQ/CS method.
   // This is normally used for the status byte.
   static void sendIrq(uint8_t byte);
 
   // Send many bytes using the fast IRQ/CS method.
   // This is used for the GEMDOS protocol.
-  static void sendIrqFast(uint8_t *bytes, int count);
+  static void sendIrqFast(const uint8_t *bytes, int count);
+
+  // Read many bytes using the fast IRQ/CS method.
+  static void readIrqFast(uint8_t *bytes, int count);
 
   // Read bytes using the DRQ/ACK method.
   static void readDma(uint8_t *bytes, int count);

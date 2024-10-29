@@ -59,6 +59,38 @@ Compile-time options:
     #define ACSI_SD_WRITE_LOCK 0
     #define ACSI_FAST_DMA 1
 
+### acsi2stm-XXXX-pio.ino.bin
+
+Variant that does not use DMA transfers at all. This only supports GemDrive and
+it cannot autoboot, so you need to load the driver `GEMDRPIO.TOS` manually.
+
+Performance suffers: it runs about 10x slower than DMA, which is still much
+better than floppy drives and probably as fast as an old hard drive with a bad
+AHDI driver.
+
+Compile-time options:
+
+    #define ACSI_PIO 1
+
+### acsi2stm-XXXX-piodebug.ino.bin
+
+PIO variant with debug output enabled.
+
+Compile-time options:
+
+    #define ACSI_PIO 1
+    #define ACSI_DEBUG 1
+
+### acsi2stm-XXXX-pioverbose.ino.bin
+
+PIO variant with verbose output enabled. This mode is **extremely slow**.
+
+Compile-time options:
+
+    #define ACSI_PIO 1
+    #define ACSI_DEBUG 1
+    #define ACSI_VERBOSE 1
+
 
 ## Which variant should I choose ?
 
@@ -76,6 +108,9 @@ If you know you have an old unit without a reset line, use the "legacy" variant.
 
 If your SD card is stuck in read-only mode, you need to do hardware
 modifications. If you cannot do that (or don't want to), use the legacy variant.
+
+If you have a faulty DMA chip (common problem), you will have to use the PIO
+variant.
 
 
 Compiling and installing a new firmware

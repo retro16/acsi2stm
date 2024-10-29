@@ -310,7 +310,7 @@ transfered in fast mode (see *GemDrive variant* above). For each command, if bit
 executed. If bit 0 is 1, set DMA read (ACSI2STM->ST) after the command is
 executed.
 
-* 0x98: forward hook to TOS / continue boot routine
+* 0x9a: forward hook to TOS / continue boot routine
 * 0x96 [4x bytes]: Trap #1. *parameter* ignored.
 * 0x94 [4x bytes]: Push SP to stack. *parameter* ignored. Set DMA address on
   stack.
@@ -332,3 +332,12 @@ executed.
 * 0x80 [4x bytes]: Set D0 to *parameter* then return from exception.
 * Any other byte will set D0 sign extended to a long (e.g. 0xdc will set D0 to
   0xffffffdc) and return from exception. Used to return TOS error codes.
+
+### GemDrive PIO mode protocol
+
+When in PIO mode, DMA transfers are simulated by adding an extra command 0x98:
+
+This command takes its *parameter* as a byte count, then transfers this amount
+of bytes in fast mode (IRQ stays low).
+
+0x98 starts a read, 0x99 starts a write.

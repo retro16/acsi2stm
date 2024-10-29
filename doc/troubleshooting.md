@@ -194,6 +194,16 @@ people were confused by this and thought that they had a bad DMA chip because of
 this. 4.00 fixed the issue so it might be worth trying an up to date version on
 older hardware that didn't work previously.
 
+### Workaround for bad DMA
+
+ACSI2STM provides a special firmware that doesn't use DMA at all: this is called
+the PIO variant. Only GemDrive works in that mode.
+
+You need to load GemDrive through `GEMDRPIO.TOS` because that mode cannot be
+automatically started at boot.
+
+This mode offers less performance: 50-100KB/s instead of 500-1500KB/s for DMA.
+
 
 The problem of STM32 clones / variants
 --------------------------------------

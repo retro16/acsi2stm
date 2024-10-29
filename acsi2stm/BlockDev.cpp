@@ -243,11 +243,15 @@ beginOk:
     // Open the file system
     image.close();
     if(fs.begin(&card))
+#if ACSI_PIO
+      {}
+#else
       image.open(ACSI_IMAGE_FILE);
 
     // Check if bootable
     if(!(*this)->updateBootable())
       continue;
+#endif
 
 
 #if ! ACSI_STRICT
@@ -288,7 +292,11 @@ void SdDev::onReset() {
   }
 
   // Try to initialize the SD card
+#if ACSI_PIO
+  mode = GEMDRIVE; // Enable the slot
+#else
   mode = ACSI; // Enable the slot
+#endif
   init();
 
   mode = computeMode();
@@ -299,8 +307,12 @@ void SdDev::onReset() {
     attachGemDrive(slot);
   else
 #endif
+#if ! ACSI_PIO
   if(mode == ACSI)
     attachAcsi(slot);
+#else
+    {}
+#endif
 }
 
 void SdDev::getDeviceString(char *target) {
@@ -505,7 +517,6 @@ uint32_t SdDev::mediaId(BlockDev::MediaIdMode mediaIdMode) {
 }
 
 void SdDev::disable() {
-  verbose("SD", slot, " disabled\n");
   reset();
   mode = DISABLED;
 }
@@ -515,6 +526,9 @@ SdDev::Mode SdDev::computeMode() {
     // Once disabled, it stays disabled
     return DISABLED;
 
+#if ACSI_PIO
+  return GEMDRIVE;
+#else
   if(Devices::strict)
     return ACSI;
 
@@ -529,6 +543,7 @@ SdDev::Mode SdDev::computeMode() {
     return GEMDRIVE; // No SD card: use GemDrive
   else
     return ACSI; // Unrecognized SD format: pass through as ACSI
+#endif
 }
 
 void SdDev::reset() {

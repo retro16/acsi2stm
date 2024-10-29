@@ -168,7 +168,7 @@ struct GemDrive: public Devices, public Tos {
 
   // External events
   static void onBoot();
-  static void onInit();
+  static void onInit(bool setBootDrive = false);
   static void onGemdos();
 
   // GEMDOS processing

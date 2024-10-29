@@ -21,6 +21,10 @@
 
 #include <libmaple/gpio.h>
 
+#if ACSI_PIO && ACSI_STRICT
+#error Cannot implement ACSI protocol in PIO mode
+#endif
+
 // Use a class to run initialization before constructing other globals
 struct PreBoot {
   PreBoot() {
@@ -113,6 +117,7 @@ void loop() {
 #endif
       if(cmd == 0x08 && deviceIndex != SdDev::gemBootDrive)
         Monitor::dbg("Ignore non-boot");
+#if ! ACSI_PIO
       else if(cmd == 0x1f)
         // Extended commands allow accessing the device in ACSI mode while
         // keeping it reasonably hidden from other tools.
@@ -120,12 +125,14 @@ void loop() {
         // with READ BUFFER or flashing firmware with WRITE BUFFER.
         // Warning: don't alter the SD card while it is mounted !
         Devices::acsi[deviceIndex].process(cmd);
+#endif
       else
         // Handles GEMDOS trap as well as boot sector loader
         GemDrive::process(cmd);
       Monitor::dbg('\n');
     } else
 #endif
+#if ! ACSI_PIO
     if(mask & SdDev::acsiDeviceMask) {
 #if ! ACSI_VERBOSE
       Monitor::dbg("ACSI", deviceId, ':');
@@ -139,6 +146,9 @@ void loop() {
 #endif
       Monitor::dbg(" Not for us\n");
     }
+#else
+    {} // PIO can't handle ACSI
+#endif
   }
 }
 

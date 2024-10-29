@@ -24,7 +24,7 @@ start:
 	org	2
 	dc.b	0                       ; Patched-in variables
 acsiid	dc.b	$ff                     ; Invalid values to check for correct
-prmoff	dc.w	$ff                     ; patching code in the STM32
+prmoff	dc.w	$ffff                   ; patching code in the STM32
 
 load	st	flock.w                 ; Lock floppy controller
 

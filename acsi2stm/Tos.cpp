@@ -143,16 +143,16 @@ Long Tos::sysCall(void (*trap)(), Word opCode, uint8_t *paramBytes, int paramSiz
     sz += 16 - (sz & 0xf);
   shiftStack(-sz);
   send(opCode);
-  DmaPort::sendDma(paramBytes, paramSize);
+  sendDma(paramBytes, paramSize);
   if((paramSize + 2) & 0xf) {
     uint8_t padding[0xf];
-    DmaPort::sendDma(padding, 16 - ((paramSize + 2) & 0xf));
+    sendDma(padding, 16 - ((paramSize + 2) & 0xf));
   }
 
   trap();
 
   Long retVal;
-  DmaPort::readDma((uint8_t *)&retVal, 4);
+  readDma((uint8_t *)&retVal, 4);
   shiftStack(sz + extraData + 4);
   verboseHex(" ->", (uint32_t)retVal, "\n");
   return retVal;
@@ -169,7 +169,7 @@ void Tos::tosPrint(const char *text) {
   memcpy(Devices::buf, text, len);
   len = (len + 0xf) & 0xfff0;
   Long textBuf = stackAlloc(len);
-  DmaPort::sendDma(Devices::buf, len);
+  sendDma(Devices::buf, len);
   Cconws(textBuf, len);
 }
 

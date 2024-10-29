@@ -340,27 +340,6 @@ uint8_t DmaPort::readIrq() {
   return byte;
 }
 
-uint8_t DmaPort::readNoIrq() {
-  resetTimeout();
-
-  Acsi::verbose("[{");
-
-  // Signal that we are ready to read
-  waitCs();
-
-  // Read the actual byte
-  uint8_t byte = csData();
-
-  // Go back to idle state
-  releaseRq();
-  waitIrqUp();
-  armA1();
-
-  Acsi::verboseHex(byte, ']');
-
-  return byte;
-}
-
 void DmaPort::sendIrq(uint8_t byte) {
   resetTimeout();
 
@@ -384,7 +363,7 @@ void DmaPort::sendIrq(uint8_t byte) {
   Acsi::verboseHex("]\n");
 }
 
-void DmaPort::sendIrqFast(uint8_t *bytes, int count) {
+void DmaPort::sendIrqFast(const uint8_t *bytes, int count) {
   resetTimeout();
 
   Acsi::verboseHex("[}");
@@ -410,8 +389,32 @@ void DmaPort::sendIrqFast(uint8_t *bytes, int count) {
   waitIrqUp();
   armA1();
 
-  for(int i = 0; i < count; ++i)
-    Acsi::verboseHex(bytes[i], '}');
+  Acsi::verboseDump(bytes, count);
+
+  Acsi::verboseHex("]");
+}
+
+void DmaPort::readIrqFast(uint8_t *bytes, int count) {
+  resetTimeout();
+
+  Acsi::verboseHex("[{");
+
+  armCs();
+  pullIrq();
+
+  // Send extra bytes skipping the IRQ pin cycle
+  for(int i = 0; i < count; ++i) {
+    waitCs();
+    armCs();
+    bytes[i] = csData();
+  }
+
+  // Go back to the idle state
+  releaseRq();
+  waitIrqUp();
+  armA1();
+
+  Acsi::verboseDump(bytes, count);
 
   Acsi::verboseHex("]");
 }

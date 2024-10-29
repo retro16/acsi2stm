@@ -54,8 +54,21 @@ if [ "$1" = all ]; then
   cp "$builddir/Arduino-strictverbose/acsi2stm.ino.bin" ./acsi2stm-$VERSION-strictverbose.ino.bin
 
   echo
-  echo "Compile debug binary"
+  echo "Compile pio verbose binary"
   sed -i 's/^#define ACSI_STRICT .$/#define ACSI_STRICT 0/' "$srcdir/acsi2stm/acsi2stm.h"
+  sed -i 's/^#define ACSI_PIO .$/#define ACSI_PIO 1/' "$srcdir/acsi2stm/acsi2stm.h"
+  compile_arduino pioverbose
+  cp "$builddir/Arduino-pioverbose/acsi2stm.ino.bin" ./acsi2stm-$VERSION-pioverbose.ino.bin
+
+  echo
+  echo "Compile pio debug binary"
+  sed -i 's/^#define ACSI_VERBOSE .$/#define ACSI_VERBOSE 0/' "$srcdir/acsi2stm/acsi2stm.h"
+  compile_arduino piodebug
+  mv "$builddir/Arduino-piodebug/acsi2stm.ino.bin" ./acsi2stm-$VERSION-piodebug.ino.bin
+
+  echo
+  echo "Compile debug binary"
+  sed -i 's/^#define ACSI_PIO .$/#define ACSI_PIO 0/' "$srcdir/acsi2stm/acsi2stm.h"
   sed -i 's/^#define ACSI_VERBOSE .$/#define ACSI_VERBOSE 0/' "$srcdir/acsi2stm/acsi2stm.h"
   compile_arduino debug
   mv "$builddir/Arduino-debug/acsi2stm.ino.bin" ./acsi2stm-$VERSION-debug.ino.bin
@@ -67,7 +80,15 @@ if [ "$1" = all ]; then
   cp "$builddir/Arduino-release/acsi2stm.ino.bin" ./acsi2stm-$VERSION.ino.bin
 
   echo
+  echo "Compile pio release binary"
+  sed -i 's/^#define ACSI_PIO .$/#define ACSI_PIO 1/' "$srcdir/acsi2stm/acsi2stm.h"
+  sed -i 's/^#define ACSI_DEBUG .$/#define ACSI_DEBUG 0/' "$srcdir/acsi2stm/acsi2stm.h"
+  compile_arduino pio
+  cp "$builddir/Arduino-pio/acsi2stm.ino.bin" ./acsi2stm-$VERSION-pio.ino.bin
+
+  echo
   echo "Compile strict mode binary"
+  sed -i 's/^#define ACSI_PIO .$/#define ACSI_PIO 0/' "$srcdir/acsi2stm/acsi2stm.h"
   sed -i 's/^#define ACSI_STRICT .$/#define ACSI_STRICT 1/' "$srcdir/acsi2stm/acsi2stm.h"
   compile_arduino strict
   cp "$builddir/Arduino-strict/acsi2stm.ino.bin" ./acsi2stm-$VERSION-strict.ino.bin

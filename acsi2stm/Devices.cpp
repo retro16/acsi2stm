@@ -115,7 +115,9 @@ end:
 #endif
   for(int c = 0; c < sdCount; ++c) {
     sdSlots[c].onReset();
+#if ! ACSI_PIO
     acsi[c].onReset();
+#endif
   }
 }
 

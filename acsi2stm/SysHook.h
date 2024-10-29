@@ -275,16 +275,20 @@ struct SysHook: public Monitor {
 
   // DMA streaming helpers
 
+  static void readDma(uint8_t *bytes, int count);
+  static void readDmaString(char *bytes, int count);
+  static void sendDma(const uint8_t *bytes, int count);
+
   // Send an object using DMA
   template<typename T>
   static void send(const T& value) {
-    DmaPort::sendDma((uint8_t *)&value, sizeof(value));
+    sendDma((uint8_t *)&value, sizeof(value));
   }
 
   // Read a data structure from the current DMA source address
   template<typename T>
   static void read(T& value) {
-    DmaPort::readDma((uint8_t *)&value, sizeof(value));
+    readDma((uint8_t *)&value, sizeof(value));
   }
 
   // Read one byte from DMA
@@ -373,7 +377,9 @@ struct SysHook: public Monitor {
 
   // Test for DMA-compatible memory
   static bool isDma(uint32_t address) {
-#if ACSI_GEMDRIVE_NO_DIRECT_DMA
+#if ACSI_PIO
+    return true;
+#elif ACSI_GEMDRIVE_NO_DIRECT_DMA
     return false;
 #else
     return address < phystop;

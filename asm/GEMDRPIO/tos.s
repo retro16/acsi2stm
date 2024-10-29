@@ -68,7 +68,7 @@ main
 	moveq	#0,d1                   ; Disable DMA
 	bsr.w	syshook.setdmaaddr      ;
 	move.w	#$0088,(a1)             ; Switch to command.
-	move.w	#$0011,d0               ; Send command $11 with drive ID to STM
+	move.w	#$0010,d0               ; Send command $10 with drive ID to STM
 	add.b	d7,d0                   ;
 	move.w	d0,(a0)                 ;
 
@@ -98,7 +98,8 @@ main
 
 	; All good, found device in d7
 
-setvars	lea	acsiid(pc),a0           ; Save ACSI id to RAM
+setvars	
+	lea	acsiid(pc),a0           ; Save ACSI id to RAM
 	move.b	d7,(a0)+                ;
 
 	move.w	#6,(a0)                 ; Compute parameter offset (prmoff)

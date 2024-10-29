@@ -23,6 +23,7 @@ if ! [ "$FORCE" ]; then
   || ! grep 'ACSI_A1_WORKAROUND 1' "$srcdir/acsi2stm/acsi2stm.h" >/dev/null \
   || ! grep 'ACSI_FAST_DMA 5' "$srcdir/acsi2stm/acsi2stm.h" >/dev/null \
   || ! grep 'ACSI_GEMDRIVE_NO_DIRECT_DMA 0' "$srcdir/acsi2stm/acsi2stm.h" >/dev/null \
+  || ! grep 'ACSI_PIO 0' "$srcdir/acsi2stm/acsi2stm.h" >/dev/null \
   || grep -ri 'deadbeef' "$srcdir/asm" >/dev/null \
   || grep -ri 'cafe' "$srcdir/asm" >/dev/null \
   || grep -ri 'badc0de' "$srcdir/asm" >/dev/null \

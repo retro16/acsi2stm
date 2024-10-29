@@ -942,6 +942,7 @@ GemDrive::GemDrive(SdDev &sd_): sd(sd_), curPath(sd_) {}
 
 void GemDrive::process(uint8_t cmd) {
   switch(cmd) {
+#if ! ACSI_PIO
     case 0x08:
       {
         // Read command: inject syshook driver into a boot sector
@@ -990,6 +991,7 @@ void GemDrive::process(uint8_t cmd) {
         onBoot();
       }
       break;
+#endif
 
     case 0x0e:
       // GEMDOS system call hook
@@ -997,7 +999,11 @@ void GemDrive::process(uint8_t cmd) {
       onGemdos();
       break;
 
+#if ACSI_PIO
+    case 0x10:
+#else
     case 0x11:
+#endif
       // ACSI2STM direct initialization command
 
       // Acknowledge the ACSI command
@@ -1058,10 +1064,10 @@ void GemDrive::onBoot() {
   // Warning: installed system calls must be the same as in asm/GEMDRIVE/tos.s
   installHook(driverMem, 0x84); // GEMDOS
 
-  onInit();
+  onInit(true);
 }
 
-void GemDrive::onInit() {
+void GemDrive::onInit(bool setBootDrive) {
   int d;
 
   // Driver splash screen
@@ -1071,10 +1077,14 @@ void GemDrive::onInit() {
 
 #if ACSI_DEBUG
 #if ACSI_VERBOSE
-  tosPrint("Verbose log enabled\r\n\n");
+  tosPrint("Verbose log\r\n\n");
 #else
-  tosPrint("Debug log enabled\r\n\n");
+  tosPrint("Debug log\r\n\n");
 #endif
+#endif
+
+#if ACSI_PIO
+  tosPrint("Running in PIO mode\r\n\n");
 #endif
 
   // Cache OSHEADER values
@@ -1120,6 +1130,7 @@ void GemDrive::onInit() {
       firstDriveLetter = 'L';
 #endif
   uint32_t drvbits = _drvbits();
+
   for(d = 0; d < driveCount; ++d) {
     if(Devices::sdSlots[d].mode != SdDev::GEMDRIVE)
       continue;
@@ -1136,10 +1147,10 @@ void GemDrive::onInit() {
 
         buf[0] = 'A' + i;
         Devices::sdSlots[d].getDeviceString((char *)&buf[3]);
-#if ACSI_VERBOSE
+#if ACSI_DEBUG
         buf[27] = '\n';
         buf[28] = 0;
-        dbg("-> ", (const char *)buf);
+        dbg("-> ", (const char *)buf, " ");
 #endif
         buf[27] = '\r';
         buf[28] = '\n';
@@ -1149,23 +1160,23 @@ void GemDrive::onInit() {
         break;
       }
     }
-    verbose('\n');
   }
   _drvbits(drvbits);
 
   // Set boot drive on the ST
-  for(d = 0; d < driveCount; ++d) {
-    if(Devices::sdSlots[d].mountable) {
-      dbg("\n        Boot on ");
-      setCurDrive(Devices::drives[d].id);
-      _bootdev(Devices::drives[d].id);
-      Dsetdrv(Devices::drives[d].id);
-      memcpy(buf, "\r\nBoot on ?:\r\n\n", 17);
-      buf[10] = Devices::drives[d].letter();
-      tosPrint((const char *)buf);
-      break;
+  if(setBootDrive) {
+    for(d = 0; d < driveCount; ++d) {
+      if(Devices::sdSlots[d].mountable) {
+        dbg("\n        Boot on ");
+        setCurDrive(Devices::drives[d].id);
+        _bootdev(Devices::drives[d].id);
+        Dsetdrv(Devices::drives[d].id);
+        memcpy(buf, "\r\nBoot on ?:\r\n\n", 17);
+        buf[10] = Devices::drives[d].letter();
+        tosPrint((const char *)buf);
+        break;
+      }
     }
-    dbg('\n');
   }
 
 #if ACSI_RTC
@@ -2155,7 +2166,7 @@ const char * GemDrive::toUnicode(const GemPath &path, GemPattern &name) {
 
 void GemDrive::readParams(void *data, uint32_t size) {
   if(size > 1) {
-    DmaPort::readDma((uint8_t *)data, size);
+    readDma((uint8_t *)data, size);
     notVerboseDump((uint8_t *)data, size);
   }
 }

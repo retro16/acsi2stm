@@ -31,6 +31,8 @@ Legacy hardware based on Blue Pill designs are supported to various degrees. All
 units that were built for firmware version 3.00 and later can be upgraded to the
 latest version. Units built for firmware version 2.xx need the legacy variant.
 
+It can also work on STs with broken DMA chips by using the PIO firmware.
+
 **Final version:** Both software and hardware aspects are considered finished.
 
 

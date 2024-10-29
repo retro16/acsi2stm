@@ -69,6 +69,7 @@ Changes since 4.12
 * Fixed and added `GEMDRIVE.TOS` to load GemDrive from desktop
 * Boot `EMUTOS.SYS` on startup if present on the SD card
 * Introduced GemDrive command 0x09 to avoid crashes when reading boot sector
+* Added PIO mode to work on broken DMA chips
 * Verbose firmware is now less than 64k allowing to flash it with `HDDFLASH.TOS`
 * Fixed GemDrive boot when ACSI id 0 is not an ACSI2STM unit
 * Reworked documentation to put more emphasis on the new PCB design

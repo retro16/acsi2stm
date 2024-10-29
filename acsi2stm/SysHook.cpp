@@ -50,7 +50,7 @@ void SysHook::sendAt(uint32_t address, const uint8_t *bytes, int count)
       data[1] = dCount.bytes[1];
       memcpy(&data[2], bytes, c);
       shiftStack(0);
-      DmaPort::sendDma(data, 32);
+      sendDma(data, 32);
       copyFromStack(address);
 
       address += c;
@@ -74,7 +74,7 @@ void SysHook::sendAt(uint32_t address, const uint8_t *bytes, int count)
     int blockSize = count & 0x1fff0;
 
     setDmaRead(address);
-    DmaPort::sendDma(bytes, blockSize);
+    sendDma(bytes, blockSize);
 
     address += blockSize;
     bytes += blockSize;
@@ -106,7 +106,7 @@ void SysHook::readAt(uint8_t *bytes, uint32_t source, int count)
 
   if(count > 0) {
     setDmaWrite(source);
-    DmaPort::readDma(bytes, count);
+    readDma(bytes, count);
   }
 }
 
@@ -114,7 +114,7 @@ uint8_t SysHook::readByteAt(ToLong address)
 {
   readByteToStack(address);
   uint8_t data;
-  DmaPort::readDma((uint8_t *)&data, sizeof(data));
+  readDma((uint8_t *)&data, sizeof(data));
   shiftStack(2);
   return data;
 }
@@ -123,7 +123,7 @@ Word SysHook::readWordAt(ToLong address)
 {
   readWordToStack(address);
   Word data;
-  DmaPort::readDma((uint8_t *)&data, sizeof(data));
+  readDma((uint8_t *)&data, sizeof(data));
   shiftStack(2);
   return data;
 }
@@ -132,7 +132,7 @@ Long SysHook::readLongAt(ToLong address)
 {
   readLongToStack(address);
   Long data;
-  DmaPort::readDma((uint8_t *)&data, sizeof(data));
+  readDma((uint8_t *)&data, sizeof(data));
   shiftStack(4);
   return data;
 }
@@ -159,17 +159,18 @@ void SysHook::readStringAt(char *bytes, ToLong address, int count)
     ++bytes;
   }
   setDmaWrite(address);
-  DmaPort::readDmaString(bytes, count);
+  readDmaString(bytes, count);
 }
 
 void SysHook::clearAt(uint32_t bytes, uint32_t address) {
   uint8_t blank[32] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
                        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
+#if ! ACSI_PIO
   if(!isDma(address + bytes - 1)) {
     // Upload some blank bytes on the stack
     shiftStack(-32);
-    DmaPort::sendDma(blank, 32);
+    sendDma(blank, 32);
 
     while(bytes > 0) {
       int c = bytes > 32 ? 32 : bytes;
@@ -203,26 +204,74 @@ void SysHook::clearAt(uint32_t bytes, uint32_t address) {
 
   if(bytes)
     sendAt(address, blank, bytes);
+#else
+  while(bytes > 0) {
+    int c = bytes > 32 ? 32 : bytes;
+    sendAt(address, blank, c);
+    address += c;
+    bytes -= c;
+  }
+#endif
+}
+
+void SysHook::readDma(uint8_t *bytes, int count)
+{
+  if(!count)
+    return;
+#if ACSI_PIO
+  sendCommandNoWait(0x98, count);
+  DmaPort::readIrqFast(bytes, count);
+#else
+  DmaPort::readDma(bytes, count);
+#endif
+}
+
+void SysHook::readDmaString(char *bytes, int count)
+{
+  if(!count)
+    return;
+#if ACSI_PIO
+  for(int i = 0; i < count; ++i) {
+    sendCommandNoWait(0x98, 1);
+    DmaPort::readIrqFast((uint8_t *)&bytes[i], 1);
+    if(!bytes[i])
+      return;
+  }
+#else
+  DmaPort::readDmaString(bytes, count);
+#endif
+}
+
+void SysHook::sendDma(const uint8_t *bytes, int count)
+{
+  if(!count)
+    return;
+#if ACSI_PIO
+  sendCommandNoWait(0x99, count);
+  DmaPort::sendIrqFast(bytes, count);
+#else
+  DmaPort::sendDma(bytes, count);
+#endif
 }
 
 uint8_t SysHook::readByte()
 {
   uint8_t data;
-  DmaPort::readDma((uint8_t *)&data, sizeof(data));
+  readDma((uint8_t *)&data, sizeof(data));
   return data;
 }
 
 Word SysHook::readWord()
 {
   Word data;
-  DmaPort::readDma((uint8_t *)&data, sizeof(data));
+  readDma((uint8_t *)&data, sizeof(data));
   return data;
 }
 
 Long SysHook::readLong()
 {
   Long data;
-  DmaPort::readDma((uint8_t *)&data, sizeof(data));
+  readDma((uint8_t *)&data, sizeof(data));
   return data;
 }
 
@@ -244,7 +293,7 @@ void SysHook::readAtIndirect(uint8_t *bytes, ToLong source, int count) {
     copyToStack(source);
 
     // Fetch data
-    DmaPort::readDma(bytes, l);
+    readDma(bytes, l);
 
     // Pop byte count
     shiftStack(2);
@@ -267,7 +316,7 @@ void SysHook::readAtIndirectShort(uint8_t *bytes, ToLong source, int count) {
   copyToStack(source);
 
   // Fetch result
-  DmaPort::readDma(bytes, count);
+  readDma(bytes, count);
 
   // Free stack buffer
   shiftStack(16);
@@ -288,7 +337,7 @@ void SysHook::readStringAtIndirect(char *bytes, ToLong source, int count) {
     // Fetch data in a temporary buffer and do string copy from there
     {
       uint8_t lbuf[32];
-      DmaPort::readDma(lbuf, l);
+      readDma(lbuf, l);
       for(int i = 0; i < l; ++i) {
         bytes[i] = (char)lbuf[i];
         if(!lbuf[i]) {
@@ -311,7 +360,7 @@ end_of_string:
 // Low level hook commands implementation
 
 void SysHook::rte(int8_t value) {
-  if(value <= (int8_t)0x98)
+  if(value <= (int8_t)0x9a)
     rte(ToLong(value));
   dbgHex("rte(", (uint32_t)(uint8_t)value, ") ");
   DmaPort::sendIrq(value);
@@ -319,7 +368,7 @@ void SysHook::rte(int8_t value) {
 
 void SysHook::forward() {
   dbg("forward ");
-  DmaPort::sendIrq(0x98);
+  DmaPort::sendIrq(0x9a);
 }
 
 void SysHook::trap1() {
@@ -385,8 +434,8 @@ void SysHook::rte(ToLong value) {
 
 void SysHook::waitCommand() {
   DmaPort::waitCs();
+  verboseHex("[{]");
   DmaPort::armCs();
-  verbose("[{]");
 }
 
 void SysHook::sendCommand(int command, ToLong param)

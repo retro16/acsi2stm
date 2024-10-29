@@ -22,7 +22,7 @@
 
 // acsi2stm global configuration
 
-#define ACSI2STM_VERSION "5.0c"
+#define ACSI2STM_VERSION "5.0d"
 
 // Set to 1 to enable debug output on the serial port
 #define ACSI_DEBUG 0
@@ -205,6 +205,13 @@
 
 // Disable direct DMA access in GemDrive (used for testing/debug)
 #define ACSI_GEMDRIVE_NO_DIRECT_DMA 0
+
+// Don't use DMA at all, use programmed input/output instead (A1/CS/IRQ)
+// This is a workaround for dead DMA chips (a common issue on STs).
+// Only GemDrive will work, and you can't self-boot it, you need to use
+// GEMDRPIO.TOS to start it.
+// Performance will be horrible, but still better than floppy disks.
+#define ACSI_PIO 0
 
 // vim: ts=2 sw=2 sts=2 et
 #endif
