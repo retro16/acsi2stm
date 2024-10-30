@@ -127,7 +127,7 @@ setvars
 
 	; Strings
 alrdyin	dc.b	7,'GemDrive already installed',13,10,0
-devnfnd	dc.b	7,'No GemDrive device detected',13,10,0
+devnfnd	dc.b	7,'No GemDrive PIO device detected',13,10,0
 	even
 
 	bss

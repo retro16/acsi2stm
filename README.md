@@ -52,9 +52,9 @@ This is what you can find:
   here.
 * [gemdrive](doc/gemdrive.md): Technical details about GemDrive. How to mix
   GemDrive with ACSI. How to install GemDrive for EmuTOS.
-* [compiling](doc/compiling.md): A step-by-step tutorial to compile and
-  customize a new firmware. Describes compilation options. Also describes
-  pre-built firmware variants in the release package.
+* [firmware](doc/firmware.md): Describes the many firmware variants pre-built
+  in the release package. Also provides a step-by-step tutorial to compile and
+  customize firmware yourself.
 * [tools](doc/tools.md): Documentation for tools provided with ACSI2STM.
 * [hardware](doc/hardware.md): How to design and build an acsi2stm unit
   from scratch (hand wired, or your own PCB design). Also documents jumper

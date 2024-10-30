@@ -311,6 +311,7 @@ executed. If bit 0 is 1, set DMA read (ACSI2STM->ST) after the command is
 executed.
 
 * 0x9a: forward hook to TOS / continue boot routine
+* 0x98 [4x bytes]: Reserved for PIO mode.
 * 0x96 [4x bytes]: Trap #1. *parameter* ignored.
 * 0x94 [4x bytes]: Push SP to stack. *parameter* ignored. Set DMA address on
   stack.
@@ -340,4 +341,17 @@ When in PIO mode, DMA transfers are simulated by adding an extra command 0x98:
 This command takes its *parameter* as a byte count, then transfers this amount
 of bytes in fast mode (IRQ stays low).
 
-0x98 starts a read, 0x99 starts a write.
+0x98 starts a read (ST->STM32), 0x99 starts a write (STM32->ST).
+
+Example reading 2 bytes from ST RAM to STM32. These 2 bytes are 0x55 and 0xaa:
+
+         __      _                           ____             __
+    IRQ    |____| |_________________________|    |___________|
+         _____   ____   ____   ____   ____   _______   ____   __
+    CS        |_|    |_|    |_|    |_|    |_|       |_|    |_|
+    
+    DATA    [0x98] [0x00] [0x00] [0x00] [0x02]    [0x55] [0xaa]
+
+
+GemDrive PIO driver is loaded by `GEMDRPIO.TOS`. To avoid confusion, PIO mode
+is initialized by command 0x10 instead of command 0x11, the effect is the same.

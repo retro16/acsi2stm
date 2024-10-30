@@ -64,9 +64,15 @@ Compile-time options:
 Variant that does not use DMA transfers at all. This only supports GemDrive and
 it cannot autoboot, so you need to load the driver `GEMDRPIO.TOS` manually.
 
+This firmware does not use the DMA chip of the ST, so it will work even with a
+defective chip.
+
 Performance suffers: it runs about 10x slower than DMA, which is still much
 better than floppy drives and probably as fast as an old hard drive with a bad
 AHDI driver.
+
+**Warning:** This firmware variant cannot be updated with `HDDFLASH.TOS`. You
+need to use the serial dongle instead.
 
 Compile-time options:
 
@@ -76,6 +82,9 @@ Compile-time options:
 
 PIO variant with debug output enabled.
 
+**Warning:** This firmware variant cannot be updated with `HDDFLASH.TOS`. You
+need to use the serial dongle instead.
+
 Compile-time options:
 
     #define ACSI_PIO 1
@@ -84,6 +93,9 @@ Compile-time options:
 ### acsi2stm-XXXX-pioverbose.ino.bin
 
 PIO variant with verbose output enabled. This mode is **extremely slow**.
+
+**Warning:** This firmware variant cannot be updated with `HDDFLASH.TOS`. You
+need to use the serial dongle instead.
 
 Compile-time options:
 
@@ -406,3 +418,8 @@ At least one pass must be done with a different ID_SHIFT jumper position
 * Boot the Atari AHDI image.
 * Test EmuTOS with the Atari AHDI image.
 * Check that files can be read.
+* Flash the PIO variant.
+* Run `GEMDRPIO.TOS`.
+* Open the GemDrive drive and copy one file to floppy and back to SD. Check its
+  content.
+* Run a big application from the GemDrive drive.

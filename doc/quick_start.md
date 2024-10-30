@@ -181,12 +181,14 @@ needed for keeping the clock running when the ST is off.
 * Optionally, you can plug other devices such as an UltraSatan on the IDC20
   socket.
 
+![Compact PCB on DB19 port](images/compact_installed.jpg)
+
 ### Installing using the UltraSatan (IDC20) port
 
 If you mounted an IDC20 socket, you can connect the ACSI2STM unit through it
 instead of the DB19 port. This is useful if you have other IDC20 devices.
 
-![Compact PCB on IDC20 port](images/compact_idc20.png)
+![Compact PCB on IDC20 port](images/compact_idc20.jpg)
 
 You can connect things on both the DB19 and IDC20 ports at the same time.
 
@@ -204,9 +206,24 @@ Turn the ST on, the ACSI2STM unit should display a boot message and the C drive
 should be readily available on the desktop.
 
 You need to manually install extra drive icons on the desktop to access the D or
-E drive.
+E drive:
 
-There are many more device combinations possible
+* On old TOS versions, select any drive icon on the desktop, then open
+  *Options/Install Disk Drive* in the menu. Enter the drive letter and click
+  *Install*. This will add the corresponding icon on the desktop.
+* On TOS 2.05/2.06, it's much easier: just open *Options/Install Devices* from
+  the menu and all drives will be automatically detected and added to the
+  desktop.
+
+Once new icons are ready, use *Options/Save Desktop* to save this setup.
+
+**Note:** If you boot with no SD card inserted, the driver will still load and
+mount the C drive. You can hot plug a SD card later on: It works just like a
+floppy drive.
+
+There are many more device combinations possible, this tutorial only describes
+the simplest case possible: a single ACSI2STM module plugged into the DMA port
+of a ST without an internal hard drive.
 
 
 Setting date and time
@@ -228,12 +245,13 @@ Updating a 4.0 (or later) unit from the Atari ST
 ------------------------------------------------
 
 ACSI2STM supports updating the firmware from the ST itself since version 4.0.
-It uses the Seagate SCSI standard command to do that.
+It uses the Seagate SCSI standard command to do that, this is supported by
+ACSI2STM both in ACSI and GemDrive modes.
 
 Steps to update your firmware:
 
 * Download the release package and unzip it.
-* Choose which firmware variant you want to use (see [compiling](compiling.md)).
+* Choose which firmware variant you want to use (see [firmware](firmware.md)).
 * Copy the firmware file (`acsi2stm-VERSION-VARIANT.ino.bin`) and rename it to
   `HDDFLASH.BIN`
 * Copy `HDDFLASH.TOS` and `HDDFLASH.BIN` files on any medium readable by the
@@ -255,3 +273,6 @@ An old version of `GEMDRIVE.TOS` may not be compatible with the newer firmware.
 
 **Warning:** If flashing fails or if the unit is bricked, you will have to
 upload the new firmware using the USB to UART dongle. See above.
+
+**Warning:** The PIO firmware variant does not support ACSI commands at all, so
+it is incompatible with `HDDFLASH.TOS`. You will need USB to UART to update.

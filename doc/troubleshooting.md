@@ -66,6 +66,9 @@ Check these signals with a logic analyzer or (better) a digital oscilloscope.
 You will need a digital oscilloscope with single capture mode and at least 20MHz
 bandwidth.
 
+If CS, A1 and IRQ works, but DRQ/ACK doesn't, try the PIO firmware variant (see
+[firmware](firmware.md).
+
 
 SD cards not detected / malfunctioning
 --------------------------------------

@@ -97,7 +97,7 @@ Use this table to match pins on the ACSI port and the STM32:
 |  09  | PB7   | CS  | Chip Select      |
 |  10  | PA8   | IRQ | Interrupt        |
 |  11  | GND   | GND | Ground           |
-|  12  | PA15  | RST | Reset (optional) |
+|  12  | PA15  | RST | Reset            |
 |  13  | GND   | GND | Ground           |
 |  14  | PA12  | ACK | Acknowledge      |
 |  15  | GND   | GND | Ground           |
@@ -112,7 +112,6 @@ Use this table to match pins on the ACSI port and the STM32:
 
 * GND is soldered together on the ST side. You can use a single wire for
   ground.
-* Reset is not strictly needed, but heavily recommended.
 * Keep the wires short. I had strange behavior with cables longer than 10cm (4
   inches).
 * The read/write pin is not needed.
@@ -121,6 +120,8 @@ Use this table to match pins on the ACSI port and the STM32:
   parallel port cables or serial port sockets.
 * You will have to power the STM32 separately (if you use USB, don't use a
   cable with data lines connected).
+* Reset is not strictly needed, but heavily recommended. You need to use the
+  legacy firmware variant on boards without a reset line.
 
 
 Connecting the SD cards
@@ -372,7 +373,7 @@ Changes required for 2.x units
 ------------------------------
 
 If you don't want to or can't make these changes, you can use the *legacy*
-firmware variant. See [compiling](compiling.md).
+firmware variant. See [firmware](firmware.md).
 
 ### Add a reset line
 
