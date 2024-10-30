@@ -175,7 +175,7 @@ void SysHook::clearAt(uint32_t bytes, uint32_t address) {
     while(bytes > 0) {
       int c = bytes > 32 ? 32 : bytes;
 
-      push(ToWord(c));
+      push(ToWord(c - 1));
       copyFromStack(address);
       shiftStack(2);
 
