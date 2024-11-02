@@ -75,6 +75,7 @@ Changes since 4.12
 * Reworked documentation to put more emphasis on the new PCB design
 * Removed "full-featured" PCB as it's not really safe nor easy to build
 * Simplified documentation
+* Removed timeout in GemDrive boot program as it is useless
 * Code cleanup pass (dead code removal, code formating, comments review, ...)
 
 

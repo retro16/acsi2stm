@@ -90,7 +90,7 @@ syshook.sendcmd:
 	st	flock.w                 ; Lock floppy controller
 	bsr.w	syshook.setdmaaddr      ; Set DMA address on chip
 
-	move.w	#$0188,(a1)             ; Switch to command.
+	move.w	#$0088,(a1)             ; Enable CS+A1 byte transfer
 	move.w	d0,(a0)                 ; Send command byte to the STM32
 
 syshook.reply:
@@ -223,27 +223,23 @@ syshook.trap01:
 syshook.piocpy:
 	bsr.b	syshook.await           ; Wait for IRQ
 
+	move.w	#$008a,(a1)             ; Enable CS byte transfer
+
 	moveq	#0,d2                   ; d2 = byte buffer
 	subq	#1,d1                   ; Adjust for DBRA
 
 	btst	#0,d0                   ;
 	bne.b	.piord                  ;
 
-	move.w	#$018a,(a1)             ; Enable write mode
-
 .wloop	move.b	(a2)+,d2                ; Do the transfer byte per byte
 	move.w	d2,(a0)                 ;
 	dbra	d1,.wloop               ;
 
-	move.w	#$008a,(a1)             ; Disable write mode
-
 	bra.w	syshook.reply           ;
 
-.piord	move.w	#$008a,(a1)             ;
-
-.rloop	move.w	(a0),d2                 ; Do the transfer byte per byte
+.piord	move.w	(a0),d2                 ; Do the transfer byte per byte
 	move.b	d2,(a2)+                ;
-	dbra	d1,.rloop               ;
+	dbra	d1,.piord               ;
 
 	bra.w	syshook.reply           ;
 
@@ -259,7 +255,7 @@ syshook.dmanset:
 	; This sends a command byte $00 to signal the STM32 that we are ready.
 	bsr.b	syshook.setdmaaddr      ; Set DMA address to a2
 
-	move.w	#$018a,(a1)             ; Switch to command
+	move.w	#$008a,(a1)             ; Switch to command
 	clr.w	(a0)                    ; Send zero command byte
 
 	bra.w	syshook.reply
