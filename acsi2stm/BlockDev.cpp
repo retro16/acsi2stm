@@ -40,15 +40,15 @@ bool BlockDev::updateBootable() {
 
   // Read the boot sector
   if(!readStart(0)) {
-    verbose("boot ", "start ", "read error ");
+    verbose("read error ");
     return false;
   }
   if(!readData(bootSector, 1)) {
-    verbose("boot ", "data ", "read error ");
+    verbose("read error ");
     return false;
   }
   if(!readStop()) {
-    verbose("boot ", "stop ", "read error ");
+    verbose("read error ");
     return false;
   }
 

@@ -121,7 +121,7 @@ syshook.return:
 	rte	                        ; Return
 
 syshook.forward:
-	; Command $98: forward the call to the next handler
+	; Command $9a: forward the call to the next handler
 	sf	flock.w                 ; Unlock floppy controller
 	resreg	                        ; Restore registers
 	rts	                        ; Jump to forwarding address

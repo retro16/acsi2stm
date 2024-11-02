@@ -32,7 +32,7 @@ start	bra	main                    ; Initialization is in the freed zone
 	; will be made resident.
 	dc.b	0
 acsiid	dc.b	$ff                     ; Patched by device detection
-prmoff	dc.w	$ffff                   ; Detected during initialization
+prmoff	dc.w	$00ff                   ; Detected during initialization
 
 syshook.end
 

@@ -232,7 +232,7 @@ void Acsi::process(uint8_t cmd) {
         DmaPort::sendDma(buf, 44);
         break;
       default:
-        verboseHex("Unsupported sense ", (int)cmdBuf[3], '\n');
+        verboseHex("Invalid sense ", (int)cmdBuf[3], '\n');
         commandStatus(ERR_INVARG);
         return;
       }
@@ -243,8 +243,7 @@ void Acsi::process(uint8_t cmd) {
     // Used by UltraSatan protocol emulation (used for RTC)
 #if ACSI_RTC
     if(memcmp(&cmdBuf[1], "USCurntFW", 9) == 0) {
-      verbose("UltraSatan:");
-      verbose("query\n");
+      verbose("USatan query\n");
       // Fake the firmware
       memcpy(buf, "ACSI2STM " ACSI2STM_VERSION "\r\n", 16);
       DmaPort::sendDma(buf, 16);
@@ -252,7 +251,6 @@ void Acsi::process(uint8_t cmd) {
       return;
     }
     if(memcmp(&cmdBuf[1], "USRdClRTC", 9) == 0) {
-      verbose("UltraSatan:");
       verbose("RTC read\n");
       tm_t now;
       rtc.getTime(now);
@@ -272,7 +270,6 @@ void Acsi::process(uint8_t cmd) {
       return;
     }
     if(memcmp(&cmdBuf[1], "USWrClRTC", 9) == 0) {
-      verbose("UltraSatan:");
       verbose("RTC set\n");
 
       DmaPort::readDma(buf, 9);
@@ -377,7 +374,7 @@ void Acsi::process(uint8_t cmd) {
         flashFirmware(length);
         // This function never returns !
       }
-      verboseHex("Invalid buffer ", "mode ", cmdBuf[1], '\n');
+      verboseHex("Invalid mode ", cmdBuf[1], '\n');
       commandStatus(ERR_INVARG);
       return;
     }
@@ -400,7 +397,7 @@ void Acsi::process(uint8_t cmd) {
 
       case 0x02: // Data buffer read
         if(cmdBuf[2] != 0) {
-          verbose("Invalid buffer ", "id\n");
+          verbose("Invalid buffer ");
           commandStatus(ERR_INVARG);
           return;
         }
