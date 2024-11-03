@@ -206,24 +206,11 @@ Turn the ST on, the ACSI2STM unit should display a boot message and the C drive
 should be readily available on the desktop.
 
 You need to manually install extra drive icons on the desktop to access the D or
-E drive:
-
-* On old TOS versions, select any drive icon on the desktop, then open
-  *Options/Install Disk Drive* in the menu. Enter the drive letter and click
-  *Install*. This will add the corresponding icon on the desktop.
-* On TOS 2.05/2.06, it's much easier: just open *Options/Install Devices* from
-  the menu and all drives will be automatically detected and added to the
-  desktop.
-
-Once new icons are ready, use *Options/Save Desktop* to save this setup.
+E drive. See [tutorial](tutorial.md) for more detailed instructions.
 
 **Note:** If you boot with no SD card inserted, the driver will still load and
 mount the C drive. You can hot plug a SD card later on: It works just like a
 floppy drive.
-
-There are many more device combinations possible, this tutorial only describes
-the simplest case possible: a single ACSI2STM module plugged into the DMA port
-of a ST without an internal hard drive.
 
 
 Setting date and time
