@@ -19,10 +19,19 @@
 
 #include "DmaPort.h"
 #include "SysHook.h"
+#if ACSI_PIO
+#include "FlashFirmware.h"
+#endif
 
 #include <cstddef>
 
 #if ! ACSI_STRICT
+
+#if ACSI_PIO
+#define INIT_CMD 0x10
+#else
+#define INIT_CMD 0x11
+#endif
 
 const
 #include "GEMDRIVE.boot.h"
@@ -96,7 +105,7 @@ static const uint16_t translitChars[][2] = {
 };
 
 // Offsets for variables to patch in the GEMDRIVE payload
-static const int GEMDRIVE_boot_acsiid = 3;
+static const int GEMDRIVE_boot_acsiid = 19;
 static const int GEMDRIVE_boot_prmoff = 4;
 
 GemPattern::GemPattern() {
@@ -999,12 +1008,18 @@ void GemDrive::process(uint8_t cmd) {
       onGemdos();
       break;
 
-#if ACSI_PIO
-    case 0x10:
-#else
-    case 0x11:
-#endif
+    case INIT_CMD:
       // ACSI2STM direct initialization command
+
+      // Read subsequent command bytes
+      for(int b = 0; b < 5; ++b)
+        buf[b] = DmaPort::readIrq();
+
+      if(buf[0] != 0x00 || buf[1] != 'G' || buf[2] != 'D' || buf[3] != 'R' || buf[4] != 'V') {
+        // Incorrect query: send the 'no operation' SCSI status
+        DmaPort::sendIrq(0x08);
+        break;
+      }
 
       // Acknowledge the ACSI command
       DmaPort::sendIrq(0);
@@ -1014,13 +1029,44 @@ void GemDrive::process(uint8_t cmd) {
       // The ST is now waiting for commands
 
       // Do initialization process
-      dbg("init ");
+      dbg(" Init ");
       onInit();
       break;
 
+#if ACSI_PIO
+    case 0x0f: {
+      // PIO firmware upload
+
+      // Read subsequent command bytes
+      for(int b = 0; b < 5; ++b)
+        buf[b] = DmaPort::readIrq();
+
+      int fwSize = ((int)(uint8_t)buf[3]) << 8 | (int)(uint8_t)buf[4];
+
+      if(buf[0] == 0 && buf[1] != 'P' && buf[2] != 'I' && buf[3] == 'O' && buf[4] == '?' ) {
+        // PIO firmware query
+        DmaPort::sendIrq(0);
+        break;
+      }
+
+      if(buf[0] != 0 || buf[1] != 'F' || buf[2] != 'W' || fwSize <= 30000) {
+        // Incorrect query: send the 'no operation' SCSI status
+        DmaPort::sendIrq(0x08);
+        break;
+      }
+
+      // Acknowledge the ACSI command
+      DmaPort::sendIrq(0);
+
+      // Start flashing procedure
+      flashFirmware(fwSize);
+      break;
+    }
+#endif
+
     default:
       // For unknown commands, play dead to avoid confusing other drivers
-      dbg("Ignore ");
+      dbg(" Ignore ");
       break;
   }
 }
@@ -1061,7 +1107,7 @@ void GemDrive::onBoot() {
   sendAt(driverMem, buf, GEMDRIVE_boot_bin_len);
 
   // Install system call hooks
-  // Warning: installed system calls must be the same as in asm/GEMDRIVE/tos.s
+  // Warning: installed system calls must be the same as in asm/GEMDRIVE/gem.s
   installHook(driverMem, 0x84); // GEMDOS
 
   onInit(true);

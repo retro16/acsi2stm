@@ -19,22 +19,22 @@
 
 start:
 
-	bra.b	load                    ; Send the load ACSI command
+	bra.w	load                    ; Send the load ACSI command
 
-	org	2
-	dc.b	0                       ; Patched-in variables
-acsiid	dc.b	$ff                     ; Invalid values to check for correct
-prmoff	dc.w	$00ff                   ; patching code in the STM32
+prmoff	dc.w	$00ff                   ;
+	dc.l	'XBRA','A2ST'           ;
+	dc.l	$00000084               ; Old vector
+acsiid	moveq	#$0e,d0                 ; Set command (patched by code)
+
+	include	syshook.s               ; Enter syshook mode
 
 load	st	flock.w                 ; Lock floppy controller
 
 	bsr.w	syshook.setdmaaddr      ; Reset DMA chip
 	move.w	#$0088,(a1)             ; Switch to command.
 	moveq	#$09,d1                 ; Send command $09 (GemDrive boot)
-	or.b	acsiid(pc),d1           ; Take ACSI id into account
+	or.w	acsiid(pc),d1           ; Take ACSI id into account
 	move.w	d1,(a0)                 ;
-
-	moveq	#20,d1                  ; 100ms timeout
 
 .await	btst.b	#5,gpip.w               ; Test command acknowledge
 	bne.b	.await                  ;
@@ -45,8 +45,9 @@ load	st	flock.w                 ; Lock floppy controller
 	tst.b	d0                      ; 0 = success
 	bne.b	load                    ; If not successful, retry
 
-	include	syshook.s               ; Enter syshook mode
+	move.w	acsiid(pc),d0           ; Read acsi id
+	bra.w	syshook.init            ; Initialize
 
-end
+	end
 
 ; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm68k tw=80

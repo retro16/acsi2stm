@@ -66,8 +66,13 @@ Changes since 4.12
 * Removed self-modifying code in GemDrive: it should now work with CPU cache
 * Added support for TT-RAM in GemDrive
 * Found and fixed the root cause for memory corruptions with ACSI_FAST_DMA = 5
-* Fixed and added `GEMDRIVE.TOS` to load GemDrive from desktop
+* Fixed and added `GEMDRIVE.PRG` to load GemDrive from desktop and `AUTO`
+* Fixed a lot of issues when multiple hard drives and ACSI2STM units are used at
+  the same time
+* Added support for up to 5 ACSI2STM units in `GEMDRIVE.PRG`
 * Boot `EMUTOS.SYS` on startup if present on the SD card
+* Provide a ready to use GemDrive boot image for EmuTOS, both hard drive and
+  floppy disk formats
 * Introduced GemDrive command 0x09 to avoid crashes when reading boot sector
 * Added PIO mode to work on broken DMA chips
 * Verbose firmware is now less than 64k allowing to flash it with `HDDFLASH.TOS`

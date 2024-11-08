@@ -22,10 +22,10 @@
 
 // acsi2stm global configuration
 
-#define ACSI2STM_VERSION "5.0e"
+#define ACSI2STM_VERSION "5.0f"
 
 // Set to 1 to enable debug output on the serial port
-#define ACSI_DEBUG 0
+#define ACSI_DEBUG 1
 
 // Set to 1 to enable verbose command output on the serial port
 #define ACSI_VERBOSE 0
@@ -109,7 +109,6 @@
 // Values 1 to 5 select different algorithms, from the most conservative to the
 // fastest. It seems that the STM32 has hardware glitches in some corner cases,
 // and different algorithms do different tradeoffs for speed and compatibility.
-// Versions 3.x used algorithm 5 (the fastest) but had known issues.
 // The main issue is STM32 flash being too slow for DMA, now all DMA uploads are
 // done from STM32 RAM to make sure data is correct.
 //
@@ -148,6 +147,12 @@
 // displayed.
 // Automatically disabled if ACSI_DEBUG is disabled.
 #define ACSI_STACK_CANARY 3072
+
+// If set, fakes firmware update
+// Flashing through HDDFLASH.TOS or PIOFLASH.TOS won't actually write to flash
+// memory. This is useful to test tools without having to reflash the chip again
+// and again.
+#define ACSI_FAKE_FLASH_FIRMWARE 0
 
 // Boot EmuTOS if found on the SD card during GemDrive boot
 // The value is the path to search for EMUTOS.SYS on the SD card
@@ -204,6 +209,7 @@
 #define ACSI_GEMDRIVE_MAX_PATH 64
 
 // Disable direct DMA access in GemDrive (used for testing/debug)
+// Simulates how GemDrive works with TT-RAM on a ST
 #define ACSI_GEMDRIVE_NO_DIRECT_DMA 0
 
 // Don't use DMA at all, use programmed input/output instead (A1/CS/IRQ)
@@ -211,7 +217,7 @@
 // Only GemDrive will work, and you can't self-boot it, you need to use
 // GEMDRPIO.TOS to start it.
 // Performance will be horrible, but still better than floppy disks.
-#define ACSI_PIO 0
+#define ACSI_PIO 1
 
 // vim: ts=2 sw=2 sts=2 et
 #endif

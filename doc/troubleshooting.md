@@ -151,7 +151,7 @@ Even with this, the filesystem is laden with bugs, memory leaks, bad error code
 handling and other quirks.
 
 The best way to limit possible interaction between these patching tools is to
-load GemDrive through `GEMDRIVE.TOS` and make sure it's loaded after all these
+load GemDrive through `GEMDRIVE.PRG` and make sure it's loaded after all these
 tools. That way access to GemDrive drives will be done with pristine system
 calls.
 
@@ -202,7 +202,7 @@ older hardware that didn't work previously.
 ACSI2STM provides a special firmware that doesn't use DMA at all: this is called
 the PIO variant. Only GemDrive works in that mode.
 
-You need to load GemDrive through `GEMDRPIO.TOS` because that mode cannot be
+You need to load GemDrive through `GEMDRPIO.PRG` because that mode cannot be
 automatically started at boot.
 
 This mode offers less performance: 50-100KB/s instead of 500-1500KB/s for DMA.

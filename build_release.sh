@@ -7,6 +7,7 @@
 #    sed
 #    arduino
 #    zip
+#    mtools
 
 srcdir="$(readlink -fs "$(dirname "$0")")"
 VERSION=`cat "$srcdir/VERSION"`
@@ -52,13 +53,27 @@ mkdir "$builddir"
 (
 cd "$builddir"
 
+(
+mkdir tools
+cd tools
 "$srcdir/build_asm.sh" || exit $?
+)
+
+(
+mkdir firmware
+cd firmware
 "$srcdir/build_arduino.sh" all || exit $?
+)
+
+(
+mkdir images
+"$srcdir/build_atari_img.sh" || exit $?
+)
 
 echo "Copy all the stuff in the packaging directory"
 
 mkdir "$zipdir"
-cp -r acsi2stm-$VERSION*.ino.bin *.TOS "$srcdir"/*.md "$srcdir"/doc "$srcdir"/pcb "$srcdir"/LICENSE "$srcdir"/VERSION "$zipdir"
+cp -r firmware tools images "$srcdir"/*.md "$srcdir"/doc "$srcdir"/pcb "$srcdir"/LICENSE "$srcdir"/VERSION "$zipdir"
 
 echo "... and the legal stuff"
 

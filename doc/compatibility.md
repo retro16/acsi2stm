@@ -8,7 +8,7 @@ ACSI2STM was successfully tested on the following configurations:
 * Atari 1040 STE, TOS 1.62, GemDrive + PP driver
 * Atari 1040 STE, TOS 2.06, GemDrive + Atari AHDI driver
 * Atari 1040 STE, TOS 2.06, GemDrive + ICD driver
-* Atari 1040 STE, EmuTOS, EmuTOS ACSI driver + GemDrive
+* Atari 1040 STE, EmuTOS, EmuTOS integrated ACSI driver + GemDrive
 * Atari Mega STE, TOS 2.06, GemDrive + Atari AHDI driver
 * Atari TT030, ACSI mode (driver not specified)
 
@@ -245,7 +245,7 @@ it anymore.
 
 * Incompatible with BigDOS.
 * Unstable, does not always detect drives.
-* Compatible with GemDrive, but only through `GEMDRIVE.TOS`.
+* Compatible with GemDrive, but only through `GEMDRIVE.PRG`.
 * Supports only Atari partition tables.
 * Must start at ACSI id 0.
 * Does not support SD card hot swap.
@@ -264,5 +264,5 @@ The integrated ACSI driver found in EmuTOS.
 **Cons:**
 
 * EmuTOS is not compatible with all ST programs.
-* Compatible with GemDrive, but only through `GEMDRIVE.TOS`.
+* Compatible with GemDrive, but only through `GEMDRIVE.PRG`.
 * Does not support SD card hot swap.

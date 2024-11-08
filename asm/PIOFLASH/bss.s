@@ -14,15 +14,11 @@
 ; You should have received a copy of the GNU General Public License
 ; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-firmcmd
-	dc.b	8
-	dc.b	$1f,$3b,$05,$00         ; Write buffer to firmware
-	dc.b	$00,$00,$00             ; Offset 0
-firmcmd.len
-	dc.b	$00,$00,$00             ; Write size in bytes
-	dc.b	$00                     ;
-piofcmd
-	dc.b	$0f,$00,'F','W'         ; Write PIO firmware command
-	dc.b	$01,$02                 ; Firmware size in bytes
+; Buffer for firmware
+firmlen	equ	$10000                  ; 64k buffer
+firm	ds.b	firmlen
+
+; Request sense buffer
+sensbuf	ds.b	256                     ; Used by acsicmd.full
 
 ; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm68k tw=80

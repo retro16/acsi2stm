@@ -166,6 +166,11 @@ slightly different syntax for the port.
 Installing the PCB
 ------------------
 
+### Powering the unit
+
+Power the unit via its USB-C port. It has no specific power requirements, so any
+5V USB-C adapter (or PC) should be able to power the unit.
+
 ### Backup battery
 
 Before installing, insert a CR2032 battery in the socket. The battery is only
@@ -190,35 +195,31 @@ instead of the DB19 port. This is useful if you have other IDC20 devices.
 
 ![Compact PCB on IDC20 port](images/compact_idc20.jpg)
 
-You can connect things on both the DB19 and IDC20 ports at the same time.
+**Note:** You can connect things on both the DB19 and IDC20 ports at the same
+time.
 
 
 Using the unit
 --------------
 
-Power the unit via its USB-C port. It has no specific power requirements, so any
-5V USB-C adapter (or PC) should be able to power the unit.
+Depending on which hardware you have, setup will be different.
 
-Insert any microSD card in its slots. The SD card can be formatted as FAT32
-(SDHC) or ExFAT (SDXC), which are the standard formats for the SD card.
+See [standard configurations](standard_configurations.md) to setup the unit.
 
-Turn the ST on, the ACSI2STM unit should display a boot message and the C drive
-should be readily available on the desktop.
+On the most standard configuration (no internal hard drive, no other device),
+just plug the unit, power it on before turning on the ST, and there you go: a C:
+drive will appear that corresponds to the first SD card slot. It behaves like a
+floppy drive: you can insert / swap SD cards at any time without rebooting.
 
-You need to manually install extra drive icons on the desktop to access the D or
-E drive. See [tutorial](tutorial.md) for more detailed instructions.
-
-**Note:** If you boot with no SD card inserted, the driver will still load and
-mount the C drive. You can hot plug a SD card later on: It works just like a
-floppy drive.
+See [tutorial](tutorial.md) if you have no prior experience with hard drives on
+the ST.
 
 
 Setting date and time
 ---------------------
 
 In GemDrive mode, you can use any tool to set the date, such as `CONTROL.ACC` or
-`XCONTROL.ACC`. GemDrive redirects all system calls to the STM32 so the internal
-clock isn't used anymore.
+`XCONTROL.ACC` available in the *Language disk* provided with the computer.
 
 In ACSI mode, ACSI2STM emulates an UltraSatan clock, so you can use UltraSatan
 tools such as `US_SETCL.PRG` and `US_GETCL.PRG`. GemDrive mode also responds to
@@ -248,18 +249,19 @@ Steps to update your firmware:
 * Press Y to start flashing.
 * When finished, the ST and the ACSI2STM unit will both restart.
 
-**Note:** when updating an ACSI2STM unit with multiple SD slots, you can select
-any slot to update the firmware for the whole unit. No need to do the update
-procedure multiple times.
+### Notes:
 
-**Note:** `HDDFLASH.TOS` works entirely in RAM, so you can start the program
-from the unit to update.
-
-**Note:** If you load GemDrive using `GEMDRIVE.TOS`, upgrade this file as well.
-An old version of `GEMDRIVE.TOS` may not be compatible with the newer firmware.
-
-**Warning:** If flashing fails or if the unit is bricked, you will have to
-upload the new firmware using the USB to UART dongle. See above.
-
-**Warning:** The PIO firmware variant does not support ACSI commands at all, so
-it is incompatible with `HDDFLASH.TOS`. You will need USB to UART to update.
+* The release package provides disk images that you can use to upgrade easily:
+  they have a `FIRMWARE` folder with the standard variant already named as
+  `HDDFLASH.BIN` so you just have to start `HDDFLASH.TOS`
+* When updating an ACSI2STM unit with multiple SD slots, you can select any slot
+  to update the firmware for the whole unit. No need to do the update procedure
+  multiple times.
+* `HDDFLASH.TOS` works entirely in RAM, so you can start the program from the
+  unit to update.
+* If you load GemDrive using `GEMDRIVE.PRG`, upgrade this file as well. An old
+  version of `GEMDRIVE.PRG` may not be compatible with the newer firmware.
+* The PIO firmware variant needs to be flashed with  `PIOFLASH.TOS` instead and
+  it reads `PIOFLASH.BIN` by default.
+* If flashing fails or if the unit is bricked, you will have to upload the new
+  firmware using the USB to UART dongle. See above.

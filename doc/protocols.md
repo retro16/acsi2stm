@@ -287,7 +287,7 @@ DMA is set at the correct address to read GEMDOS call parameters.
 Ask the ACSI2STM to initialize GemDrive. The ST enters in hook mode, then
 expects the STM32 to do the initialization process.
 
-Used by `GEMDRIVE.TOS`.
+Used by `GEMDRIVE.PRG`.
 
 #### 0x1f: ACSI command
 
@@ -353,5 +353,5 @@ Example reading 2 bytes from ST RAM to STM32. These 2 bytes are 0x55 and 0xaa:
     DATA    [0x98] [0x00] [0x00] [0x00] [0x02]    [0x55] [0xaa]
 
 
-GemDrive PIO driver is loaded by `GEMDRPIO.TOS`. To avoid confusion, PIO mode
+GemDrive PIO driver is loaded by `GEMDRPIO.PRG`. To avoid confusion, PIO mode
 is initialized by command 0x10 instead of command 0x11, the effect is the same.

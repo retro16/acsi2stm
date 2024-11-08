@@ -62,7 +62,7 @@ Compile-time options:
 ### acsi2stm-XXXX-pio.ino.bin
 
 Variant that does not use DMA transfers at all. This only supports GemDrive and
-it cannot autoboot, so you need to load the driver `GEMDRPIO.TOS` manually.
+it cannot autoboot, so you need to load the driver `GEMDRPIO.PRG` manually.
 
 This firmware does not use the DMA chip of the ST, so it will work even with a
 defective chip.
@@ -348,7 +348,7 @@ The hardware must be flashed with the previous stable version.
   * Use the FAT32 card as SD card 1
   * Use the ExFAT card as SD card 2
 * Run `CHARGEN.TOS` and check the result on the ST and on a PC
-* Copy `GEMDRIVE.TOS` to the floppy disk
+* Copy `GEMDRIVE.PRG` to the floppy disk
 * Check hotplug card type change
   * Eject the ExFAT card
   * Rename the 5-30MB disk image to `hd0.img`
@@ -370,7 +370,7 @@ The hardware must be flashed with the previous stable version.
 * Copy the release package between the 2 ICD cards
 * Copy the release package back to another folder of the GemDrive card. Check
   the result on a PC with diff.
-* Reboot with no ACSI2STM, then hot plug it and run `GEMDRIVE.TOS` from floppy
+* Reboot with no ACSI2STM, then hot plug it and run `GEMDRIVE.PRG` from floppy
 * On the ExFAT card, rename the PP driver to `hd0.img` and boot the PP driver
   along with GemDrive. Do a few file operations from the desktop to test it.
 * Follow the doc to setup and test EmuTOS
@@ -384,7 +384,7 @@ The hardware must be flashed with the previous stable version.
 * Plug the secondary ACSI2STM unit.
 * Insert the Atari AHDI SD card in the first slot of the secondary unit.
 * On the main ACSI2STM unit, insert only the GemDrive card.
-* Boot the ST and run `GEMDRIVE.TOS` from floppy.
+* Boot the ST and run `GEMDRIVE.PRG` from floppy.
 * Check that both C: (AHDI) and F: (GemDrive) are available.
 * Check that available RAM is reasonable by running `SYSINFO.PRG`
 * Copy `EMUTOS.PRG` from F: to C:.
@@ -393,8 +393,6 @@ The hardware must be flashed with the previous stable version.
 * Delete `EMUTOS.SYS` from the GemDrive card
 
 ### On 3 TOS versions (1.04, 1.62, 2.06)
-
-At least one pass must be done with a different ID_SHIFT jumper position
 
 * Boot an ICD + GemDrive combination
 * Copy files from GemDrive to ICD, at least one file must be over 1M
@@ -407,19 +405,33 @@ At least one pass must be done with a different ID_SHIFT jumper position
 * Run a few big desktop programs on GemDrive, use the file selector
 * Eject the GemDrive SD card and try to open it
 
-### On a single TOS version
+### Multi-device test matrix
 
-* Boot on FAT32 GemDrive.
-* Install `HDDFLASH.TOS` for BIN files.
-* Double-click `STRICT.BIN` to flash the strict firmware variant.
-* Reboot the ST.
-* Boot the PP driver image.
-* Check that files can be read.
-* Boot the Atari AHDI image.
-* Test EmuTOS with the Atari AHDI image.
-* Check that files can be read.
-* Flash the PIO variant.
-* Run `GEMDRPIO.TOS`.
-* Open the GemDrive drive and copy one file to floppy and back to SD. Check its
-  content.
-* Run a big application from the GemDrive drive.
+For each combination in the table, just do a simple directory browse test.
+Check that drive letters are all available.
+
+ACSI2STM device 1 has id 0-2 and device 2 has id 3-5 (ID_SHIFT set).
+
+* SD cards:
+  * FAT: A normal FAT32 SD card
+  * HD0: The hd0.img provided in the release package
+  * ICD: An ACSI bootable SD card with ICD pro and 4 Atari partitions. The boot
+    `AUTO` folder must contain the latest GemDrive drivers (both normal and PIO)
+  * EMU: A normal FAT32 SD card with EMUTOS.SYS at its root. EmuTOS must boot
+* Floppy:
+  * Blank: A non-bootable blank floppy
+  * ACSI2STM: The floppy provided in the release package
+* Drives: A list of expected drives. Upper case are GemDrive, lower case are
+  ACSI
+
+| TOS  | Device 1 | SD cards | Device 2 | SD cards | Floppy   | Drives  |
+|------|----------|----------|----------|----------|----------|---------|
+| EMU  | Normal   | FAT,HD0  | None     |          | Blank    | cLMN    |
+| 1.62 | Normal   | FAT      | Normal   | FAT      | Blank    | CDEFGH  |
+| EMU  | Normal   | FAT      | Normal   | FAT      | ACSI2STM | CDEFGH  |
+| 1.62 | Normal   | FAT      | PIO      | FAT      | ACSI2STM | CDEFGH  |
+| 2.06 | Normal   | FAT      | PIO      | FAT      | ACSI2STM | CDEFGH  |
+| 2.06 | Strict   | HD0      | Normal   | EMU      | Blank    | cDEF    |
+| 2.06 | Strict   | HD0      | Normal   | ICD,EMU  | Blank    | cdefgLN |
+| 1.04 | Strict   | ICD      | PIO      | FAT      | Blank    | cdefGHI |
+| 1.04 | PIO      | FAT      | PIO      | FAT      | ACSI2STM | CDEFGH  |

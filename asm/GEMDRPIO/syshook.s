@@ -32,51 +32,14 @@ resreg	macro
 	; Stack offset introduced by savereg
 spoff	equ	5*4
 
-syshook.init:
-	savereg	                        ; Save registers
-	moveq	#0,d0                   ; Send zero command
-	bra.w	syshook.sendcmd
-
-syshook.setprm:
-	; Point a2 at the parameters of the initial call
-	; The supervisor stack must point at the trap stack frame
-	; Alters d2 and a2 only
-	btst	#5,8+spoff(sp)          ; Check if supervisor mode
-	beq.b	.usp                    ; Branch if user mode
-
-	move.w	prmoff(pc),d2           ; Fetch parameter offset
-	lea	8+spoff(sp,d2.w),a2     ; Compute pointer to call parameters
-	rts
-
-.usp	move	usp,a2                  ; Point at USP directly
-	rts
-
-	; GEMDOS hook
-
-syshook.header:
-	dc.l	'XBRA'                  ; XBRA marker
-	dc.l	'A2ST'                  ;
-syshook.old:
-	dc.l	$00000084               ; Put vector address in old vector
 syshook:
-	move.l	syshook.old(pc),-(sp)   ; Push old vector
-	tst.b	flock.w                 ;
-	beq.b	syshook.exec            ;
-	rts	                        ; Reentrant call: forward the call
-syshook.exec:
-	moveq	#$0e,d0                 ; Set one byte command
-
 	; Initialize registers for hook subroutines
 	; Input:
 	;  d0.b: Command byte
-	;  a1: forwarding address
-	;  syshook.acsiid: ACSI Device ID
-	;  syshook.prmoff: Offset to a6 to find params (platform dependent)
-	; Output:
-	;  d0.b: Command byte with ACSI ID
-	;  a0: DMA controller command port
-	;  a1: DMA controller status port
-	;  a2: Pointer to parameters
+	;  syshook.prmoff: Offset to a7 to find params (platform dependent)
+
+	tst.b	flock.w                 ; Prevent reentrant calls
+	bne.b	syshook.rts             ;
 
 	savereg	                        ; Save registers
 	bsr.b	syshook.setprm          ; Set a2 (DMA address) at the parameters
@@ -85,12 +48,11 @@ syshook.exec:
 	beq.b	syshook.forward         ; some programs such as ICDFMT.PRG
 
 syshook.sendcmd:
-	or.b	acsiid(pc),d0           ; Set ACSI identifier
-
 	st	flock.w                 ; Lock floppy controller
 	bsr.w	syshook.setdmaaddr      ; Set DMA address on chip
 
 	move.w	#$0088,(a1)             ; Enable CS+A1 byte transfer
+	and.w	#$00ff,d0               ; Filter command byte
 	move.w	d0,(a0)                 ; Send command byte to the STM32
 
 syshook.reply:
@@ -121,7 +83,27 @@ syshook.forward:
 	; Command $98: forward the call to the next handler
 	sf	flock.w                 ; Unlock floppy controller
 	resreg	                        ; Restore registers
+syshook.rts
 	rts	                        ; Jump to forwarding address
+
+syshook.init:
+	savereg	                        ; Save registers
+	and.w	#$00e0,d0               ; Send "init ok" command
+	bra.w	syshook.sendcmd
+
+syshook.setprm:
+	; Point a2 at the parameters of the initial call
+	; The supervisor stack must point at the trap stack frame
+	; Alters d2 and a2 only
+	btst	#5,8+spoff(sp)          ; Check if supervisor mode
+	beq.b	.usp                    ; Branch if user mode
+
+	move.w	prmoff(pc),d2           ; Fetch parameter offset
+	lea	8+spoff(sp,d2.w),a2     ; Compute pointer to call parameters
+	rts
+
+.usp	move	usp,a2                  ; Point at USP directly
+	rts
 
 syshook.execcmd:
 	; Received a command in d0

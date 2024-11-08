@@ -196,9 +196,12 @@ manually (see below).
 
 ### Boot drive
 
-TOS is very inconsistent about which drive is the boot drive. The general rule
-seems to be: if there is a C: drive, this will be selected as a boot drive, else
-the floppy disk will be used as a boot drive.
+TOS is a bit inconsistent about which drive is the boot drive. When booting,
+GemDrive will select the first SD card as boot drive, starting `AUTO` programs,
+accessories and loading `DESKTOP.INF`/`NEWDESK.INF` from there.
+However, the *Save Desktop* feature will disregard that boot drive and use its
+own logic. It seems that it tries to save to C:, and if C: doesn't exist it
+saves to A:.
 
 ### Installing drive icons
 

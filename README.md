@@ -52,6 +52,9 @@ This is what you can find:
 * [tutorial](doc/tutorial.md): A tutorial about using hard drives on an Atari ST
   if you never used one before. It will help setting up various hardware
   combinations.
+* [standard_configurations](doc/standard_configurations.md): Instructions to
+  setup ACSI2STM depending on your hardware and what you want to achieve.
+* [tools](doc/tools.md): Documentation for tools provided with ACSI2STM.
 * [compatibility](doc/compatibility.md): Information about hardware, firmware
   and software compatibility.
 * [troubleshooting](doc/troubleshooting.md): Having problems? Have a look
@@ -61,7 +64,6 @@ This is what you can find:
 * [firmware](doc/firmware.md): Describes the many firmware variants pre-built
   in the release package. Also provides a step-by-step tutorial to compile and
   customize firmware yourself.
-* [tools](doc/tools.md): Documentation for tools provided with ACSI2STM.
 * [hardware](doc/hardware.md): How to design and build an acsi2stm unit
   from scratch (hand wired, or your own PCB design). Also documents jumper
   configuration.

@@ -14,12 +14,9 @@
 ; You should have received a copy of the GNU General Public License
 ; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-; Hard disk drive updater, using the Seagate SCSI protocol.
-; Compatible with ACSI2STM, of course ...
+; Hard disk drive updater, using the GemDrive PIO protocol
 
 	include	tui.s
-	even
-	include	acsicmd.s
 	even
 
 main:	print	.header
@@ -58,69 +55,13 @@ main:	print	.header
 	bmi	.clfirm                 ;
 	tst.l	d0                      ; Check end of file
 	bne	.rdloop                 ;
-	tst.l	d5                      ; Check buffer overflow
-	beq	.bigfw                  ;
 	move.w	d3,-(sp)                ; Close the file
 	gemdos	Fclose,4                ;
+	tst.l	d5                      ; Check buffer overflow
+	beq	.bigfw                  ;
 
 	; Select target hard disk
 
-	print	.scan
-
-	moveq	#0,d7                   ; Scan hard disks
-
-.scanid	moveq	#1,d0                   ; Send inquiry
-	move.l	#sensbuf,d1             ;
-	lea	.inqry,a0               ;
-	bsr	acsicmd                 ;
-
-	cmp.l	#-1,d0                  ; Check for timeout
-	bne.b	.ntmout                 ;
-
-	moveq	#1,d0                   ; Send inquiry with an extended command
-	move.l	#sensbuf,d1             ;
-	lea	.inqext,a0              ;
-	bsr	acsicmd                 ;
-
-	cmp.l	#-1,d0                  ; Check for timeout
-	bne.b	.ntmout                 ;
-
-	moveq	#1,d0                   ;
-	move.l	#sensbuf,d1             ;
-	lea	.piochk,a0              ; Send PIO firmware query
-	bsr	acsicmd                 ;
-
-	cmp.l	#-1,d0                  ; Check for timeout
-	bne.b	.ntmout                 ;
-
-	tst.b	d0                      ; Check for successful PIO device
-	bne	.nxtid                  ;
-
-	move.b	d7,d0                   ; Print that this device is a PIO device
-	lsr.b	#5,d0                   ;
-	add.b	#'0',d0                 ;
-	move.w	d0,-(sp)                ;
-	gemdos	Cconout,4               ;
-	print	.piodev                 ;
-
-	bra	.nxtid                  ;
-
-.ntmout	tst.b	d0                      ; Check if successful
-	bne.b	.nxtid                  ;
-
-	move.l	#$0d0a0000,sensbuf+32   ; Print device ID
-	move.b	d7,d0                   ;
-	lsr.b	#5,d0                   ;
-	add.b	#'0',d0                 ;
-	move.w	d0,-(sp)                ;
-	gemdos	Cconout,4               ;
-	pchar	':'                     ;
-	print	sensbuf+8               ;
-
-.nxtid	add.b	#$20,d7                 ; Scan next ID
-	bne	.scanid                 ;
-
-	crlf
 .devrq	print	.askid                  ;
 	gemdos	Cnecin,2                ; Read drive letter
 
@@ -141,30 +82,11 @@ main:	print	.header
 	cmp.b	#'Y',d0                 ;
 	bne	.exit                   ;
 
-	lsl.l	#8,d4                   ; Update command with data length
-	move.l	d4,firmcmd.len          ;
+	; Send upload command
 
 	print	.ulding                 ;
 
-	moveq	#1,d0                   ; Check if PIO device
-	move.l	#sensbuf,d1             ;
-	lea	.piochk,a0              ; Send PIO firmware query
-	bsr	acsicmd                 ;
-	tst.b	d0                      ;
-	beq	.flashp                 ; Jump if PIO device
-
-	move.w	#$05ff,d0               ; Execute the upload command
-	move.l	#firm,d1                ;
-	lea	firmcmd,a0              ;
-	bsr	acsicmd                 ;
-
-	tst.b	d0                      ; Check if successful
-	bne	.err                    ;
-
-.reboot	move.l	4.w,a0                  ; Reboot
-	jmp	(a0)                    ;
-
-.flashp	lea	piofcmd(pc),a0          ; a0 = Command buffer
+	lea	firmcmd(pc),a0          ; a0 = Command buffer
 	lea	dmactrl.w,a1            ; a1 = DMA control register
 	lea	dmadata.w,a2            ; a2 = DMA data register
 	lea	firm(pc),a3             ; a3 = pointer to firmware data
@@ -197,7 +119,15 @@ main:	print	.header
 	move.w	d0,(a2)                 ; Send firmware byte
 	dbra	d4,.fwbyte              ;
 
-	bra	.reboot                 ;
+	move.l	4.w,a0                  ; Reboot
+	jmp	(a0)                    ;
+
+.exitky	sf	flock.w                 ; Unlock floppy controller
+	gemdos	Cnecin,2                ; Wait for a key
+.exit	Pterm0
+
+.refusd	print	.refus                  ; Print error
+	bra.b	.exitky                 ;
 
 .waitiq	moveq	#20,d2                  ; 100ms timeout
 	add.l	hz200.w,d2              ;
@@ -207,25 +137,19 @@ main:	print	.header
 	bne.b	.await                  ;
 	rts	                        ;
 .timout	print	.noresp                 ;
-	addq	#4,sp                   ; Don't return
-
-.exitky	gemdos	Cnecin,2                ; Wait for a key
-.exit	rts
-
-.err	print	.refusd                 ; Print error
-	bra	.exitky
+	bra	.exitky                 ;
 
 .clfirm	move.w	d3,-(sp)                ; Close the file
 	gemdos	Fclose,4                ;
-.nfirm	print	.nffile
-	print	(a3)
-	crlf
-	bra	.exitky
+.nfirm	print	.nffile                 ;
+	print	(a3)                    ;
+	crlf	                        ;
+	bra	.exitky                 ;
 
-.bigfw	print	.toobig
-	bra	.exitky
+.bigfw	print	.toobig                 ;
+	bra	.exitky                 ;
 
-.header	dc.b	$1b,'E','HDD firmware flasher v'
+.header	dc.b	$1b,'E','PIO firmware flasher v'
 	incbin	..\..\VERSION
 	dc.b	$0d,$0a
 	dc.b	'By Jean-Matthieu Coulon',$0d,$0a
@@ -234,18 +158,11 @@ main:	print	.header
 	dc.b	$0d,$0a
 	dc.b	0
 
-.scan	dc.b	$0d,$0a
-	dc.b	'Available drives:',$0d,$0a
-	dc.b	0
-
-.piodev	dc.b	':PIO device',$0d,$0a
-	dc.b	0
-
 .askid	dc.b	$0d,$1b,'K','Please input the ACSI device (0-7):',0
 
 .lding	dc.b	'Loading firmware file ',0
 
-.file	dc.b	'HDDFLASH.BIN',0
+.file	dc.b	'PIOFLASH.BIN',0
 
 .nffile	dc.b	'Cannot open firmware file ',0
 
@@ -265,7 +182,7 @@ main:	print	.header
 .ulding	dc.b	$0d,$0a
 	dc.b	'Flashing firmware ...',0
 
-.refusd	dc.b	' Refused by device',$0d,$0a
+.refus	dc.b	' Refused by device',$0d,$0a
 	dc.b	0
 
 .noresp	dc.b	' Timeout',$0d,$0a
@@ -273,6 +190,5 @@ main:	print	.header
 
 .inqry	dc.b	3,$12,$00,$00,$00,$ff,$00
 .inqext	dc.b	4,$1f,$12,$00,$00,$00,$ff,$00
-.piochk	dc.b	3,$0f,$00,'P','I','O','?'
 
 ; vim: ff=dos ts=8 sw=8 sts=8 noet colorcolumn=8,41,81 ft=asm68k tw=80

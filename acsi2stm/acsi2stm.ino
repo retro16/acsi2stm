@@ -111,24 +111,22 @@ void loop() {
 
     // Dispatch command byte
 #if ! ACSI_STRICT
-    if(mask & SdDev::gemDriveMask) {
+    if(deviceIndex == SdDev::gemBootDrive) {
 #if ! ACSI_VERBOSE
       Monitor::dbgHex("GDRV", deviceId, ':', cmd, ' ');
 #endif
-      if(cmd == 0x08 && deviceIndex != SdDev::gemBootDrive)
-        Monitor::dbg("Ignore non-boot");
 #if ! ACSI_PIO
-      else if(cmd == 0x1f)
+      if(cmd == 0x1f)
         // Extended commands allow accessing the device in ACSI mode while
         // keeping it reasonably hidden from other tools.
         // Can be used for example to probe the device using INQUIRY, testing
         // with READ BUFFER or flashing firmware with WRITE BUFFER.
         // Warning: don't alter the SD card while it is mounted !
         Devices::acsi[deviceIndex].process(cmd);
-#endif
       else
-        // Handles GEMDOS trap as well as boot sector loader
-        GemDrive::process(cmd);
+#endif
+      // Handles GEMDOS trap as well as boot sector loader
+      GemDrive::process(cmd);
       Monitor::dbg('\n');
     } else
 #endif
@@ -141,7 +139,7 @@ void loop() {
       Monitor::dbg('\n');
     } else {
 #if ! ACSI_VERBOSE
-      Monitor::dbg("ACSI", deviceId, ':');
+      Monitor::dbg("UNKN", deviceId, ':');
       Monitor::dbgHex(cmd);
 #endif
       Monitor::dbg(" Not for us\n");

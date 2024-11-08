@@ -72,7 +72,7 @@ It is used to stress test unicode conversion of special characters. It is part
 of the release test cycle.
 
 
-GEMDRIVE.TOS
+GEMDRIVE.PRG
 ------------
 
 Loads the GemDrive driver from the GEM desktop or `AUTO` folder. It scans for
@@ -90,11 +90,11 @@ driver.
 * Don't forget to install drive icons after the driver is loaded.
 
 
-GEMDRPIO.TOS
+GEMDRPIO.PRG
 ------------
 
 Loads the GemDrive driver for the PIO firmware. Apart from that, it works
-exactly like `GEMDRIVE.TOS`
+exactly like `GEMDRIVE.PRG`
 
 
 HDDFLASH.TOS
@@ -117,7 +117,7 @@ units also trigger a cold reboot after flashing, so you are ready to go.
 Flashing an ACSI2STM unit usually takes around 2 seconds.
 
 **Warning:** The GemDrive protocol changes between versions. If you use
-`GEMDRIVE.TOS`, you must update it just before flashing the new firmware so at
+`GEMDRIVE.PRG`, you must update it just before flashing the new firmware so at
 next reboot the new driver will be in sync with the ACSI2STM unit.
 
 **Warning:** This tool is not compatible with the PIO variant of the ACSI2STM

@@ -163,9 +163,6 @@ these signals. Data flow:
    by the STM32 DMA engine and memory to memory copies cannot be triggered by
    a timer, so it has to be a memory to peripheral copy. Any unused peripheral
    register can be used for this task.
- * If multiple ACK signals are received, this can be detected by having an incorrect
-   counter value. This avoids silent data corruption in case of problems. This check is
-   only done if ACSI_CAREFUL_DMA is enabled.
 
 
 DMA read process
@@ -932,7 +929,8 @@ void DmaPort::pullIrq() {
 }
 
 void DmaPort::releaseRq() {
-  GPIOA->regs->CRH = 0x84444BB4; // Set ACK, IRQ and DRQ as inputs
+  // Set ACK, IRQ and DRQ as inputs
+  GPIOA->regs->CRH = 0x84444BB4;
 }
 
 bool DmaPort::irqUp() {

@@ -80,7 +80,8 @@ drive letters to L: in order to avoid conflicts with ACSI drivers.
 At boot, GemDrive designates the first SD card it finds as boot drive (even if
 it is not C:). If no SD card is detected, it leaves boot drive untouched
 (usually the floppy drive is designated as boot). Note that "boot drive" isn't
-really taken into account by TOS, most of the time.
+taken into account by the "Save Desktop": it saves to C:, or A: if C: doesn't
+exist.
 
 GemDrive doesn't respond to any ACSI command, except reading the boot sector.
 Most ACSI drivers and tools will ignore such a strange behavior and will skip
@@ -143,7 +144,7 @@ above as drive letters.
 ### Mixing GemDrive and other ACSI drivers
 
 If your driver has problems booting GemDrive, then only solution is to put
-`GEMDRIVE.TOS` into the `AUTO` folder.
+`GEMDRIVE.PRG` into the `AUTO` folder.
 
 
 Mixing ACSI2STM and other devices
@@ -173,56 +174,67 @@ How to install EmuTOS with GemDrive
 Since version 4.2, GemDrive is compatible with EmuTOS. Setting it up however is
 a bit challenging. This file explains in details how to properly install it.
 
-### Setting up boot SD card
+### Hardware needed
 
-You need at least 2 SD cards and 2 slots on your ACSI2STM. EmuTOS cannot boot on
-GemDrive, so you need at least 1 Atari-formatted SD card.
+* One SD card dedicated as boot drive
+* One SD card for EmuTOS and all your files
 
-**Alternative:** Use a floppy disk as boot drive. In that case you need only a
-single SD card.
+Both SD cards must have standard formatting (SD/SDHC/SDXC, **not** Atari)
 
-* Create a small disk image (`hd0.img`) on the boot SD card. 5MB-30MB is
-  recommended.
-* Partition the image using ICD PRO's `ICDFMT.PRG`.
-  * No need to make the disk bootable.
-  * If you want multiple boot disks (such as a different set of `AUTO` programs
-    or accessories), create multiple partitions.
-* Copy `GEMDRIVE.TOS` onto the boot disk.
-
-**Hint:** You can run ICD and GemDrive easily together. Just run `ICDBOOT.PRG`
-manually from GEM, then install the C: drive icon on the desktop. You may have
-to install L:, M: and so on to access GemDrive drives.
-
-### Installing EmuTOS
+### Installing EmuTOS executable
 
 If you run EmuTOS from ROM, you can skip that section.
 
-* Download the PRG version of EmuTOS.
-* On the GemDrive SD card (**not** the boot disk),
-  * Copy `EMUTOS.PRG` at the root of the SD card.
-  * Rename `EMUTOS.PRG` to `EMUTOS.SYS`.
-  * Optionally, you can mark the file as hidden.
+* Download the PRG version of EmuTOS
+* On the EmuTOS SD card,
+  * Copy `EMUTOS.PRG` at the root of the SD card
+  * Rename `EMUTOS.PRG` to `EMUTOS.SYS`
+  * Optionally, you can mark the file as hidden
 
-### Setting up GemDrive from within EmuTOS
+### Installing the EmuTOS boot image
 
-* Insert the GemDrive SD card with `EMUTOS.SYS` in the first SD card slot of the
-  ACSI2STM.
-* Insert the boot SD card in the last slot. If you use a boot floppy instead,
-  insert the floppy disk.
-* Reboot the system, EmuTOS should start at boot.
-  * Once EmuTOS is booted, you should see the boot disk as C: (or A: if it is a
-    floppy disk).
-* Open the boot disk on the desktop
-* Launch `GEMDRIVE.TOS`. GemDrive drives should be detected starting at L:.
-* In the menu bar, click *Options/Install devices*. GemDrive drives should
-  appear on the desktop.
-* Select `GEMDRIVE.TOS`. In the menu bar,
-  click *Options/Install application...*.
-  * Set *Boot status* to *Auto*.
-  * Click *Install* to close the dialog.
-* In the menu bar, click *Options/Save desktop...*
+* On the boot SD card, create a directory named `acsi2stm`
+* Copy `hd0_gemdrive.img` into `acsi2stm`
+* Rename `hd0_gemdrive.img` to `hd0.img`
 
 **Note:** all your `AUTO` programs and accessories need to be installed on C:
 
-**Note:** `AUTO` programs won't have access to GemDrive. Currently there is no
-way around that.
+**Note:** `AUTO` programs will have access to GemDrive if they are placed after
+`GEMDRIVE.PRG`. If using the official image, this will be the case.
+
+### Booting EmuTOS
+
+* Insert the EmuTOS card into the first SD slot
+* Insert the boot card into any other SD slot
+* Boot the ST
+* EmuTOS will load itself
+* GemDrive will load from `C:\AUTO`
+* EmuTOS will install all drive icons on the desktop automatically
+* GemDrive drive letters will start at L:
+
+**Note:** You can remove one of `C:\AUTO\GEMDRIVE.PRG` or `C:\AUTO\GEMDRPIO.PRG`
+depending on the firmware you use. If unsure, it doesn't hurt to have both.
+
+### How does that work ?
+
+The `hd0_gemdrive.img` image file is a simple FAT16 filesystem with no partition
+table, just like a floppy image in the `*.ST` format. EmuTOS can read ACSI hard
+drives that are formatted like this.
+
+At boot, EmuTOS mounts that image as C: and runs the GemDrive driver from its
+`AUTO` folder.
+
+**Warning:** The `hd0_gemdrive.img` image must **not** be bootable by the Atari
+in order to avoid loading extra drivers before starting EmuTOS.
+
+### Creating a boot image with a different size
+
+The simplest way to create boot images is to use mtools. Look at how
+`build_gemdrive_img.sh` works, it's a very small self-documented script.
+
+You could also create a boot image from Atari using hard disk tools. The image
+can be partitioned, everything will work correctly as long as EmuTOS can mount a
+C: drive at boot.
+
+Once the image is created and working in EmuTOS, just copy `GEMDRIVE.PRG` to its
+`AUTO` folder and rename it `GEMDRIVE.PRG`.
