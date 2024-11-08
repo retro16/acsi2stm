@@ -292,11 +292,7 @@ void SdDev::onReset() {
   }
 
   // Try to initialize the SD card
-#if ACSI_PIO
-  mode = GEMDRIVE; // Enable the slot
-#else
   mode = ACSI; // Enable the slot
-#endif
   init();
 
   mode = computeMode();
@@ -526,9 +522,6 @@ SdDev::Mode SdDev::computeMode() {
     // Once disabled, it stays disabled
     return DISABLED;
 
-#if ACSI_PIO
-  return GEMDRIVE;
-#else
   if(Devices::strict)
     return ACSI;
 
@@ -543,7 +536,6 @@ SdDev::Mode SdDev::computeMode() {
     return GEMDRIVE; // No SD card: use GemDrive
   else
     return ACSI; // Unrecognized SD format: pass through as ACSI
-#endif
 }
 
 void SdDev::reset() {

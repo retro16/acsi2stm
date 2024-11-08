@@ -2,6 +2,14 @@ Documentation for tools provided with ACSI2STM
 ==============================================
 
 
+Where to find these tools
+-------------------------
+
+Tools can be found in the `tools` directory in the release package. You can also
+find floppy and hard drive images containing all tools in the `images` directory
+of the release package.
+
+
 ACSITEST.TOS
 ------------
 
@@ -35,6 +43,8 @@ After tests are successful, you can select a few options:
   any key to stop the test.
 * Surface scan test: the tool will read all sectors of the drive.
 * Restart basic test: ask for another ACSI device and redo the basic tests.
+
+**Note:** You don't need to load any special driver to use this tool.
 
 
 ### Compatibility with GemDrive
@@ -131,6 +141,8 @@ next reboot the new driver will be in sync with the ACSI2STM unit.
 
 **Note:** If you brick the unit, you will have to re-upload a firmware using
 a serial (UART) dongle.
+
+**Note:** You don't need to load any special driver to use this tool.
 
 
 SWAPTEST.TOS

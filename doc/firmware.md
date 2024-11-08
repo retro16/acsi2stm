@@ -63,16 +63,13 @@ Compile-time options:
 
 Variant that does not use DMA transfers at all. This only supports GemDrive and
 it cannot autoboot, so you need to load the driver `GEMDRPIO.PRG` manually.
+It also means that it does not support ACSI/AHDI/strict mode.
 
-This firmware does not use the DMA chip of the ST, so it will work even with a
-defective chip.
+This firmware does not use DMA, so it will work even with a defective chip.
 
 Performance suffers: it runs about 10x slower than DMA, which is still much
 better than floppy drives and probably as fast as an old hard drive with a bad
 AHDI driver.
-
-**Warning:** This firmware variant cannot be updated with `HDDFLASH.TOS`. You
-need to use the serial dongle instead.
 
 Compile-time options:
 
@@ -81,9 +78,6 @@ Compile-time options:
 ### acsi2stm-XXXX-piodebug.ino.bin
 
 PIO variant with debug output enabled.
-
-**Warning:** This firmware variant cannot be updated with `HDDFLASH.TOS`. You
-need to use the serial dongle instead.
 
 Compile-time options:
 
@@ -94,15 +88,11 @@ Compile-time options:
 
 PIO variant with verbose output enabled. This mode is **extremely slow**.
 
-**Warning:** This firmware variant cannot be updated with `HDDFLASH.TOS`. You
-need to use the serial dongle instead.
-
 Compile-time options:
 
     #define ACSI_PIO 1
     #define ACSI_DEBUG 1
     #define ACSI_VERBOSE 1
-
 
 ## Which variant should I choose ?
 
@@ -311,8 +301,8 @@ The hardware must be flashed with the previous stable version.
 
 ### Needed hardware
 
-* An ACSI2STM unit flashed with the previous version of the firmware
-* A secondary ACSI2STM unit with the latest firmware and strict mode jumper set
+* Two ACSI2STM units flashed with the previous version of the firmware
+  * The secondary unit needs to have the `ID_SHIFT` jumper set to 3-5
 * 1 empty FAT32 card
 * 1 empty ExFAT card
 * 1 unformatted SD card (no partition table)
@@ -321,8 +311,6 @@ The hardware must be flashed with the previous stable version.
 ### FAT32 SD card preparation
 
 * Unzip the release package to the SD card
-* Rename the standard firmware to `HDDFLASH.BIN`
-* Rename the strict firmware to `STRICT.BIN`
 * Copy ICD drivers package
 * Copy `CONTROL.ACC`
 * Copy desktop apps
@@ -335,6 +323,8 @@ The hardware must be flashed with the previous stable version.
 * Copy the PP image into `acsi2stm`
 * Copy the AHDI image into `acsi2stm`
 * Copy the 5-30MB file into `acsi2stm`
+* Copy the `images/acsi2stm-xxxx-hd0.img` image from the release package into
+  `acsi2stm`
 * Make sure no disk image is named `hd0.img`
 
 ### On a single TOS version (either 1.04, 1.62 or 2.06)
@@ -427,11 +417,12 @@ ACSI2STM device 1 has id 0-2 and device 2 has id 3-5 (ID_SHIFT set).
 | TOS  | Device 1 | SD cards | Device 2 | SD cards | Floppy   | Drives  |
 |------|----------|----------|----------|----------|----------|---------|
 | EMU  | Normal   | FAT,HD0  | None     |          | Blank    | cLMN    |
-| 1.62 | Normal   | FAT      | Normal   | FAT      | Blank    | CDEFGH  |
 | EMU  | Normal   | FAT      | Normal   | FAT      | ACSI2STM | CDEFGH  |
+| 1.62 | Normal   | FAT      | Normal   | FAT      | Blank    | CDEFGH  |
 | 1.62 | Normal   | FAT      | PIO      | FAT      | ACSI2STM | CDEFGH  |
 | 2.06 | Normal   | FAT      | PIO      | FAT      | ACSI2STM | CDEFGH  |
 | 2.06 | Strict   | HD0      | Normal   | EMU      | Blank    | cDEF    |
 | 2.06 | Strict   | HD0      | Normal   | ICD,EMU  | Blank    | cdefgLN |
 | 1.04 | Strict   | ICD      | PIO      | FAT      | Blank    | cdefGHI |
 | 1.04 | PIO      | FAT      | PIO      | FAT      | ACSI2STM | CDEFGH  |
+| 1.04 | Normal   | FAT      | PIO      | FAT      | ACSI2STM | CDEFGH  |

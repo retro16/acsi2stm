@@ -80,7 +80,7 @@ void Devices::sense() {
 #if ACSI_RTC
   FsDateTime::setCallback(getDateTime);
 #endif
-#if ! ACSI_STRICT
+#if ! ACSI_STRICT && ! ACSI_PIO
   strict = digitalRead(PB2);
 #endif
 

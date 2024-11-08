@@ -1172,10 +1172,12 @@ void GemDrive::onInit(bool setBootDrive) {
 #else
   int firstDriveLetter = 'C';
 #endif
+#if ! ACSI_PIO
   for(d = 0; d < driveCount; ++d)
     if(Devices::sdSlots[d].mode == SdDev::ACSI )
       // Avoid conflicts with legacy drivers that don't respect _drvbits.
       firstDriveLetter = 'L';
+#endif
 #endif
   uint32_t drvbits = _drvbits();
 
