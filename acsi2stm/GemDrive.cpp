@@ -1043,14 +1043,16 @@ void GemDrive::process(uint8_t cmd) {
 
       int fwSize = ((int)(uint8_t)buf[3]) << 8 | (int)(uint8_t)buf[4];
 
-      if(buf[0] == 0 && buf[1] != 'P' && buf[2] != 'I' && buf[3] == 'O' && buf[4] == '?' ) {
+      if(buf[0] == 0 && buf[1] == 'P' && buf[2] == 'I' && buf[3] == 'O' && buf[4] == '?' ) {
         // PIO firmware query
+        dbg(" PIO query ");
         DmaPort::sendIrq(0);
         break;
       }
 
-      if(buf[0] != 0 || buf[1] != 'F' || buf[2] != 'W' || fwSize <= 30000) {
+      if(buf[0] != 0 || buf[1] != 'F' || buf[2] != 'W' || fwSize <= 32000) {
         // Incorrect query: send the 'no operation' SCSI status
+        dbg(" Wrong PIO query ");
         DmaPort::sendIrq(0x08);
         break;
       }

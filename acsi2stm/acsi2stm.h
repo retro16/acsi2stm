@@ -25,7 +25,7 @@
 #define ACSI2STM_VERSION "5.0f"
 
 // Set to 1 to enable debug output on the serial port
-#define ACSI_DEBUG 1
+#define ACSI_DEBUG 0
 
 // Set to 1 to enable verbose command output on the serial port
 #define ACSI_VERBOSE 0
@@ -217,7 +217,7 @@
 // Only GemDrive will work, and you can't self-boot it, you need to use
 // GEMDRPIO.TOS to start it.
 // Performance will be horrible, but still better than floppy disks.
-#define ACSI_PIO 1
+#define ACSI_PIO 0
 
 // vim: ts=2 sw=2 sts=2 et
 #endif

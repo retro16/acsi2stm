@@ -79,12 +79,13 @@ Loads the GemDrive driver from the GEM desktop or `AUTO` folder. It scans for
 all ACSI devices and once it finds a compatible GemDrive unit, it loads the
 driver.
 
+It can support up to 6 ACSI2STM units at the same time (not 6 SD slots, 6 whole
+devices).
+
 ### Notes
 
-* This driver associates to the first ACSI2STM device it finds. If you have
-  multiple physical GemDrive units connected, only the first one will be loaded.
 * This driver loads at higher memory addresses than the boot loader. This may
-  have an impact on some games or weird programs.
+  have an impact on some games or weird non-relocatable programs.
 * GemDrive skips already occupied drive letters, so it may be better to use this
   loader than the boot loader in some ACSI + GemDrive configurations.
 * Don't forget to install drive icons after the driver is loaded.
@@ -94,14 +95,22 @@ GEMDRPIO.PRG
 ------------
 
 Loads the GemDrive driver for the PIO firmware. Apart from that, it works
-exactly like `GEMDRIVE.PRG`
+exactly like `GEMDRIVE.PRG`.
+
+It can support up to 6 ACSI2STM PIO units at the same time (not 6 SD slots, 6
+whole devices).
+
+**Note:** You can run both `GEMDRIVE.PRG` and `GEMDRPIO.PRG` programs at the
+same time.
 
 
 HDDFLASH.TOS
 ------------
 
 Flashes hard drive firmware using Seagate SCSI commands. This is compatible with
-ACSI2STM both in GemDrive mode and ACSI strict mode.
+ACSI2STM both in GemDrive mode and ACSI strict mode. It also supports PIO mode
+with its specific firmware upload protocol. The correct mode is detected
+automatically.
 
 By default, `HDDFLASH.TOS` searches for `HDDFLASH.BIN`. If you specified a file
 on the command-line or installed `HDDFLASH.TOS` to run `BIN` files from GEM, it
@@ -120,8 +129,8 @@ Flashing an ACSI2STM unit usually takes around 2 seconds.
 `GEMDRIVE.PRG`, you must update it just before flashing the new firmware so at
 next reboot the new driver will be in sync with the ACSI2STM unit.
 
-**Warning:** This tool is not compatible with the PIO variant of the ACSI2STM
-firmware.
+**Note:** If you brick the unit, you will have to re-upload a firmware using
+a serial (UART) dongle.
 
 
 SWAPTEST.TOS

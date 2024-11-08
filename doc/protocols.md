@@ -355,3 +355,11 @@ Example reading 2 bytes from ST RAM to STM32. These 2 bytes are 0x55 and 0xaa:
 
 GemDrive PIO driver is loaded by `GEMDRPIO.PRG`. To avoid confusion, PIO mode
 is initialized by command 0x10 instead of command 0x11, the effect is the same.
+
+GenDrive PIO adds a special 0x0f command for firmware updates:
+
+* 0x0f 0x00 'P' 'I' 'O' '?': Returns 0x00 if the device supports PIO firmware
+  update protocol
+* 0x0f 0x00 'F' 'W' [2x bytes]: Upload a firmware with the size given by the 2
+  bytes. The ACSI2STM unit sends a 0x00 status byte, then reads firmware data
+  bytes one by one using the standard command byte protocol

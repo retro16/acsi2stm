@@ -261,7 +261,5 @@ Steps to update your firmware:
   unit to update.
 * If you load GemDrive using `GEMDRIVE.PRG`, upgrade this file as well. An old
   version of `GEMDRIVE.PRG` may not be compatible with the newer firmware.
-* The PIO firmware variant needs to be flashed with  `PIOFLASH.TOS` instead and
-  it reads `PIOFLASH.BIN` by default.
 * If flashing fails or if the unit is bricked, you will have to upload the new
   firmware using the USB to UART dongle. See above.

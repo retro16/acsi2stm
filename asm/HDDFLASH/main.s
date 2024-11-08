@@ -56,8 +56,7 @@ main:	print	.header
 	sub.l	d0,d5                   ; Count remaining bytes in the buffer
 	tst.l	d0                      ; Check return code
 	bmi	.clfirm                 ;
-	tst.l	d0                      ; Check end of file
-	bne	.rdloop                 ;
+	bne	.rdloop                 ; Check end of file
 	tst.l	d5                      ; Check buffer overflow
 	beq	.bigfw                  ;
 	move.w	d3,-(sp)                ; Close the file
@@ -89,9 +88,6 @@ main:	print	.header
 	move.l	#sensbuf,d1             ;
 	lea	.piochk,a0              ; Send PIO firmware query
 	bsr	acsicmd                 ;
-
-	cmp.l	#-1,d0                  ; Check for timeout
-	bne.b	.ntmout                 ;
 
 	tst.b	d0                      ; Check for successful PIO device
 	bne	.nxtid                  ;
@@ -141,9 +137,6 @@ main:	print	.header
 	cmp.b	#'Y',d0                 ;
 	bne	.exit                   ;
 
-	lsl.l	#8,d4                   ; Update command with data length
-	move.l	d4,firmcmd.len          ;
-
 	print	.ulding                 ;
 
 	moveq	#1,d0                   ; Check if PIO device
@@ -152,6 +145,9 @@ main:	print	.header
 	bsr	acsicmd                 ;
 	tst.b	d0                      ;
 	beq	.flashp                 ; Jump if PIO device
+
+	lsl.l	#8,d4                   ; Update command with data length
+	move.l	d4,firmcmd.len          ;
 
 	move.w	#$05ff,d0               ; Execute the upload command
 	move.l	#firm,d1                ;
@@ -238,7 +234,7 @@ main:	print	.header
 	dc.b	'Available drives:',$0d,$0a
 	dc.b	0
 
-.piodev	dc.b	':PIO device',$0d,$0a
+.piodev	dc.b	':ACSI2STM PIO',$0d,$0a
 	dc.b	0
 
 .askid	dc.b	$0d,$1b,'K','Please input the ACSI device (0-7):',0

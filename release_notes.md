@@ -75,6 +75,7 @@ Changes since 4.12
   floppy disk formats
 * Introduced GemDrive command 0x09 to avoid crashes when reading boot sector
 * Added PIO mode to work on broken DMA chips
+* Added support for PIO mode in `HDDFLASH.TOS`
 * Verbose firmware is now less than 64k allowing to flash it with `HDDFLASH.TOS`
 * Fixed GemDrive boot when ACSI id 0 is not an ACSI2STM unit
 * Reworked documentation to put more emphasis on the new PCB design
