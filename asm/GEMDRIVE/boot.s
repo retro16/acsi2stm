@@ -23,7 +23,8 @@ start:
 
 prmoff	dc.w	$00ff                   ;
 	dc.l	'XBRA','A2ST'           ;
-	dc.l	$00000084               ; Old vector
+oldvec	dc.l	$00000084               ; Old vector
+	move.l	oldvec(pc),-(sp)        ; Push old vector
 acsiid	moveq	#$0e,d0                 ; Set command (patched by code)
 
 	include	syshook.s               ; Enter syshook mode
@@ -32,8 +33,10 @@ load	st	flock.w                 ; Lock floppy controller
 
 	bsr.w	syshook.setdmaaddr      ; Reset DMA chip
 	move.w	#$0088,(a1)             ; Switch to command.
+	move.w	acsiid(pc),d0           ; Get ACSI id
+	and.w	#$00e0,d0               ; Filter out command
 	moveq	#$09,d1                 ; Send command $09 (GemDrive boot)
-	or.w	acsiid(pc),d1           ; Take ACSI id into account
+	or.b	d0,d1                   ; Take ACSI id into account
 	move.w	d1,(a0)                 ;
 
 .await	btst.b	#5,gpip.w               ; Test command acknowledge

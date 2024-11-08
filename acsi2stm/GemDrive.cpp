@@ -105,7 +105,7 @@ static const uint16_t translitChars[][2] = {
 };
 
 // Offsets for variables to patch in the GEMDRIVE payload
-static const int GEMDRIVE_boot_acsiid = 19;
+static const int GEMDRIVE_boot_acsiid = 23;
 static const int GEMDRIVE_boot_prmoff = 4;
 
 GemPattern::GemPattern() {
@@ -1096,7 +1096,7 @@ void GemDrive::onBoot() {
   memcpy(buf, GEMDRIVE_boot_bin, GEMDRIVE_boot_bin_len);
 
   // Patch ACSI id
-  buf[GEMDRIVE_boot_acsiid] = (Devices::gemBootDrive + Devices::acsiFirstId) << 5;
+  buf[GEMDRIVE_boot_acsiid] |= (Devices::gemBootDrive + Devices::acsiFirstId) << 5;
 
   // Patch parameter offset
   buf[GEMDRIVE_boot_prmoff + 1] = _longframe() ? 8 : 6;
@@ -1214,7 +1214,7 @@ void GemDrive::onInit(bool setBootDrive) {
   // Set boot drive on the ST
   if(setBootDrive) {
     for(d = 0; d < driveCount; ++d) {
-      if(Devices::sdSlots[d].mountable) {
+      if(Devices::sdSlots[d].mode == SdDev::GEMDRIVE && Devices::sdSlots[d].mountable) {
         dbg("\n        Boot on ");
         setCurDrive(Devices::drives[d].id);
         _bootdev(Devices::drives[d].id);

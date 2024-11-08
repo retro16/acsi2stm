@@ -30,7 +30,6 @@ injectfiles() {
   mcopy -i "$img" firmware/acsi2stm-$VERSION-strict.ino.bin ::FIRMWARE/STRICT.BIN
   mcopy -i "$img" firmware/acsi2stm-$VERSION-strictverbose.ino.bin ::FIRMWARE/STRICTVB.BIN
   mcopy -i "$img" firmware/acsi2stm-$VERSION-pio.ino.bin ::FIRMWARE/PIO.BIN
-  mcopy -i "$img" firmware/acsi2stm-$VERSION-pio.ino.bin ::FIRMWARE/PIOFLASH.BIN
   mcopy -i "$img" firmware/acsi2stm-$VERSION-piodebug.ino.bin ::FIRMWARE/PIODEBUG.BIN
   mcopy -i "$img" firmware/acsi2stm-$VERSION-pioverbose.ino.bin ::FIRMWARE/PIOVERBO.BIN
   mcopy -i "$img" firmware/acsi2stm-$VERSION-legacy.ino.bin ::FIRMWARE/LEGACY.BIN
