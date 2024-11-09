@@ -63,11 +63,6 @@ void Acsi::process(uint8_t cmd) {
 
   readCmdBuf(cmd);
 
-  refresh();
-  if(blockDev.slot < 0)
-    // Slot has been disabled by refresh()
-    return;
-
 #if ACSI_VERBOSE
   dumpln(cmdBuf, cmdLen, 0);
 #else
@@ -92,6 +87,11 @@ void Acsi::process(uint8_t cmd) {
 
   // Commands with no LUN but medium dependent
   case 0x00: // Test unit ready
+    refresh();
+    if(blockDev.slot < 0)
+      // Slot has been disabled by refresh()
+      return;
+
     if(lastMediumState == MEDIUM_REMOVED) {
       commandStatus(ERR_NOMEDIUM);
       return;

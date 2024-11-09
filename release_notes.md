@@ -82,6 +82,7 @@ Changes since 4.12
 * Removed "full-featured" PCB as it's not really safe nor easy to build
 * Simplified documentation
 * Removed timeout in GemDrive boot program as it is useless
+* Improved ACSI performance of some commands. Fixes multi device with GemDrive
 * Code cleanup pass (dead code removal, code formating, comments review, ...)
 
 

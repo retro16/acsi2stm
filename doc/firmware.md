@@ -377,13 +377,13 @@ The hardware must be flashed with the previous stable version.
 * Follow the doc to setup and test EmuTOS
 * Run a compatible desktop app under EmuTOS on GemDrive
 * If any ASM file was changed, check that the program still assembles with GenST
-  2.x and runs fine
+  3.x and runs fine
 * Enable ACSI strict mode via jumper and check that GemDrive doesn't boot but
   ICD does
 * Turn power off
 * Plug the secondary ACSI2STM unit
-* Insert the Atari AHDI SD card in the first slot of the secondary unit
-* On the main ACSI2STM unit, insert only the GemDrive card
+* Insert the Atari AHDI SD card in the first slot of the first unit
+* On the secondary ACSI2STM unit, insert only the GemDrive card
 * Insert the boot floppy and boot the ST
 * Check that both C: (AHDI) and F: (GemDrive) are available
 * Check that available RAM is reasonable by running `SYSINFO.PRG`

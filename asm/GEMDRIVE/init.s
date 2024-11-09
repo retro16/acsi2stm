@@ -51,9 +51,9 @@ main	lea	stack,sp                ; Initialize stack
 	move.w	#8,(a0)                 ; prmoff = 8
 .shrtfr
 
-	st	flock.w                 ; Lock floppy controller
-
 .test	; Test for ACSI device in d7
+
+	st	flock.w                 ; Lock floppy controller
 
 	moveq	#0,d0                   ; Clear command byte register
 	moveq	#5,d2                   ; 6 command bytes

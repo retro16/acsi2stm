@@ -140,8 +140,8 @@ whole IRQ pulse to be safe.
 GemDrive uses status bytes as reverse commands in hook mode. Some commands
 transmit a 4 bytes long parameter in fast mode (without waiting for IRQ):
 
-         __      _                           ___
-    IRQ    |____| |_________________________|
+         __      _______________________________
+    IRQ    |____|
          _____   ____   ____   ____   ____   ___
     CS        |_|    |_|    |_|    |_|    |_|
     
@@ -269,6 +269,8 @@ Note: only the boot id responds to this command.
 
 #### 0x09: Install GemDrive
 
+Single byte command
+
 Ask the ACSI2STM to install GemDrive. The ST enters in hook mode, then expects
 the STM32 to install GemDrive in RAM and follow up with the initialization
 process (just like command 0x11).
@@ -276,6 +278,8 @@ process (just like command 0x11).
 Used by the boot loader returned by command 0x08.
 
 #### 0x0e: GEMDOS hook
+
+Single byte command
 
 Signals the ACSI2STM that a GEMDOS trap just happened. Enters in *Hook protocol*
 mode.
@@ -287,11 +291,17 @@ DMA is set at the correct address to read GEMDOS call parameters.
 Ask the ACSI2STM to initialize GemDrive. The ST enters in hook mode, then
 expects the STM32 to do the initialization process.
 
+Expected command:
+
+    0x11 0x00 'G' 'D' 'R' 'V'
+
 Used by `GEMDRIVE.PRG`.
 
 #### 0x1f: ACSI command
 
 You can send any ACSI command, just as if the drive was in ACSI mode.
+
+This is not available in PIO mode.
 
 **Warning:** modifying the content of the SD using SCSI block write commands
 may conflict with the GemDrive driver and corrupt data.
@@ -355,6 +365,8 @@ Example reading 2 bytes from ST RAM to STM32. These 2 bytes are 0x55 and 0xaa:
 
 GemDrive PIO driver is loaded by `GEMDRPIO.PRG`. To avoid confusion, PIO mode
 is initialized by command 0x10 instead of command 0x11, the effect is the same.
+
+### GemDrive PIO firmware update
 
 GenDrive PIO adds a special 0x0f command for firmware updates:
 
