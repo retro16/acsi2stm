@@ -35,16 +35,16 @@ it can be difficult to keep track of what is compatible with what.
 Here is a compatibility matrix that shows firmware revisions and their hardware
 compatibility:
 
-|                      Hardware board | 1.x | 2.x | 3.0+ | 4.0+ legacy |
-|------------------------------------:|:---:|:---:|:----:|:-----------:|
-|         Custom board built for v1.0 | ✓   | 🛇   | 🛇    | 🛇           |
-|         Custom board built for v2.0 | 🛇   | ✓   | 🛇    | ✓           |
-|         Custom board built for v3.0 | 🛇   | 🛇   | ✓    | ✓           |
-|         Custom board built for v4.0 | 🛇   | 🛇   | ✓    | ✓           |
-|              Full featured PCB v1.0 | 🛇   | 🛇   | ✓    | ✓           |
-|              Full featured PCB v1.1 | 🛇   | 🛇   | ✓    | ✓           |
-|                 SOVAJA Mega STE PCB | 🛇   | 🛇   | ✓    | ✓           |
-|  Official ACSI2STM compact PCB v1.0 | 🛇   | 🛇   | ✓    | ✓           |
+|                      Hardware board | 1.x | 2.x | 3.0+ | legacy |
+|------------------------------------:|:---:|:---:|:----:|:------:|
+|         Custom board built for v1.0 | ✓   | 🛇   | 🛇    | 🛇      |
+|         Custom board built for v2.0 | 🛇   | ✓   | 🛇    | ✓      |
+|         Custom board built for v3.0 | 🛇   | 🛇   | ✓    | ✓      |
+|         Custom board built for v4.0 | 🛇   | 🛇   | ✓    | ✓      |
+|              Full featured PCB v1.0 | 🛇   | 🛇   | ✓    | ✓      |
+|              Full featured PCB v1.1 | 🛇   | 🛇   | ✓    | ✓      |
+|                 SOVAJA Mega STE PCB | 🛇   | 🛇   | ✓    | ✓      |
+|  Official ACSI2STM compact PCB v1.0 | 🛇   | 🛇   | ✓    | ✓      |
 
 **Note:** 3.0+ means version 3.0 and higher, including any 4.x, 5.x,...
 

@@ -61,6 +61,7 @@ This is what you can find:
   here.
 * [gemdrive](doc/gemdrive.md): Technical details about GemDrive. How to mix
   GemDrive with ACSI. How to install GemDrive for EmuTOS.
+* [jumpers](doc/jumpers.md): Documents the various jumpers available on the PCB
 * [firmware](doc/firmware.md): Describes the many firmware variants pre-built
   in the release package. Also provides a step-by-step tutorial to compile and
   customize firmware yourself.

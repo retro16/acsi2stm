@@ -832,7 +832,7 @@ void DmaPort::setupCsTimer() {
 void DmaPort::setupDrqTimer() {
   DMA_TIMER->CR1 = TIMER_CR1_OPM;
   DMA_TIMER->CR2 = 0;
-  DMA_TIMER->SMCR = 
+  DMA_TIMER->SMCR =
 #if ACSI_ACK_FILTER
     ((ACSI_ACK_FILTER) << 8) |
 #endif
@@ -849,7 +849,6 @@ void DmaPort::setupDrqTimer() {
   DMA_TIMER->CCR3 = 1; // Compare value
   DMA_TIMER->CCR4 = 1; // Compare value
   DMA_TIMER->CNT = 2;
-  DMA_TIMER->CR1 |= TIMER_CR1_CEN;
 
   // Initialize DMA engine
   RCC_BASE->AHBENR |= RCC_AHBENR_DMA1EN;
@@ -931,6 +930,9 @@ void DmaPort::pullIrq() {
 void DmaPort::releaseRq() {
   // Set ACK, IRQ and DRQ as inputs
   GPIOA->regs->CRH = 0x84444BB4;
+
+  // Disable DRQ timer
+  DMA_TIMER->CR1 &= ~TIMER_CR1_CEN;
 }
 
 bool DmaPort::irqUp() {
@@ -1013,6 +1015,7 @@ void DmaPort::armDma() {
 void DmaPort::acquireDrq() {
   // Set DRQ to high using timer PWM
   DMA_TIMER->CNT = 2;
+  DMA_TIMER->CR1 |= TIMER_CR1_CEN;
 
   // Transition through input pullup to avoid a hardware glitch
   GPIOA->regs->CRH = 0x84448BB4;
@@ -1031,7 +1034,7 @@ bool DmaPort::checkDma() {
 
 uint8_t DmaPort::dmaData() {
   return (DMA_TIMER->CCR1) >> 8;
-} 
+}
 
 bool DmaPort::ackReceived() {
   return DMA_TIMER->CNT;
@@ -1042,7 +1045,7 @@ void DmaPort::disableAckFilter() {
 }
 
 void DmaPort::enableAckFilter() {
-  DMA_TIMER->SMCR = 
+  DMA_TIMER->SMCR =
 #if ACSI_ACK_FILTER
     ((ACSI_ACK_FILTER) << 8) |
 #endif

@@ -194,10 +194,10 @@ If you run EmuTOS from ROM, you can skip that section.
 ### Installing the EmuTOS boot image
 
 * On the boot SD card, create a directory named `acsi2stm`
-* Copy `hd0_gemdrive.img` into `acsi2stm`
-* Rename `hd0_gemdrive.img` to `hd0.img`
+* Copy `images/acsi2stm-xxxx-hd0.img` from the release package into `acsi2stm`
+* Rename the image to `hd0.img`
 
-**Note:** all your `AUTO` programs and accessories need to be installed on C:
+**Note:** All your `AUTO` programs and accessories need to be installed on C:
 
 **Note:** `AUTO` programs will have access to GemDrive if they are placed after
 `GEMDRIVE.PRG`. If using the official image, this will be the case.
@@ -217,24 +217,13 @@ depending on the firmware you use. If unsure, it doesn't hurt to have both.
 
 ### How does that work ?
 
-The `hd0_gemdrive.img` image file is a simple FAT16 filesystem with no partition
-table, just like a floppy image in the `*.ST` format. EmuTOS can read ACSI hard
-drives that are formatted like this.
+The `acsi2stm-xxxx-hd0.img` image file is a simple FAT16 filesystem with no
+partition table, just like a floppy. EmuTOS can read ACSI hard drives that are
+formatted like this, ICD Pro seems to handle these correctly too.
 
 At boot, EmuTOS mounts that image as C: and runs the GemDrive driver from its
 `AUTO` folder.
 
-**Warning:** The `hd0_gemdrive.img` image must **not** be bootable by the Atari
-in order to avoid loading extra drivers before starting EmuTOS.
-
-### Creating a boot image with a different size
-
-The simplest way to create boot images is to use mtools. Look at how
-`build_gemdrive_img.sh` works, it's a very small self-documented script.
-
-You could also create a boot image from Atari using hard disk tools. The image
-can be partitioned, everything will work correctly as long as EmuTOS can mount a
-C: drive at boot.
-
-Once the image is created and working in EmuTOS, just copy `GEMDRIVE.PRG` to its
-`AUTO` folder and rename it `GEMDRIVE.PRG`.
+**Warning:** For maximum stability, the boot image must be under 32MB to keep
+sectors of 512 bytes. The release package provides a 8MB image, which is more
+than enough for most needs in terms of `AUTO` programs and accessories.

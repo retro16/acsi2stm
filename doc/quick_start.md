@@ -69,12 +69,11 @@ You can order pre-assembled PCBs, ready to use.
 A few optional connectors are on the bottom side of the PCB and are not
 assembled by JLCPCB by default:
 
-* Configuration jumpers (RESET, ID_SHIFT, FLASH, ACSI)
-* Serial/UART pins
-* The Satan/UltraSatan IDC20 connector
+* Configuration jumpers (RESET, ID_SHIFT, FLASH, ACSI): 2.54mm male square pins
+* Serial/UART pins: 2.54mm 6x square pins female socket
+* Satan/UltraSatan IDC20 connector: IDC20 male or 2.54mm male square pins
 
-All these parts can be built using the same 2.54mm male square pins. It's better
-to use a real IDC20 connector though.
+See [jumpers](jumpers.md) for documentation about these parts.
 
 
 Flashing firmware
