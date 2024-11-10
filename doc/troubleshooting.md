@@ -99,8 +99,6 @@ Read-Only SD cards
 
 You need to solder PB0..PB5 pins. See [hardware](hardware.md).
 
-If you use the full featured PCB, you need solder blobs on JP0..JP3.
-
 If you can't change hardware, change `ACSI_SD_WRITE_LOCK` to *0* in `acsi2stm.h`
 and recompile the firmware.
 
@@ -165,14 +163,6 @@ Issues with multiple ACSI2STM units on the same computer
 It should be possible to use multiple units at the same time when using ACSI
 strict mode. Just make sure you don't have ACSI id conflicts (use ID_SHIFT).
 
-GemDrive should theoretically work, but in practice it has bugs: some commands
-are handled by the wrong device, and because of how GemDrive works, it fails
-fast and hard.
-
-Because ACSI2STM provides many SD card slots and GemDrive has no size
-limitation, motivation to debug multi-GemDrive mode is very low, so it will
-probably be left unfixed.
-
 
 "Bad DMA" chips
 ---------------
@@ -194,8 +184,8 @@ healthy.
 
 **Warning:** ACSI2STM firmwares version 3.x and lower had random issues. Many
 people were confused by this and thought that they had a bad DMA chip because of
-this. 4.00 fixed the issue so it might be worth trying an up to date version on
-older hardware that didn't work previously.
+this. New versions fixed many subtle bugs so it might be worth trying an up to
+date version on older hardware that didn't work previously.
 
 ### Workaround for bad DMA
 

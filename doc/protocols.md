@@ -15,21 +15,6 @@ jumpers.
 ACSI2STM behaves in 2 very different ways depending whether it is in ACSI mode
 or GemDrive mode. The correct mode is selected per slot at reset.
 
-At reset, the following algorithm is applied to each SD card slot:
-
-* If the slot doesn't exist, it is completely disabled and the ACSI id is freed.
-* If strict mode is enabled (via jumper or "strict" firmware variant), ACSI
-  mode is enabled.
-* If the SD card contains an ACSI disk image, ACSI mode is enabled.
-* If the SD card is Atari bootable, ACSI mode is enabled.
-* If the SD card can be mounted by the STM32, GemDrive mode is enabled.
-* If no SD card is detected in the slot, GemDrive mode is enabled.
-* If no other condition is satisfied, the SD card has an unknown format: ACSI
-  mode is enabled.
-
-Then, the first GemDrive slot is declared the boot slot: it behaves slightly
-differently because all GemDrive communication happens through this slot.
-
 
 Electronical level protocol
 ---------------------------
@@ -71,6 +56,10 @@ IRQ should be kept up all the time.
 
 For the command start byte, D4..D0 bits specify the command, and D7..D5 specify
 the ACSI id.
+
+As soon as a command start byte is emitted on the bus, only the peripheral with
+the corresponding id is allowed to talk. Other peripherals must ignore all
+traffic until another command start byte is emitted.
 
 Example of a real ST trace (520 STF). Yellow (top) is A1, Pink (bottom) is CS:
 

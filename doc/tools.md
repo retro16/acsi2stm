@@ -168,7 +168,7 @@ Stress tests and checks operating system error codes.
 
 The tool does a lot of weird access patterns, such as accessing non-existing
 files or writing to read-only files, and checks that error codes returned by
-the operating system  exactly match what TOS 1.04-2.06 returns on a floppy disk.
+the operating system exactly match what TOS 1.04-2.06 returns on a floppy disk.
 
 The tool only accesses a single subdirectory, but it is not excluded that
 operating system bugs would corrupt data on the disk.

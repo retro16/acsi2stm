@@ -36,9 +36,9 @@ multiple devices on the bus, just like PC floppy or IDE drives.
 ### DMA plague, Bad DMA, faulty hardware
 
 It's so important that it needs to be mentioned in a beginner tutorial: many ST
-have patially faulty DMA ports. It was a very common issue that nobody suspected
-because hard drives were rare back in the days, so people didn't realize that
-their machine had a problem.
+have partially faulty DMA ports. It was a very common issue that nobody
+suspected because hard drives were rare back in the days, so people didn't
+realize that their machine had a problem.
 
 It randomly hits a very wide range of computers, from early STF to late Mega STE
 and maybe even later models.
@@ -90,7 +90,7 @@ plug a hard drive and hope to see a sweet **C:** icon on the GEM desktop.
 
 When you bought a hard drive, it came with a driver on a floppy disk. The most
 common driver was Atari's *AHDI* driver, a very bad driver full of limitations
-and bugs. So other companies started to sell alternative drives that all work
+and bugs. So other companies started to sell alternative drivers that work
 better.
 
 They all work on the same principle: you have a small TOS/PRG file that runs the
@@ -105,7 +105,7 @@ there you go.
 ### The boot process
 
 Thankfully, while TOS doesn't have a full hard drive driver, it has a boot
-driver. It runs just like floppy drives:
+driver. It uses the same boot routine as floppy drives:
 
 * For each device id, it reads the first sector (512 bytes)
 * If read fails or times out, it tries the next device id
@@ -239,10 +239,10 @@ This is much more user-friendly:
 
 Weird things can happen when installing drives:
 
-* Newly installed icons can be placed under an already existing icon. If you
-  cannot find your new icon, try to move other icons around. Make sure not to
-  drag icons over other icons because you will trigger a copy operation !
-* Drive `C:` needs to be typed upper case, because `c:` is the cartridge drive.
+* Newly installed icons can be placed over or under an already existing icon. If
+  you cannot find an icon, try to move other icons around. Make sure not to drag
+  icons over other icons because it will trigger a copy operation !
+* Drive `C:` needs to be typed upper case because `c:` is the cartridge drive.
   Other drive letters are case insensitive.
 * Why *Install Disk Drive* is disabled when you don't select any icon is beyond
   me. It doesn't make any sense and looks like a bug IMHO. New TOS fixes this

@@ -143,7 +143,7 @@ above as drive letters.
 
 ### Mixing GemDrive and other ACSI drivers
 
-If your driver has problems booting GemDrive, then only solution is to put
+If your driver has problems booting GemDrive, the easiest solution is to install
 `GEMDRIVE.PRG` into the `AUTO` folder.
 
 
@@ -225,5 +225,5 @@ At boot, EmuTOS mounts that image as C: and runs the GemDrive driver from its
 `AUTO` folder.
 
 **Warning:** For maximum stability, the boot image must be under 32MB to keep
-sectors of 512 bytes. The release package provides a 8MB image, which is more
+clusters of 1024 bytes. The release package provides a 8MB image, which is more
 than enough for most needs in terms of `AUTO` programs and accessories.

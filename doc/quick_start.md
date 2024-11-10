@@ -117,7 +117,7 @@ good enough contact.
 
 **Note:** when using this kind of adapter, you don't need to enable the FLASH
 jumper. The PCB is wired to enable flash mode when it senses power on the 5V
-pin.
+pin at power up / reset.
 
 If you don't have that very specific model of adapter, plug as following:
 

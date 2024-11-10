@@ -1,10 +1,11 @@
 Firmware variants in the release package
 ========================================
 
-Newer ACSI2STM release packages have many variants to choose from.
+The ACSI2STM release package has many variants to choose from. They can be found
+in the `firmware` directory.
 
 You can use these firmware files to avoid installing the whole Arduino toolchain
-on your computer.
+on your computer to compile the firmware.
 
 ### acsi2stm-XXXX.ino.bin
 
@@ -276,7 +277,8 @@ dependencies from there. You don't need to select the correct board from within
 the IDE as the build script will automatically select the correct board.
 
 The `build_release.sh` shell script patches VERSION in all sources, calls
-`build_asm.sh` and `build_arduino.sh`, then packages everything into a zip file.
+`build_asm.sh`, `build_arduino.sh` and `build_atari_img.sh`, then packages
+everything into a zip file.
 
 
 Release package test procedure
@@ -291,7 +293,7 @@ The hardware must be flashed with the previous stable version.
 * The ACSI2STM release package
 * ICD Pro files
 * `CONTROL.ACC` from a language disk
-* `GENST2.PRG` from Devpac 2.x
+* `GEN.TTP` from Devpac 3.x
 * `SYSINFO.PRG`
 * A few big desktop apps, at least one that runs correctly under EmuTOS
 * A disk image with the PP driver installed (bootable)

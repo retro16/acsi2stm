@@ -4,6 +4,9 @@ Standard configurations
 This document lists a few recommended configurations, depending on your hardware
 software and what you want out of it.
 
+These templates are provided as starting points, it's possible to do things
+differently to match your specific needs.
+
 
 The "normal" ST
 ---------------
@@ -97,7 +100,7 @@ Machine with an internal hard drive
 * If you have an ACSI hard drive (Mega STE), make sure your hard drive is on
   ACSI id 0 (this is the default)
 * Make sure your computer runs normally without an ACSI2STM plugged in
-* Copy `GEMDRIVE.PRG` to your `AUTO folder on the internal drive
+* Copy `GEMDRIVE.PRG` to your `AUTO` folder on the internal drive
 * Set the ID_SHIFT jumper of the ACSI2STM to position 1-3. You can put a solder
   blob on the small pads if you prefer
 * Plug the ACSI2STM unit either directly or through a DB19-IDC20 cable,
@@ -144,7 +147,7 @@ at L:.
 Machine with a broken DMA chip
 ------------------------------
 
-This is so common that it's become a standard configuration !
+This is so commonplace that it's become a standard configuration !
 
 ### What you have
 
