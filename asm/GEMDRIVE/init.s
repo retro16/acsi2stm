@@ -63,9 +63,10 @@ main	lea	stack,sp                ; Initialize stack
 	move.b	d7,d0                   ; Device id to first command byte
 	and.b	#$e0,d0                 ;
 	or.b	(a2)+,d0                ; Read first command byte
+	moveq	#20,d3                  ; Short timeout
 .nxcmdb	move.w	d0,(a0)                 ;
 
-	moveq	#20,d1                  ; 100ms timeout
+	move.l	d3,d1                   ; Set timeout
 	add.l	hz200.w,d1              ;
 .await	cmp.l	hz200.w,d1              ; Test timeout
 	bmi.b	.nxtid                  ;
@@ -73,6 +74,7 @@ main	lea	stack,sp                ; Initialize stack
 	bne.b	.await                  ;
 
 	move.w	#$008a,(a1)             ; Disable A1
+	move.l	#600,d3                 ; Long timeout
 	move.b	(a2)+,d0                ; Next command byte
 	dbra	d2,.nxcmdb              ;
 

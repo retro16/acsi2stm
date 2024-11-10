@@ -365,6 +365,9 @@ void DmaPort::sendIrqFast(const uint8_t *bytes, int count) {
 
   Acsi::verboseHex("[}");
 
+  // Disable systick that introduces jitter.
+  systick_disable();
+
   // Output data
   acquireDataBus();
   writeData(*bytes);
@@ -386,15 +389,55 @@ void DmaPort::sendIrqFast(const uint8_t *bytes, int count) {
   waitIrqUp();
   armA1();
 
+  // Restore systick
+  systick_enable();
+
   Acsi::verboseDump(bytes, count);
 
   Acsi::verboseHex("]");
+}
+
+void DmaPort::repeatIrqFast(uint8_t byte, int count) {
+  resetTimeout();
+
+  Acsi::verbose("[}", count, "x:");
+
+  // Disable systick that introduces jitter.
+  systick_disable();
+
+  // Output data
+  acquireDataBus();
+  writeData(byte);
+
+  armCs();
+  pullIrq();
+  waitCs();
+  releaseRq();
+
+  // Send extra bytes skipping the IRQ pin cycle
+  for(int i = 1; i < count; ++i) {
+    armCs();
+    waitCs();
+  }
+
+  // Go back to the idle state
+  releaseDataBus();
+  waitIrqUp();
+  armA1();
+
+  // Restore systick
+  systick_enable();
+
+  Acsi::verboseHex(byte, "]");
 }
 
 void DmaPort::readIrqFast(uint8_t *bytes, int count) {
   resetTimeout();
 
   Acsi::verboseHex("[{");
+
+  // Disable systick that introduces jitter.
+  systick_disable();
 
   armCs();
   pullIrq();
@@ -410,6 +453,9 @@ void DmaPort::readIrqFast(uint8_t *bytes, int count) {
   releaseRq();
   waitIrqUp();
   armA1();
+
+  // Restore systick
+  systick_enable();
 
   Acsi::verboseDump(bytes, count);
 
@@ -500,7 +546,7 @@ void DmaPort::readDma(uint8_t *bytes, int count) {
 void DmaPort::readDmaString(char *bytes, int count) {
   resetTimeout();
 
-  Acsi::verbose("DMA string read ", '\'');
+  Acsi::verbose("DMA string '");
 
   // Disable systick that introduces jitter.
   systick_disable();
@@ -666,7 +712,7 @@ void DmaPort::sendDma(const uint8_t *bytes, int count) {
 }
 
 void DmaPort::fillDma(uint8_t byte, int count) {
-  Acsi::verboseHex("DMA fill ", count, " bytes with ", byte, '\n');
+  Acsi::verboseHex("DMA fill ", count, "x:", byte, '\n');
 
   resetTimeout();
 
@@ -737,10 +783,7 @@ void DmaPort::fillDma(uint8_t byte, int count) {
 jmp_buf DmaPort::resetJump;
 
 void DmaPort::resetTimeout() {
-  // Give 500ms to react
-  TIMEOUT_TIMER->CNT = 65535 - PORT_TIMEOUT;
-
-  // Just check if the reset line was already pulled
+  TIMEOUT_TIMER->CNT = 0;
   checkReset();
 }
 
@@ -749,7 +792,7 @@ void DmaPort::checkReset() {
   if(RESET_TIMER->SR & TIMER_SR_TIF)
     quickReset();
 #endif
-  if(TIMEOUT_TIMER->CNT < 65535 - PORT_TIMEOUT)
+  if(TIMEOUT_TIMER->CNT >= PORT_TIMEOUT)
     quickReset();
 }
 
@@ -774,15 +817,16 @@ void DmaPort::setupResetTimer() {
   TIMEOUT_TIMER->CCER = 0;
   TIMEOUT_TIMER->CCMR1 = 0;
 
-  // 1ms period.
+  // 0.5ms period.
   TIMEOUT_TIMER->PSC = 36000;
 
   TIMEOUT_TIMER->ARR = 65535;
-  TIMEOUT_TIMER->CNT = 65535 - PORT_TIMEOUT;
 
   // Update and enable the timer
   TIMEOUT_TIMER->EGR |= TIMER_EGR_UG;
   TIMEOUT_TIMER->CR1 |= TIMER_CR1_CEN;
+
+  TIMEOUT_TIMER->CNT = 0;
 }
 
 void DmaPort::setupCsTimer() {
@@ -890,7 +934,7 @@ void DmaPort::quickReset() {
   delayMicroseconds(50);
 
   // Display a nice message
-  Acsi::dbg("\n\n--- Quick reset ---");
+  Acsi::dbg("\n", TIMEOUT_TIMER->CNT, "\n--- Quick reset ---");
 
   // Jump back to the main loop
   longjmp(resetJump, 1);
@@ -1000,6 +1044,7 @@ bool DmaPort::checkCs() {
 }
 
 void DmaPort::waitCs() {
+  resetTimeout();
   while(!checkCs())
     checkReset();
 }

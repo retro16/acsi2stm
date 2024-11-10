@@ -5,18 +5,19 @@ Changing operation modes with jumpers
 Compact board
 -------------
 
-![Compact board](../pcb/Compact/Photo view bottom - ACSI2STM Compact.svg)
+![Compact board](images/compact_jumpers.png)
 
 **Note:** Some jumpers can also be permanently set by small solder blobs on the
 PCB.
 
-### Serial interface
+### UART: Serial interface
 
 The serial interface (STM32 PA9/PA10) is available on the PCB. This can be used
 for programming the unit or debug output. Its pinout matches H43 / HW-597 CH340
 USB adapters.
 
-If the 5V pin is powered, the board will boot in serial flashing mode (BOOT0).
+If the 5V pin is powered, the board will boot in serial flashing mode (BOOT0),
+exactly like setting the FLASH jumper.
 
 ### RESET
 
@@ -39,7 +40,7 @@ jumper of a Blue Pill.
 
 Remove the jumper for normal operation.
 
-### ACSI
+### STRICT
 
 Put a jumper to enable ACSI strict mode. GemDrive will be disabled and all 3 SD
 cards will behave like Atari hard disks.
@@ -49,7 +50,7 @@ port. This limitation is not present for `HDDFLASH.TOS`.
 
 ### SATAN PORT
 
-This can be populated with an IDC20 socket.
+This can be populated with a male IDC20 socket or 2.54mm square pins.
 
 This connector is compatible with Satan/UltraSatan cables.
 

@@ -427,13 +427,13 @@ ACSI2STM device 1 has id 0-2 and device 2 has id 3-5 (ID_SHIFT set).
 
 | TOS  | Device 1 | SD cards | Device 2 | SD cards | Floppy   | Drives  |
 |------|----------|----------|----------|----------|----------|---------|
-| EMU  | Normal   | FAT,HD0  | None     |          | Blank    | cLMN    |
+| EMU  | Normal   | FAT,HD0  | None     |          | Blank    | cLN     |
 | EMU  | Normal   | FAT      | Normal   | FAT      | ACSI2STM | CDEFGH  |
 | 1.62 | Normal   | FAT      | Normal   | FAT      | Blank    | CDEFGH  |
 | 1.62 | Normal   | FAT      | PIO      | FAT      | ACSI2STM | CDEFGH  |
 | 2.06 | Normal   | FAT      | PIO      | FAT      | ACSI2STM | CDEFGH  |
 | 2.06 | Strict   | HD0      | Normal   | EMU      | Blank    | cDEF    |
 | 2.06 | Strict   | HD0      | Normal   | ICD,EMU  | Blank    | cdefgLN |
-| 1.04 | Strict   | ICD      | PIO      | FAT      | Blank    | cdefGHI |
-| 1.04 | PIO      | FAT      | PIO      | FAT      | ACSI2STM | CDEFGH  |
+| 1.04 | Strict   | ICD      | PIO      | FAT      | ACSI2STM | cdefGHI |
 | 1.04 | Normal   | FAT      | PIO      | FAT      | ACSI2STM | CDEFGH  |
+| 1.04 | PIO      | FAT      | PIO      | FAT      | ACSI2STM | CDEFGH  |

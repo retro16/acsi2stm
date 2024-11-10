@@ -36,6 +36,7 @@ void SysHook::sendAt(uint32_t address, const uint8_t *bytes, int count)
   if(count <= 0)
     return;
 
+#if ! ACSI_PIO
   if(count < 16 || !isDma(address + count - 1)) {
     // Indirect copy
 
@@ -83,6 +84,10 @@ void SysHook::sendAt(uint32_t address, const uint8_t *bytes, int count)
 
   if(count > 0)
     sendAt(address, bytes, count);
+#else
+  setDmaRead(address);
+  sendDma(bytes, count);
+#endif
 }
 
 void SysHook::readAt(uint8_t *bytes, uint32_t source, int count)
@@ -90,6 +95,7 @@ void SysHook::readAt(uint8_t *bytes, uint32_t source, int count)
   if(count <= 0)
     return;
 
+#if ! ACSI_PIO
   if(!isDma(source + count - 1)) {
     // Read from outside DMA RAM: use slow indirect copy
     readAtIndirect(bytes, source, count);
@@ -108,6 +114,10 @@ void SysHook::readAt(uint8_t *bytes, uint32_t source, int count)
     setDmaWrite(source);
     readDma(bytes, count);
   }
+#else
+  setDmaWrite(source);
+  readDma(bytes, count);
+#endif
 }
 
 uint8_t SysHook::readByteAt(ToLong address)
@@ -205,12 +215,9 @@ void SysHook::clearAt(uint32_t bytes, uint32_t address) {
   if(bytes)
     sendAt(address, blank, bytes);
 #else
-  while(bytes > 0) {
-    int c = bytes > 32 ? 32 : bytes;
-    sendAt(address, blank, c);
-    address += c;
-    bytes -= c;
-  }
+  setDmaRead(address);
+  sendCommandNoWait(0x99, bytes);
+  DmaPort::repeatIrqFast(0, bytes);
 #endif
 }
 

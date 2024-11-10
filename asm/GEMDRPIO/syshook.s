@@ -80,7 +80,7 @@ syshook.return:
 	rte	                        ; Return
 
 syshook.forward:
-	; Command $98: forward the call to the next handler
+	; Command $9a: forward the call to the next handler
 	sf	flock.w                 ; Unlock floppy controller
 	resreg	                        ; Restore registers
 syshook.rts
@@ -208,20 +208,23 @@ syshook.piocpy:
 	move.w	#$008a,(a1)             ; Enable CS byte transfer
 
 	moveq	#0,d2                   ; d2 = byte buffer
-	subq	#1,d1                   ; Adjust for DBRA
 
 	btst	#0,d0                   ;
 	bne.b	.piord                  ;
 
-.wloop	move.b	(a2)+,d2                ; Do the transfer byte per byte
+.wloop	moveq	#-1,d0                  ; Decrement
+	move.b	(a2)+,d2                ; Do the transfer byte per byte
 	move.w	d2,(a0)                 ;
-	dbra	d1,.wloop               ;
+	add.l	d0,d1                   ;
+	bne.b	.wloop                  ;
 
 	bra.w	syshook.reply           ;
 
-.piord	move.w	(a0),d2                 ; Do the transfer byte per byte
+.piord	moveq	#-1,d0                  ; Decrement
+	move.w	(a0),d2                 ; Do the transfer byte per byte
 	move.b	d2,(a2)+                ;
-	dbra	d1,.piord               ;
+	add.l	d0,d1                   ;
+	bne.b	.piord                  ;
 
 	bra.w	syshook.reply           ;
 

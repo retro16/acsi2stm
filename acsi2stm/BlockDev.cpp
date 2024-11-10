@@ -39,22 +39,20 @@ bool BlockDev::updateBootable() {
   uint8_t bootSector[ACSI_BLOCKSIZE];
 
   // Read the boot sector
-  if(!readStart(0)) {
-    verbose("read error ");
-    return false;
-  }
-  if(!readData(bootSector, 1)) {
-    verbose("read error ");
-    return false;
-  }
-  if(!readStop()) {
-    verbose("read error ");
-    return false;
-  }
+  if(!readStart(0))
+    goto readFail;
+  if(!readData(bootSector, 1))
+    goto readFail;
+  if(!readStop())
+    goto readFail;
 
   bootable = (computeChecksum(bootSector) == 0x1234);
 
   return true;
+
+readFail:
+  verbose("read error ");
+  return false;
 }
 
 ImageDev::ImageDev(SdDev &sd_): sd(sd_), sdMediaId(0) {}

@@ -349,14 +349,14 @@ executed.
 When in PIO mode, DMA transfers are simulated by adding an extra command 0x98:
 
 This command takes its *parameter* as a byte count, then transfers this amount
-of bytes in fast mode (IRQ stays low).
+of bytes in fast mode (IRQ pulse only for the first byte).
 
 0x98 starts a read (ST->STM32), 0x99 starts a write (STM32->ST).
 
 Example reading 2 bytes from ST RAM to STM32. These 2 bytes are 0x55 and 0xaa:
 
-         __      _                           ____             __
-    IRQ    |____| |_________________________|    |___________|
+         __      ________________________________      _________
+    IRQ    |____|                                |____|
          _____   ____   ____   ____   ____   _______   ____   __
     CS        |_|    |_|    |_|    |_|    |_|       |_|    |_|
     

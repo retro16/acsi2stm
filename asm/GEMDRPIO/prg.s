@@ -26,6 +26,7 @@
 ;	dc.l	'XBRA'                  ; XBRA marker
 ;	dc.l	XBRA                    ;
 ;	dc.l	$00000000               ; Old vector address
+;	move.l	oldvector(pc),-(sp)     ; Push old vector
 ;	moveq	#acsiid+$0e,d0          ; d0 = command byte to send
 ;	bra.b	syshook                 ; Enter syshook command mode
 

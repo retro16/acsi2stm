@@ -26,7 +26,7 @@ struct DmaPort {
   friend struct SysHook;
   friend void flashFirmware(uint32_t);
 
-  static const unsigned int PORT_TIMEOUT = 1000; // Timeout in half ms
+  static const unsigned int PORT_TIMEOUT = 100*2; // Timeout in half ms
   static const int A1 = PB6; // Must be on port B
   static const int CS = PB7; // Must be on port B
 
@@ -69,6 +69,10 @@ struct DmaPort {
   // Send many bytes using the fast IRQ/CS method.
   // This is used for the GEMDOS protocol.
   static void sendIrqFast(const uint8_t *bytes, int count);
+
+  // Repeat a byte using the fast IRQ/CS method.
+  // This is used for the GEMDOS protocol.
+  static void repeatIrqFast(uint8_t byte, int count);
 
   // Read many bytes using the fast IRQ/CS method.
   static void readIrqFast(uint8_t *bytes, int count);

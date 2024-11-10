@@ -569,7 +569,7 @@ void Acsi::modeSense0(uint8_t *outBuf) {
 
   uint32_t blocks = blockDev->blocks;
   if(blocks > 0xffffff) {
-    dbg("Truncated block count in mode sense ", "0\n");
+    dbg("Truncated block count\n");
     blocks = 0xffffff;
   }
   for(uint8_t b = 0; b < 16; ++b)
@@ -596,7 +596,7 @@ void Acsi::modeSense4(uint8_t *outBuf) {
     cylinders = blocks / heads;
     if(cylinders > 0xffffff || (blocks % heads) == 0) {
       if((blocks % heads) != 0)
-        dbg("Truncated block count in mode sense ", "4\n");
+        dbg("Truncated block count\n");
       break;
     }
   }
