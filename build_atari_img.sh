@@ -2,29 +2,35 @@
 
 # Run by build_release.sh, not meant to be run by itself
 
+set -e
+
 srcdir="$(readlink -fs "$(dirname "$0")")"
 VERSION=`cat "$srcdir/VERSION"`
 size=8 # hd0 image size
 
 injectfiles() {
   # Format the image
-  mformat -i "$img" ::
+  mformat -i "$img" -c 2 ::
 
   # Create the AUTO directory structure
-  mmd -i "$img" ::/AUTO
-  mcopy -i "$img" tools/GEMDRIVE.PRG ::/AUTO/GEMDRIVE.PRG
-  mcopy -i "$img" tools/GEMDRPIO.PRG ::/AUTO/GEMDRPIO.PRG
+  mmd -i "$img" ::AUTO
+  mcopy -i "$img" tools/GEMDRIVE.PRG ::AUTO
+  mcopy -i "$img" tools/GEMDRPIO.PRG ::AUTO
 
   # Copy tools
   mcopy -i "$img" "$srcdir/VERSION" ::
-  mcopy -i "$img" README.TXT COPYRGHT.TXT tools/*.PRG tools/*.TOS ::
-  mmd -i "$img" ::FIRMWARE
-  mmove -i "$img" ::HDDFLASH.TOS ::FIRMWARE/HDDFLASH.TOS
-  mmove -i "$img" ::PIOFLASH.TOS ::FIRMWARE/PIOFLASH.TOS
+  mcopy -i "$img" README.TXT COPYRGHT.TXT ::
+  mmd -i "$img" ::TOOLS
+  mcopy -i "$img" tools/ACSITEST.TOS ::TOOLS
+  mcopy -i "$img" tools/CHARGEN.TOS ::TOOLS
+  mcopy -i "$img" tools/SWAPTEST.TOS ::TOOLS
+  mcopy -i "$img" tools/TOSTEST.TOS ::TOOLS
 
   # Copy firmware images
+  mmd -i "$img" ::FIRMWARE
+  mcopy -i "$img" tools/HDDFLASH.TOS ::FIRMWARE
   mcopy -i "$img" firmware/acsi2stm-$VERSION.ino.bin ::FIRMWARE/HDDFLASH.BIN
-  mcopy -i "$img" firmware/acsi2stm-$VERSION.ino.bin ::FIRMWARE/ACSI2STM.BIN
+  mcopy -i "$img" firmware/acsi2stm-$VERSION.ino.bin ::FIRMWARE/STANDARD.BIN
   mcopy -i "$img" firmware/acsi2stm-$VERSION-debug.ino.bin ::FIRMWARE/DEBUG.BIN
   mcopy -i "$img" firmware/acsi2stm-$VERSION-verbose.ino.bin ::FIRMWARE/VERBOSE.BIN
   mcopy -i "$img" firmware/acsi2stm-$VERSION-strict.ino.bin ::FIRMWARE/STRICT.BIN
