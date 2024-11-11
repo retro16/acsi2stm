@@ -222,10 +222,10 @@ beginOk:
       blocks = ACSI_MAX_BLOCKS;
 #endif
 
-    if(!blocks) {
-      verbose("no block ");
+    dbg(blocks, " blocks ", writable ? "rw ":"ro ");
+
+    if(!blocks)
       continue;
-    }
 
     // Get writable pin status
 #if !ACSI_SD_WRITE_LOCK
@@ -257,14 +257,12 @@ beginOk:
       mountable = true;
 #endif
 
-    dbg(blocks, " blocks ", writable ? "rw ":"ro ");
-
     if(image)
       dbg("image ");
     if(mountable)
       dbg("mountable ");
     if(bootable)
-      dbg("bootable ");
+      dbg("boot ");
 
     break;
   }
@@ -317,7 +315,7 @@ void SdDev::getDeviceString(char *target) {
   // Update sd card number
   target[11] += slot;
 
-  if(!mediaId()) {
+  if(!mediaId(FORCE)) {
     memcpy(&target[13], "NO SD CARD", 10);
     return;
   }

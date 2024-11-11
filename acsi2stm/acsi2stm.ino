@@ -48,15 +48,19 @@ PreBoot preBoot;
 #include "GemDrive.h"
 
 void setup() {
-    // Delay for connecting serial monitor
-    delay(50);
+    // Delay to let signals stabilize
+    delay(5);
 
 #if ACSI_DEBUG
     Monitor::beginDbg();
+
+    // Delay for connecting serial monitor
+    delay(50);
+
     Monitor::dbg("\n\n",
       "ACSI2STM " ACSI2STM_VERSION " by Jean-Matthieu Coulon", "\n",
       "GPLv3 license. Source & doc at", "\n",
-      " https://github.com/retro16/acsi2stm", "\n\n");
+      " https://github.com/retro16/acsi2stm", "\n");
 
 #endif
 }

@@ -254,7 +254,7 @@ void DmaPort::waitBusReady() {
   setupDrqTimer();
   setupCsTimer();
 
-  Acsi::dbg("\nWaiting ACSI ...\n");
+  Acsi::dbg("\n\nWaiting ACSI ...\n");
 
   // The bus must output high signals for 100ms to be considered up.
   // Pins are discharged using the pulldown to make sure the high is strong.

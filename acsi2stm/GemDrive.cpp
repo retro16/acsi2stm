@@ -1156,9 +1156,12 @@ void GemDrive::onInit(bool setBootDrive) {
     p_run = readLongAt(os_beg + offsetof(OSHEADER, p_run));
   }
 
-  // Unmount all drives
-  for(d = 0; d < driveCount; ++d)
+  // Unmount all drives and initialize SD cards
+  for(d = 0; d < driveCount; ++d) {
     Devices::drives[d].id = -1;
+    if(Devices::sdSlots[d].mode == SdDev::GEMDRIVE)
+      Devices::sdSlots[d].init();
+  }
 
   // Mount drives
   setCurDrive(Dgetdrv());
@@ -1198,9 +1201,8 @@ void GemDrive::onInit(bool setBootDrive) {
         buf[0] = 'A' + i;
         Devices::sdSlots[d].getDeviceString((char *)&buf[3]);
 #if ACSI_DEBUG
-        buf[27] = '\n';
-        buf[28] = 0;
-        dbg("-> ", (const char *)buf, " ");
+        buf[27] = 0;
+        dbg("\n        ", (const char *)buf, " ");
 #endif
         buf[27] = '\r';
         buf[28] = '\n';
@@ -1217,7 +1219,7 @@ void GemDrive::onInit(bool setBootDrive) {
   if(setBootDrive) {
     for(d = 0; d < driveCount; ++d) {
       if(Devices::sdSlots[d].mode == SdDev::GEMDRIVE && Devices::sdSlots[d].mountable) {
-        dbg("\n        Boot on ");
+        dbg("\n        ", "Boot on ");
         setCurDrive(Devices::drives[d].id);
         _bootdev(Devices::drives[d].id);
         Dsetdrv(Devices::drives[d].id);

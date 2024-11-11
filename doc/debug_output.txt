@@ -1,73 +1,80 @@
 
 
+ACSI2STM 5.00 by Jean-Matthieu Coulon
+GPLv3 license. Source & doc at
+ https://github.com/retro16/acsi2stm
 
+        SD0 50MHz 61067264 blocks rw mountable 
+        SD1 no SD 
+        SD2 no SD 
 
-ACSI2STM SD bridge v4.20
-
-SD0 36MHz 62333952 blocks rw mountable 
-SD1 no SD 
-SD2 no SD 
-SD3 no SD 
-Waiting for the ACSI bus ...
+Waiting ACSI ...
 --- Ready to go ---
-GDRV0:8 GemDrive boot TOS 162 SD1 no SD SD2 no SD SD3 no SD Boot on C: (SD0) forward 
-GDRV1:8 Ignore non-boot
-GDRV2:8 Ignore non-boot
-GDRV3:8 Ignore non-boot
-ACSI4:8 Not for us
-ACSI5:8 Not for us
-ACSI6:8 Not for us
-ACSI7:8 Not for us
-GDRV0:E GEMDOS Pexec((14 bytes): 0 5 0 E0 6 3B 0 E0 6 3B 0 E0 6 3B): forward 
-GDRV0:E GEMDOS Pexec((14 bytes): 0 4 0 E0 38 5C 0 0 AA 36 0 E0 38 5C): forward 
-GDRV0:E GEMDOS Super((4 bytes): 0 0 0 0): forward 
-GDRV0:E GEMDOS Mshrink((10 bytes): 0 0 0 0 AA 36 0 0 1 0): forward 
-GDRV0:E GEMDOS Fsetdta((4 bytes): 0 0 9 CC): forward 
-GDRV0:E GEMDOS Fsfirst((6 bytes): 0 E0 D 7C 0 7): path='\AUTO\*.PRG' rte (quick DE) 
-GDRV0:E GEMDOS Pexec((14 bytes): 0 5 0 E0 6 3B 0 E0 6 3B 0 0 8 40): forward 
-GDRV0:E GEMDOS Pexec((14 bytes): 0 4 0 E0 6 3B 0 0 AB 44 0 0 8 40): forward 
-GDRV0:E GEMDOS Mshrink((10 bytes): 1 0 0 0 AB 44 0 0 1 0): forward 
-GDRV0:E GEMDOS Super((4 bytes): 0 0 61 E6): forward 
-GDRV0:E GEMDOS Malloc((4 bytes): 0 0 4 0): forward 
-GDRV0:E GEMDOS Malloc((4 bytes): 0 0 44 D6): forward 
-GDRV0:E GEMDOS Dgetdrv(): forward 
-GDRV0:E GEMDOS Dsetdrv((2 bytes): 0 2): C: (SD0) forward 
-GDRV0:E GEMDOS Dgetdrv(): forward 
-GDRV0:E GEMDOS Fsetdta((4 bytes): 0 0 7B 84): forward 
-GDRV0:E GEMDOS Dgetdrv(): forward 
-GDRV0:E GEMDOS Dsetdrv((2 bytes): 0 2): C: (SD0) forward 
-GDRV0:E GEMDOS Dsetdrv((2 bytes): 0 2): C: (SD0) forward 
-GDRV0:E GEMDOS Dsetpath((4 bytes): 0 E2 D3 C8): path='\' -> / rte (quick 0) 
-GDRV0:E GEMDOS Fsfirst((6 bytes): 0 E2 D3 C0 0 0): path='\*.ACC' rte (quick DF) 
-GDRV0:E GEMDOS Dsetdrv((2 bytes): 0 2): C: (SD0) forward 
-GDRV0:E GEMDOS Dsetpath((4 bytes): 0 E2 D3 CA): path='\' -> / rte (quick 0) 
-GDRV0:E GEMDOS Fsfirst((6 bytes): 0 E2 D3 C0 0 0): path='\*.ACC' rte (quick DF) 
-GDRV0:E GEMDOS Malloc((4 bytes): 0 0 10 60): forward 
-GDRV0:E GEMDOS Dgetdrv(): forward 
-GDRV0:E GEMDOS Dsetdrv((2 bytes): 0 2): C: (SD0) forward 
-GDRV0:E GEMDOS Dgetdrv(): forward 
-GDRV0:E GEMDOS Dsetpath((4 bytes): 0 E2 D0 EF): path='\' -> / rte (quick 0) 
-GDRV0:E GEMDOS Fopen((6 bytes): 0 E2 D0 F4 0 0): path='DESKTOP.INF' rte (quick DF) 
-GDRV0:E GEMDOS Dgetdrv(): forward 
-GDRV0:E GEMDOS Dsetdrv((2 bytes): 0 2): C: (SD0) forward 
-GDRV0:E GEMDOS Dsetdrv((2 bytes): 0 2): C: (SD0) forward 
-GDRV0:E GEMDOS Dsetpath((4 bytes): 0 E2 D0 F1): path='\' -> / rte (quick 0) 
-GDRV0:E GEMDOS Fopen((6 bytes): 0 E2 D0 F4 0 0): path='DESKTOP.INF' rte (quick DF) 
-GDRV0:E GEMDOS Mfree((4 bytes): 0 0 F5 1A): forward 
-GDRV0:E GEMDOS Dgetdrv(): forward 
-GDRV0:E GEMDOS Dsetdrv((2 bytes): 0 2): C: (SD0) forward 
-GDRV0:E GEMDOS Dsetdrv((2 bytes): 0 2): C: (SD0) orward 
-GDRV0:E GEMDOS Malloc((4 bytes): 0 0 34 0): forward 
-GDRV0:E GEMDOS Malloc((4 bytes): 0 0 77 70): forward 
-GDRV0:E GEMDOS Malloc((4 bytes): 0 0 2 0): forward 
-GDRV0:E GEMDOS Malloc((4 bytes): 0 0 3 B8): forward 
-GDRV0:E GEMDOS Dgetdrv(): forward 
-GDRV0:E GEMDOS Dsetdrv((2 bytes): 0 2): C: (SD0) forward 
-GDRV0:E GEMDOS Dgetdrv(): forward 
-GDRV0:E GEMDOS Dsetdrv((2 bytes): 0 2): C: (SD0) forward 
-GDRV0:E GEMDOS Dgetdrv(): forward 
-GDRV0:E GEMDOS Dsetdrv((2 bytes): 0 2): C: (SD0) forward 
-GDRV0:E GEMDOS Dgetdrv(): forward 
-GDRV0:E GEMDOS Dsetdrv((2 bytes): 0 2): C: (SD0) forward 
-GDRV0:E GEMDOS Dgetdrv(): forward 
-GDRV0:E GEMDOS Dsetdrv((2 bytes): 0 2): C: (SD0) forward 
+Canary @200043C0 revived 1/BF revived
+GDRV0:8 
+GDRV0:9 boot TOS 162 
+        SD0 50MHz 61067264 blocks rw mountable 
+        SD1 no SD 
+        SD2 no SD 
+        C: ACSI2STM SD0 F32  30G    
+        D: ACSI2STM SD1 NO SD CARD  
+        E: ACSI2STM SD2 NO SD CARD  
+        Boot on C: (SD0) forward 
+UNKN1:8 Not for us
+UNKN2:8 Not for us
+UNKN3:8 Not for us
+UNKN4:8 Not for us
+UNKN5:8 Not for us
+UNKN6:8 Not for us
+UNKN7:8 Not for us
+GDRV0:E GEMDOS Pexec((14 bytes): 0 5 0 E0 6 3B 0 E0 6 3B 0 E0 6 3B):forward 
+GDRV0:E GEMDOS Pexec((14 bytes): 0 4 0 E0 38 5C 0 0 AA 66 0 E0 38 5C):forward 
+GDRV0:E GEMDOS Mshrink((10 bytes): 0 0 0 0 AA 66 0 0 1 0):forward 
+GDRV0:E GEMDOS Fsetdta((4 bytes): 0 0 9 CC):forward 
+GDRV0:E GEMDOS Fsfirst((6 bytes): 0 E0 D 7C 0 7):path='\AUTO\*.PRG' rte(DE) 
+GDRV0:E GEMDOS Pexec((14 bytes): 0 5 0 E0 6 3B 0 E0 6 3B 0 0 8 40):forward 
+GDRV0:E GEMDOS Pexec((14 bytes): 0 4 0 E0 6 3B 0 0 AB 74 0 0 8 40):forward 
+GDRV0:E GEMDOS Mshrink((10 bytes): 1 0 0 0 AB 74 0 0 1 0):forward 
+GDRV0:E GEMDOS Malloc((4 bytes): 0 0 4 0):forward 
+GDRV0:E GEMDOS Malloc((4 bytes): 0 0 44 D6):forward 
+GDRV0:E GEMDOS Dgetdrv():forward 
+GDRV0:E GEMDOS Dsetdrv((2 bytes): 0 2):C: (SD0) forward 
+GDRV0:E GEMDOS Dgetdrv():forward 
+GDRV0:E GEMDOS Fsetdta((4 bytes): 0 0 7B 84):forward 
+GDRV0:E GEMDOS Dgetdrv():forward 
+GDRV0:E GEMDOS Dsetdrv((2 bytes): 0 2):C: (SD0) forward 
+GDRV0:E GEMDOS Dsetdrv((2 bytes): 0 2):C: (SD0) forward 
+GDRV0:E GEMDOS Dsetpath((4 bytes): 0 E2 D3 C8):path='\' -> / rte(0) 
+GDRV0:E GEMDOS Fsfirst((6 bytes): 0 E2 D3 C0 0 0):path='\*.ACC' rte(DF) 
+GDRV0:E GEMDOS Dsetdrv((2 bytes): 0 2):C: (SD0) forward 
+GDRV0:E GEMDOS Dsetpath((4 bytes): 0 E2 D3 CA):path='\' -> / rte(0) 
+GDRV0:E GEMDOS Fsfirst((6 bytes): 0 E2 D3 C0 0 0):path='\*.ACC' rte(DF) 
+GDRV0:E GEMDOS Malloc((4 bytes): 0 0 10 60):forward 
+GDRV0:E GEMDOS Dgetdrv():forward 
+GDRV0:E GEMDOS Dsetdrv((2 bytes): 0 2):C: (SD0) forward 
+GDRV0:E GEMDOS Dgetdrv():forward 
+GDRV0:E GEMDOS Dsetpath((4 bytes): 0 E2 D0 EF):path='\' -> / rte(0) 
+GDRV0:E GEMDOS Fopen((6 bytes): 0 E2 D0 F4 0 0):path='DESKTOP.INF' rte(DF) 
+GDRV0:E GEMDOS Dgetdrv():forward 
+GDRV0:E GEMDOS Dsetdrv((2 bytes): 0 2):C: (SD0) forward 
+GDRV0:E GEMDOS Dsetdrv((2 bytes): 0 2):C: (SD0) forward 
+GDRV0:E GEMDOS Dsetpath((4 bytes): 0 E2 D0 F1):path='\' -> / rte(0) 
+GDRV0:E GEMDOS Fopen((6 bytes): 0 E2 D0 F4 0 0):path='DESKTOP.INF' rte(DF) 
+GDRV0:E GEMDOS Mfree((4 bytes): 0 0 F5 4A):forward 
+GDRV0:E GEMDOS Dgetdrv():forward 
+GDRV0:E GEMDOS Dsetdrv((2 bytes): 0 2):C: (SD0) forward 
+GDRV0:E GEMDOS Dsetdrv((2 bytes): 0 2):C: (SD0) forward 
+GDRV0:E GEMDOS Malloc((4 bytes): 0 0 34 0):forward 
+GDRV0:E GEMDOS Malloc((4 bytes): 0 0 77 70):forward 
+GDRV0:E GEMDOS Malloc((4 bytes): 0 0 2 0):forward 
+GDRV0:E GEMDOS Malloc((4 bytes): 0 0 3 B8):forward 
+GDRV0:E GEMDOS Dgetdrv():forward 
+GDRV0:E GEMDOS Dsetdrv((2 bytes): 0 2):C: (SD0) forward 
+GDRV0:E GEMDOS Dgetdrv():forward 
+GDRV0:E GEMDOS Dsetdrv((2 bytes): 0 2):C: (SD0) forward 
+GDRV0:E GEMDOS Dgetdrv():forward 
+GDRV0:E GEMDOS Dsetdrv((2 bytes): 0 2):C: (SD0) forward 
+GDRV0:E GEMDOS Dgetdrv():forward 
+GDRV0:E GEMDOS Dsetdrv((2 bytes): 0 2):C: (SD0) forward 
+GDRV0:E GEMDOS Dgetdrv():forward 
+GDRV0:E GEMDOS Dsetdrv((2 bytes): 0 2):C: (SD0) forward 

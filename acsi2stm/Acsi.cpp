@@ -47,12 +47,12 @@ void Acsi::refresh() {
   dbg("Refresh SD", blockDev.slot, ':');
 
   if(mediaId) {
-    dbg("New SD\n");
+    dbg("New SD ");
     lastMediumState = MEDIUM_CHANGED;
     return;
   }
 
-  dbg("No SD\n");
+  dbg("No SD ");
   lastMediumState = MEDIUM_REMOVED;
 }
 
@@ -66,7 +66,8 @@ void Acsi::process(uint8_t cmd) {
 #if ACSI_VERBOSE
   dumpln(cmdBuf, cmdLen, 0);
 #else
-  dumpln(cmdBuf, cmdLen, cmdLen);
+  dump(cmdBuf, cmdLen, cmdLen);
+  dbg(" ");
 #endif
 
   // Command preprocessing
@@ -79,7 +80,7 @@ void Acsi::process(uint8_t cmd) {
   case 0x28: // Read blocks
   case 0x2a: // Write blocks
     if(!validLun()) {
-      dbg("Invalid LUN\n");
+      dbg("Invalid LUN ");
       commandStatus(ERR_INVLUN);
       return;
     }
@@ -111,7 +112,7 @@ void Acsi::process(uint8_t cmd) {
     break;
 
   default: // Unknown command
-    dbg("Unknown command\n");
+    dbg("Unknown command ");
     commandStatus(ERR_OPCODE);
     return;
   }
@@ -232,7 +233,7 @@ void Acsi::process(uint8_t cmd) {
         DmaPort::sendDma(buf, 44);
         break;
       default:
-        verboseHex("Invalid sense ", (int)cmdBuf[3], '\n');
+        verboseHex("Invalid sense ", (int)cmdBuf[3], ' ');
         commandStatus(ERR_INVARG);
         return;
       }
@@ -243,7 +244,7 @@ void Acsi::process(uint8_t cmd) {
     // Used by UltraSatan protocol emulation (used for RTC)
 #if ACSI_RTC
     if(memcmp(&cmdBuf[1], "USCurntFW", 9) == 0) {
-      verbose("USatan query\n");
+      verbose("USatan query ");
       // Fake the firmware
       memcpy(buf, "ACSI2STM " ACSI2STM_VERSION "\r\n", 16);
       DmaPort::sendDma(buf, 16);
@@ -251,7 +252,7 @@ void Acsi::process(uint8_t cmd) {
       return;
     }
     if(memcmp(&cmdBuf[1], "USRdClRTC", 9) == 0) {
-      verbose("RTC read\n");
+      verbose("RTC read ");
       tm_t now;
       rtc.getTime(now);
 
@@ -270,12 +271,12 @@ void Acsi::process(uint8_t cmd) {
       return;
     }
     if(memcmp(&cmdBuf[1], "USWrClRTC", 9) == 0) {
-      verbose("RTC set\n");
+      verbose("RTC set ");
 
       DmaPort::readDma(buf, 9);
 
       if(buf[0] != 'R' || buf[1] != 'T' || buf[2] != 'C') {
-        verbose("Wrong date\n");
+        verbose("Wrong date ");
         commandStatus(ERR_INVARG);
         return;
       }
@@ -294,7 +295,7 @@ void Acsi::process(uint8_t cmd) {
     }
 #endif
 
-    dbg("Unknown command\n");
+    dbg("Unknown command ");
     commandStatus(ERR_OPCODE);
     return;
   case 0x25: // Read capacity
@@ -344,7 +345,7 @@ void Acsi::process(uint8_t cmd) {
       uint32_t length = (((uint32_t)cmdBuf[6]) << 16) | (((uint32_t)cmdBuf[7]) << 8) | (uint32_t)(cmdBuf[8]);
       DmaPort::dmaStartDelay();
       if(cmdBuf[2] != 0) {
-        verbose("Invalid buffer ", "id\n");
+        verbose("Invalid buffer ", "id ");
         commandStatus(ERR_INVARG);
         return;
       }
@@ -353,7 +354,7 @@ void Acsi::process(uint8_t cmd) {
         dbg("Write buffer: offset=", offset, " length=", length, ' ');
 
         if(offset >= bufSize || offset + length > bufSize) {
-          verbose("Out of range\n");
+          verbose("Out of range ");
           commandStatus(ERR_INVARG);
           return;
         }
@@ -364,17 +365,17 @@ void Acsi::process(uint8_t cmd) {
         return;
       case 0x05: // Firmware write (YAY !)
         if(offset || length > FLASH_SIZE) {
-          verbose("Firmware too big\n");
+          verbose("Firmware too big ");
           commandStatus(ERR_INVARG);
           return;
         }
 
-        dbg("Write firmware: length=", length, '\n');
+        dbg("Write firmware: length=", length, ' ');
 
         flashFirmware(length);
         // This function never returns !
       }
-      verboseHex("Invalid mode ", cmdBuf[1], '\n');
+      verboseHex("Invalid mode ", cmdBuf[1], ' ');
       commandStatus(ERR_INVARG);
       return;
     }
@@ -386,7 +387,7 @@ void Acsi::process(uint8_t cmd) {
       switch(cmdBuf[1]) {
       case 0x00: // Descriptor + data read
         if(offset >= bufSize || offset + length > bufSize || length < 4) {
-          dbg("Out of range\n");
+          dbg("Out of range ");
           commandStatus(ERR_INVARG);
           return;
         }
@@ -405,7 +406,7 @@ void Acsi::process(uint8_t cmd) {
         dbg("Read buffer: offset=", offset, " length=", length, ' ');
 
         if(offset >= bufSize || offset + length > bufSize) {
-          dbg("Out of range\n");
+          dbg("Out of range ");
           commandStatus(ERR_INVARG);
           return;
         }
@@ -422,7 +423,7 @@ void Acsi::process(uint8_t cmd) {
         commandStatus(ERR_OK);
         return;
       }
-      verboseHex("Invalid buffer ", "read mode ", cmdBuf[1], '\n');
+      verboseHex("Invalid buffer ", "read mode ", cmdBuf[1], ' ');
       commandStatus(ERR_INVARG);
       return;
     }
@@ -491,12 +492,12 @@ Acsi::ScsiErr Acsi::processBlockRead(uint32_t block, int count) {
   dbg("Read ", count, " blocks from ", block, " on SD", blockDev.slot, ' ');
 
   if(block >= blockDev->blocks || block + count - 1 >= blockDev->blocks) {
-    dbg("Out of range\n");
+    dbg("Out of range ");
     return ERR_INVADDR;
   }
 
   if(!blockDev->readStart(block)) {
-    dbg("Read error\n");
+    dbg("Read error ");
     return ERR_READERR;
   }
 
@@ -506,7 +507,7 @@ Acsi::ScsiErr Acsi::processBlockRead(uint32_t block, int count) {
       burst = count - s;
 
     if(!blockDev->readData(buf, burst)) {
-      dbg("Read error\n");
+      dbg("Read error ");
       blockDev->readStop();
       return ERR_READERR;
     }
@@ -529,7 +530,7 @@ Acsi::ScsiErr Acsi::processBlockWrite(uint32_t block, int count) {
   return ERR_OK;
 #else
   if(block >= blockDev->blocks || block + count - 1 >= blockDev->blocks) {
-    dbg("Out of range\n");
+    dbg("Out of range ");
     return ERR_INVADDR;
   }
 
@@ -537,7 +538,7 @@ Acsi::ScsiErr Acsi::processBlockWrite(uint32_t block, int count) {
     return ERR_WRITEPROT;
 
   if(!blockDev->writeStart(block)) {
-    dbg("Write error\n");
+    dbg("Write error ");
     return ERR_WRITEERR;
   }
 
@@ -549,7 +550,7 @@ Acsi::ScsiErr Acsi::processBlockWrite(uint32_t block, int count) {
     DmaPort::readDma(buf, ACSI_BLOCKSIZE * burst);
 
     if(!blockDev->writeData(buf, burst)) {
-      dbg("Write error\n");
+      dbg("Write error ");
       blockDev->writeStop();
       return ERR_WRITEERR;
     }
@@ -569,7 +570,7 @@ void Acsi::modeSense0(uint8_t *outBuf) {
 
   uint32_t blocks = blockDev->blocks;
   if(blocks > 0xffffff) {
-    dbg("Truncated block count\n");
+    dbg("(truncated) ");
     blocks = 0xffffff;
   }
   for(uint8_t b = 0; b < 16; ++b)
@@ -596,12 +597,12 @@ void Acsi::modeSense4(uint8_t *outBuf) {
     cylinders = blocks / heads;
     if(cylinders > 0xffffff || (blocks % heads) == 0) {
       if((blocks % heads) != 0)
-        dbg("Truncated block count\n");
+        dbg("(truncated) ");
       break;
     }
   }
 
-  verbose("blocks=", blocks, " cylinders=", cylinders, " heads=", heads, "\n");
+  verbose("blocks=", blocks, " cylinders=", cylinders, " heads=", heads, ' ');
 
   for(uint8_t b = 0; b < 24; ++b)
     outBuf[b] = 0;
