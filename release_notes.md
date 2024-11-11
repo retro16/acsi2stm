@@ -1,5 +1,5 @@
-5.00: Professionally assembled PCB, EmuTOS and fixes
-====================================================
+5.00: Professionally assembled PCB, EmuTOS, PIO mode, multiple devices and fixes
+================================================================================
 
 5.00 is the final version of this project. Development is officially stopped.
 
@@ -17,8 +17,8 @@ This release adds a new PCB with less features, but that can be built entirely
 by JLCPCB's assembly services. It does not require a Blue Pill as it integrates
 the STM32 directly.
 
-Total cost is around $40 for 2 units (this is the minimum amount you can buy).
-or $50 for 5 units. Prices are of 07/2023 and may vary.
+Total cost is around $50 for 5 units (this is the minimum amount you can buy).
+Prices are of 07/2023 and may vary.
 
 Sources for EasyEda, Gerber, BOM and component placement are included.
 
@@ -48,42 +48,75 @@ GemDrive can now boot `EMUTOS.SYS` from the 1st SD card slot. It needs a special
 setup to reload GemDrive from within EmuTOS, described in
 [gemdrive.md](doc/gemdrive.md).
 
+PIO firmware
+------------
+
+Many Atari ST's have a broken DMA chip. The PIO firmware uses a protocol that
+does not use DMA transfers at all. The price to pay is speed: it is 10x slower
+and it does not support ACSI at all nor auto booting. It requires a special
+driver `GEMDRPIO.PRG` provided in the release package.
+
+Multiple devices support
+------------------------
+
+A lot of improvements and testing has been done to make sure ACSI2STM plays well
+with other devices on the DMA port. This includes other ACSI2STM units in any
+mode.
+
 Changes since 4.12
 ------------------
 
-* Swapped ID_SHIFT jumper positions to match the actual Compact PCB
-  configuration.
-* Changed debug output speed to 1Mbps: helps with laggy USB-UART converters
+Compatibility:
+
 * Fixed SD card frequencies to 50MHz, 25MHz and 1MHz to match the actual
+* Changed debug output speed to 1Mbps: helps with laggy USB-UART converters
   standard speeds
-* Arduino 2.x is now the official IDE
-* arduino-cli is now the official build platform for release packages
-* Added the *Compact PCB*
-* Fixed full featured PCB mounting holes size
-* Added back the whole history for 4.x in release_notes.md, as it should be
-* Fixed GemDrive drive letter allocation
-* Improved SD card hot swapping a lot
 * Removed self-modifying code in GemDrive: it should now work with CPU cache
 * Added support for TT-RAM in GemDrive
-* Found and fixed the root cause for memory corruptions with ACSI_FAST_DMA = 5
-* Fixed and added `GEMDRIVE.PRG` to load GemDrive from desktop and `AUTO`
-* Fixed a lot of issues when multiple hard drives and ACSI2STM units are used at
-  the same time
-* Added support for up to 5 ACSI2STM units in `GEMDRIVE.PRG`
-* Boot `EMUTOS.SYS` on startup if present on the SD card
-* Provide a ready to use GemDrive boot image for EmuTOS, both hard drive and
-  floppy disk formats
-* Introduced GemDrive command 0x09 to avoid crashes when reading boot sector
-* Added PIO mode to work on broken DMA chips
+* Added support for up to 6 ACSI2STM units in `GEMDRIVE.PRG`
 * Added support for PIO mode in `HDDFLASH.TOS`
 * Verbose firmware is now less than 64k allowing to flash it with `HDDFLASH.TOS`
-* Fixed GemDrive boot when ACSI id 0 is not an ACSI2STM unit
-* Reworked documentation to put more emphasis on the new PCB design
-* Removed "full-featured" PCB as it's not really safe nor easy to build
-* Simplified documentation
-* Removed timeout in GemDrive boot program as it is useless
 * Improved ACSI performance of some commands. Fixes multi device with GemDrive
+
+Bug fixes:
+
+* Found and fixed the root cause for memory corruptions with ACSI_FAST_DMA = 5
+* Fixed GemDrive boot when ACSI id 0 is not an ACSI2STM unit
+* Fixed a lot of issues when multiple hard drives and ACSI2STM units are used at
+  the same time
+* Introduced GemDrive command 0x09 to avoid crashes when reading boot sector
+* Fixed GemDrive drive letter allocation
+* Improved SD card hot swapping a lot
+* Fixed and added `GEMDRIVE.PRG` to load GemDrive from desktop and `AUTO`
+* Removed timeout in GemDrive boot program as it is useless
+* Fixed command byte timeout handling
+* Fixed fast CS/IRQ protocol implementation
 * Code cleanup pass (dead code removal, code formating, comments review, ...)
+
+Features:
+
+* Boot `EMUTOS.SYS` on startup if present on the SD card
+* Added PIO mode to GemDrive to work on broken DMA chips
+
+Hardware:
+
+* Added the *Compact PCB*
+* Swapped ID_SHIFT jumper positions in software to match the actual Compact PCB
+  configuration.
+* Removed "full-featured" PCB as it's not really safe nor easy to build
+
+Build chain:
+
+* Arduino 2.x is now the official IDE
+* arduino-cli is now the official build platform for release packages
+
+Release package:
+
+* Added back the whole history for 4.x in release_notes.md, as it should be
+* Provide a ready to use GemDrive boot image for EmuTOS, both hard drive and
+  floppy disk formats
+* Reworked documentation to put more emphasis on the new PCB design
+* Simplified documentation
 
 
 4.12: Date handling fix
