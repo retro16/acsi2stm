@@ -1239,12 +1239,14 @@ void GemDrive::onInit(bool setBootDrive) {
   Devices::setDateTime(Tgetdate(), Tgettime());
 
 #if ACSI_RTC
-  // Sync internal ST clock with ours
-  uint16_t date;
-  uint16_t time;
-  Devices::getDateTime(&date, &time);
-  Tsetdate(date);
-  Tsettime(time);
+  else {
+    // Sync internal ST clock with ours
+    uint16_t date;
+    uint16_t time;
+    Devices::getDateTime(&date, &time);
+    Tsetdate(date);
+    Tsettime(time);
+  }
 #endif
 
 #if ACSI_DEBUG
@@ -1271,9 +1273,7 @@ void GemDrive::onGemdos() {
   DECLARE_CALLBACK(Pterm0);
   DECLARE_CALLBACK(Cconws);
   DECLARE_CALLBACK(Dsetdrv);
-  DECLARE_CALLBACK(Tgetdate);
   DECLARE_CALLBACK(Tsetdate);
-  DECLARE_CALLBACK(Tgettime);
   DECLARE_CALLBACK(Tsettime);
   DECLARE_CALLBACK(Dfree);
   DECLARE_CALLBACK(Dcreate);
@@ -1362,18 +1362,6 @@ bool GemDrive::onDsetdrv(const Tos::Dsetdrv_p &p) {
   return forward();
 }
 
-bool GemDrive::onTgetdate(const Tos::Tgetdate_p &) {
-#if ACSI_RTC
-  if(Devices::isDateTimeSet()) {
-    uint16_t date;
-    uint16_t time;
-    Devices::getDateTime(&date, &time);
-    return rte(ToLong(date));
-  }
-#endif
-  return forward();
-}
-
 bool GemDrive::onTsetdate(const Tos::Tsetdate_p &p) {
   // Set even if ACSI_RTC is disabled to keep file dates in sync with the ST
   // clock.
@@ -1383,18 +1371,6 @@ bool GemDrive::onTsetdate(const Tos::Tsetdate_p &p) {
   date = p.date;
   setDateTime(date, time);
 
-  return forward();
-}
-
-bool GemDrive::onTgettime(const Tos::Tgettime_p &) {
-#if ACSI_RTC
-  if(isDateTimeSet()) {
-    uint16_t date;
-    uint16_t time;
-    getDateTime(&date, &time);
-    return rte(ToLong(time));
-  }
-#endif
   return forward();
 }
 

@@ -439,3 +439,26 @@ ACSI2STM device 1 has id 0-2 and device 2 has id 3-5 (ID_SHIFT set).
 | 1.04 | Strict   | ICD      | PIO      | FAT      | ACSI2STM | cdefGHI |
 | 1.04 | Normal   | FAT      | PIO      | FAT      | ACSI2STM | CDEFGH  |
 | 1.04 | PIO      | FAT      | PIO      | FAT      | ACSI2STM | CDEFGH  |
+
+### Date setting test
+
+With 2 devices in GemDrive mode, standard firmware. Device 0 will be IDs 0-2 and
+device 3 will be IDs 3-5.
+
+* Put a battery only in device 0
+* Set the date on device 0
+* Power off everything and let capacitors discharge
+* Boot with both units
+* Check the date is correct
+* Create a folder on a floppy disk
+* Check the folder's date and time
+* Switch device IDs
+* Power off everything and let capacitors discharge
+* Boot with both units
+* Check the date is correct
+* Power off everything and let capacitors discharge
+* Put a battery in device 0. Both units now have a battery
+* Boot with both units
+* Power off everything and let capacitors discharge
+* Boot only with device 0
+* Check the date is correct
