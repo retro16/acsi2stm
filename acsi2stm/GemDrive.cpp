@@ -1238,6 +1238,15 @@ void GemDrive::onInit(bool setBootDrive) {
   // if ACSI_RTC is disabled to keep file dates in sync with the ST clock.
   Devices::setDateTime(Tgetdate(), Tgettime());
 
+#if ACSI_RTC
+  // Sync internal ST clock with ours
+  uint16_t date;
+  uint16_t time;
+  Devices::getDateTime(&date, &time);
+  Tsetdate(date);
+  Tsettime(time);
+#endif
+
 #if ACSI_DEBUG
   // With a debug build, just leave a small delay to make onscreen messages
   // easily readable.
