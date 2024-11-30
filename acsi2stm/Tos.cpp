@@ -94,44 +94,30 @@ Long Tos::Mfree(ToLong block) {
   return gemdos(Mfree_op, p);
 }
 
-Long Tos::Pexec_4(ToLong basepage) {
-  Pexec_4_p p;
-  p.mode = 4;
-  p.z1 = 0;
-  p.basepage = basepage;
-  p.z2 = 0;
+Long Tos::Pexec(ToWord mode, ToLong l1, ToLong l2, ToLong l3) {
+  Pexec_p p;
+  p.mode = mode;
+  p.l1 = l1;
+  p.l2 = l2;
+  p.l3 = l3;
   verbose("Pexec\n");
   return gemdos(Pexec_op, p);
+}
+
+Long Tos::Pexec_4(ToLong basepage) {
+  return Pexec(4, 0, basepage, 0);
 }
 
 Long Tos::Pexec_5(ToLong cmdline, ToLong env) {
-  Pexec_5_p p;
-  p.mode = 5;
-  p.z1 = 0;
-  p.cmdline = cmdline;
-  p.env = env;
-  verbose("Pexec\n");
-  return gemdos(Pexec_op, p);
+  return Pexec(5, 0, cmdline, env);
 }
 
 Long Tos::Pexec_6(ToLong basepage) {
-  Pexec_6_p p;
-  p.mode = 6;
-  p.z1 = 0;
-  p.basepage = basepage;
-  p.z2 = 0;
-  verbose("Pexec\n");
-  return gemdos(Pexec_op, p);
+  return Pexec(6, 0, basepage, 0);
 }
 
 Long Tos::Pexec_7(ToLong prgflags, ToLong cmdline, ToLong env) {
-  Pexec_7_p p;
-  p.mode = 7;
-  p.prgflags = prgflags;
-  p.cmdline = cmdline;
-  p.env = env;
-  verbose("Pexec\n");
-  return gemdos(Pexec_op, p);
+  return Pexec(7, prgflags, cmdline, env);
 }
 
 Long Tos::sysCall(void (*trap)(), Word opCode, uint8_t *paramBytes, int paramSize, int extraData)
