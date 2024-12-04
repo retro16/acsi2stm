@@ -1,3 +1,9 @@
+Changes since 5.00
+------------------
+
+* Fixed date/time handling in GemDrive mode
+ * Fixes file date/time on non-GemDrive drivesd such as floppy or ACSI
+
 5.00: Professionally assembled PCB, EmuTOS, PIO mode, multiple devices and fixes
 ================================================================================
 
