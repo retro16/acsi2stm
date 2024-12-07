@@ -22,3 +22,4 @@ pcb/MegaSTE Internal/fp-info-cache
 *.gbr
 *.drl
 pcb/MegaSTE Internal/ACSI2STM MegaSTE-backups/*
+.history/*
