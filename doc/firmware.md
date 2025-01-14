@@ -269,16 +269,19 @@ cygwin, git bash or macos (untested).
 Building a release package
 ==========================
 
-You need to install [arduino-cli](https://arduino.github.io/arduino-cli) to
-build the Arduino sketch.
+The release package is now generated inside a docker / podman container.
+This fully automates all dependencies. Commands are the same for docker and
+podman, just switch command name to use docker.
 
-You also need to setup the Arduino environment from the IDE: install all
-dependencies from there. You don't need to select the correct board from within
-the IDE as the build script will automatically select the correct board.
+Run the build script:
 
-The `build_release.sh` shell script patches VERSION in all sources, calls
-`build_asm.sh`, `build_arduino.sh` and `build_atari_img.sh`, then packages
-everything into a zip file.
+    podman build -t acsi2stm .
+    podman run --rm --mount type=bind,source=$PWD,target=/acsi2stm -t acsi2stm
+
+Clean up images after you finished:
+
+    podman image rm acsi2stm
+    podman image prune
 
 
 Release package test procedure

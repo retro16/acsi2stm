@@ -1,13 +1,60 @@
+5.1b: Super Compact PCB, minor hardware revision, date bug fix
+==============================================================
+
+A minor version that fixes small details and brings a new PCB.
+
+New Super Compact PCB
+---------------------
+
+In order to address many use cases, a new PCB was introduced: the Super Compact.
+
+This PCB has less features, but is much smaller. To achieve this, the bulky RTC
+backup battery was removed and there is only one microSD card slot.
+
+The PCB should obstruct less ports on "pro" Atari cases such as the MegaSTE or
+the TT.
+
+Build price is about 10-20% lower.
+
+It's the perfect version for people who use their ST just for games.
+
+It matches "pro" Atari variants pretty well: these computers already have a
+builtin RTC and an internal hard disk, so there is less needs for multiple
+slots.
+
+Don't neglect the flexibility brought by multiple SD slots, especially for
+desktop workflows (1 slot for system, 1 slot for data, 1 slot for hot swapping).
+
+Compact and Super Compact PCBs will have their version numbers synchronized, so
+both are at version 1.1 right now.
+
+Official release package now built from podman / docker
+-------------------------------------------------------
+
+Release packages are now generated inside a podman container. This guarantees a
+much more stable environment, and it will allow non-Linux users to build
+releases more easily.
+
+Commands to build the docker image are found in the Dockerfile itself, or in
+doc/firmware.md.
+
 Changes since 5.00
 ------------------
 
-WARNING: New PCBs from this beta release haven't been tested.
-
-* Fixed date/time handling in GemDrive mode
- * Fixes file date/time on non-GemDrive drivesd such as floppy or ACSI
-* Reworked components of the Compact PCB to improve stability
-* Use bigger components on the PCB to ease hand soldering
+* Fixed file date/time on non-GemDrive drives such as floppy or ACSI in GemDrive
+  mode
+* Reworked components of the Compact PCB
+  * Switched to 0805 components to make hand soldering easier
+  * Use 12pF capacitors to improve 32kHz crystal stability. Fixes the "one out
+    of 5 units not working"
 * Added the Super Compact PCB
+* Added the release build Dockerfile
+* Doc changes
+  * Moved ordering tutorial, so end-user documentation appears first
+  * Added copy operations in the tutorial section
+  * Added Super Compact documentation where needed
+  * Documented the podman-based build procedure
+  * Minor changes
 
 
 5.00: Professionally assembled PCB, EmuTOS, PIO mode, multiple devices and fixes

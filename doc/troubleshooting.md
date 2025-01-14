@@ -4,8 +4,10 @@ Troubleshooting
 If you have an issue, check this place first.
 
 First of all, ACSI2STM is not a hardware nor software vendor. It is **not** a
-finished product that is guaranteed to work. Your old ST is also not guaranteed
-to work. You need technical knowledge to assemble, test and debug the project.
+finished product that is guaranteed to work, though it's very mature now.
+Your old ST is also not guaranteed to work. You need technical knowledge to
+assemble, test and debug the project. Hopefully, this documentation provides all
+the information you will need to troubleshoot issues.
 
 
 Reporting issues
@@ -81,6 +83,10 @@ The best cards are the most modern SDHC/SDXC cards. Reputable brands offer
 better reliability. Be careful with the many bootleg/knockoffs, some of them
 even include the whole packaging and look very convincing.
 
+Some lower grade SD cards seem to be unable to cooperate: as soon as you plug
+more than 1 card on the unit, it fails. If that's the case, use reputable brands
+for your microSD cards.
+
 The SdFat library uses SD cards in SPI mode. Normally, all cards are compatible,
 but some full size SD cards may not support this mode.
 
@@ -150,7 +156,7 @@ handling and other quirks.
 
 The best way to limit possible interaction between these patching tools is to
 load GemDrive through `GEMDRIVE.PRG` and make sure it's loaded after all these
-tools. That way access to GemDrive drives will be done with pristine system
+tools. That way, access to GemDrive drives will be done with pristine system
 calls.
 
 The safest solution is to stay away from TOS/ACSI as much as possible and use
@@ -163,9 +169,15 @@ Issues with multiple ACSI2STM units on the same computer
 It should be possible to use multiple units at the same time when using ACSI
 strict mode. Just make sure you don't have ACSI id conflicts (use ID_SHIFT).
 
+MegaSTE with an internal ACSI hard drive reserves ACSI id 0 for its drive by
+default. Set ID_SHIFT on the ACSI2STM to avoid conflicts.
+
 
 "Bad DMA" chips
 ---------------
+
+"The" bad DMA issue is in fact a collection of slightly different hardware
+faults that happen on many variants of ST's.
 
 [This article](https://www.chzsoft.de/site/hardware/new-atari-ste-bad-dma-investigation/)
 describes a phenomenon that introduces DMA issues on some ST. It mentions a
@@ -196,6 +208,8 @@ You need to load GemDrive through `GEMDRPIO.PRG` because that mode cannot be
 automatically started at boot.
 
 This mode offers less performance: 50-100KB/s instead of 500-1500KB/s for DMA.
+It's still plenty fast for these old machines, and certainly faster than floppy
+drives or older hard drives.
 
 
 The problem of STM32 clones / variants

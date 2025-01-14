@@ -19,19 +19,9 @@ It can also work on STs with broken DMA chips by using the PIO firmware.
 It also provides an UltraSatan compatible real-time clock if you add a simple
 3V lithium battery such as a CR2032.
 
-The hardware is a custom PCB that can be order preassembled directly from
-[JLCPCB](https://jlcpcb.com). See [quick_start](doc/quick_start.md) for more
-information. The PCB attaches directly on the DB19 port at the back of your ST.
-The PCB has 3 microSD card slots, the Super Compact PCB has only 1 microSD slot,
-and the code supports up to 5 SD card readers.
-
-Due to many issues with counterfeit or defective Blue Pill boards sold online,
-building new designs/units based on Blue Pill boards is discouraged.
-
-Legacy hardware based on Blue Pill designs are supported to various degrees. All
-units that were built for firmware version 3.00 and later can be upgraded to the
-latest version. Units built for firmware version 2.xx need the legacy variant.
-Units built for firmware 1.xx need hardware modifications.
+Legacy hardware based on Blue Pill designs are supported to various degrees.
+[compatibility](doc/compatibility.md) explains which hardware is supported by
+this version.
 
 See [RELEASE NOTES](release_notes.md) for details about the current version.
 
@@ -48,8 +38,7 @@ implementors or curious people.
 
 This is what you can find:
 
-* [quick_start](doc/quick_start.md): A tutorial to order the hardware,
-  flash the firmware, using the unit and upgrading the unit.
+* [quick_start](doc/quick_start.md): How to setup and upgrade the unit.
 * [tutorial](doc/tutorial.md): A tutorial about using hard drives on an Atari ST
   if you never used one before. It will help setting up various hardware
   combinations.
@@ -60,15 +49,16 @@ This is what you can find:
   and software compatibility.
 * [troubleshooting](doc/troubleshooting.md): Having problems? Have a look
   here.
+* [ordering](doc/ordering.md): A tutorial to order the hardware and flash the
+  firmware.
 * [gemdrive](doc/gemdrive.md): Technical details about GemDrive. How to mix
   GemDrive with ACSI. How to install GemDrive for EmuTOS.
-* [jumpers](doc/jumpers.md): Documents the various jumpers available on the PCB
+* [jumpers](doc/jumpers.md): Documents the various jumpers available on the PCB.
 * [firmware](doc/firmware.md): Describes the many firmware variants pre-built
   in the release package. Also provides a step-by-step tutorial to compile and
   customize firmware yourself.
 * [hardware](doc/hardware.md): How to design and build an ACSI2STM unit
-  from scratch (hand wired, or your own PCB design). Also documents jumper
-  configuration.
+  from scratch (hand wired or your own PCB design).
 * [protocols](doc/protocols.md): Technical details about the communication
   protocol between the ACSI2STM unit and the Atari ST.
 

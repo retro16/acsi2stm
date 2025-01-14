@@ -197,11 +197,6 @@ If you run EmuTOS from ROM, you can skip that section.
 * Copy `images/acsi2stm-xxxx-hd0.img` from the release package into `acsi2stm`
 * Rename the image to `hd0.img`
 
-**Note:** All your `AUTO` programs and accessories need to be installed on C:
-
-**Note:** `AUTO` programs will have access to GemDrive if they are placed after
-`GEMDRIVE.PRG`. If using the official image, this will be the case.
-
 ### Booting EmuTOS
 
 * Insert the EmuTOS card into the first SD slot
@@ -214,6 +209,11 @@ If you run EmuTOS from ROM, you can skip that section.
 
 **Note:** You can remove one of `C:\AUTO\GEMDRIVE.PRG` or `C:\AUTO\GEMDRPIO.PRG`
 depending on the firmware you use. If unsure, it doesn't hurt to have both.
+
+**Note:** All your `AUTO` programs and accessories need to be installed on C:
+
+**Note:** `AUTO` programs will have access to GemDrive if they are placed after
+`GEMDRIVE.PRG`. If using the official image, this will be the case.
 
 ### How does that work ?
 

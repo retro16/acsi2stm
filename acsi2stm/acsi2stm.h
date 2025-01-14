@@ -1,5 +1,5 @@
 /* ACSI2STM Atari hard drive emulator
- * Copyright (C) 2019-2024 by Jean-Matthieu Coulon
+ * Copyright (C) 2019-2025 by Jean-Matthieu Coulon
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,7 +22,7 @@
 
 // acsi2stm global configuration
 
-#define ACSI2STM_VERSION "5.1a"
+#define ACSI2STM_VERSION "5.1b"
 
 // Set to 1 to enable debug output on the serial port
 #define ACSI_DEBUG 0

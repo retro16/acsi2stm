@@ -1,180 +1,16 @@
 Quick start guide
 =================
 
-This document explains the steps to get the recommended hardware and software
-as quickly and as simply as possible.
+This document explains the steps to get the product running as quickly and as
+simply as possible.
 
 There are many possible variations, refer to other documents for more details.
 
-**Warning:** The ACSI2STM authors do not give any warranty on the final product.
-Your money goes directly to JLCPCB, these are **not** affiliate links.
-ACSI2STM authors do not receive any compensation, directly or indirectly, and
-are thus not required to provide support.
-
-JLCPCB is cited purely as a convenience. They provide reliable STM32 chips,
-which is the most important problem to solve. You are free to choose any other
-service provider for PCB assembly.
+If you want to order or build units, see [ordering](doc/ordering.md).
 
 
-Downloading necessary files
----------------------------
-
-Download the latest release package. It contains all PCB design files as well as
-the firmware.
-
-The latest binary release package is available on the
-[GitHub release section](https://github.com/retro16/acsi2stm/releases)
-
-
-How to order the pre-assembled compact PCB
-------------------------------------------
-
-You can order pre-assembled PCBs, ready to use.
-
-* You will need files in the `pcb/Compact` or `pcb/Super Compact` folder of the
-  release package. For the Super Compact version, adapt file names below.
-* Create an account on [JLCPCB](https://jlcpcb.com) if you don't have any.
-* Log in to your JLCPCB account.
-* Open the [JLCPCB ordering page](https://cart.jlcpcb.com/quote).
-* Click *Add gerber file* and select `Gerber - ACSI2STM Compact.zip`.
-* Check that dimensions are 51.31*64.26 mm (for the Compact PCB)
-  or 46.10*31.24mm (for the Super Compact PCB).
-* Change the following settings:
-  * *PCB Color*: choose the one you like. Choose green if unsure.
-  * *Remove order number*: *Specify a location*.
-  * Enable *PCB assembly*
-  * Select *Assemble top side*
-  * *Tooling holes*: select *Added by Customer*
-  * *PCBA Qty*: select 5 if you want 5 assembled units, or 2 if you want only
-    2 full units and 3 extra unpopulated PCBs. 2 is cheaper than 5, but not by
-    a lot.
-* In the *Bill of materials* window,
-  * Click *Add BOM file* and select `BOM - ACSI2STM Compact.csv`.
-  * Click *Add CPL file* and select `PickAndPlace - ACSI2STM Compact.csv`.
-* In the next window, the whole BOM is summed up.
-  * You should see *17 parts confirmed* above the table.
-  * If some parts are missing, make sure to check the *Basic Parts Only* check
-    box when searching for a substitute. Basic parts are much cheaper than
-    extended parts. The only extended parts are the SD slots, USB port and
-    battery holder.
-  * Check that the *Total Cost* column has no value more than $2 except the
-    STM32 chip that should be below $7. This is for 5 assembled units.
-* Make a visual check of component placement. It should match the picture in the
-  file `3D view - ACSI2STM Compact.png`.
-* In the *Quote & Order* window, you need to select *Product Description*. I use
-  the Research/DIY option, but feel free to choose the option that you feel the
-  best for you.
-
-### Manually soldered parts (Compact)
-
-A few optional connectors are on the bottom side of the PCB and are not
-assembled by JLCPCB by default:
-
-* Configuration jumpers (RESET, ID_SHIFT, FLASH, ACSI): 2.54mm male square pins
-* Serial/UART pins: 2.54mm 6x square pins female socket
-* Satan/UltraSatan IDC20 connector: IDC20 male or 2.54mm male square pins
-
-See [jumpers](jumpers.md) for documentation about these parts.
-
-### Manually soldered parts (Super Compact)
-
-The Super Compact board has an optional *RESET* push button.
-
-Solder pads should fit most SMD push buttons as well as through hole buttons
-soldered on the side of the PCB.
-
-
-Flashing firmware
------------------
-
-JLCPCB does not offer pre-programming services for the STM32. You have to flash
-the firmware using a USB to serial/UART adapter supporting 3.3V signals.
-
-Firmware upgrades can be done from the Atari itself, so the USB adapter is only
-needed for first time programming or for debugging/development purposes.
-
-### USB programmer
-
-The compact PCB has to be programmed with a USB to UART adapter. It requires an
-adapter with a very specific pinout. Using any other model will require manual
-wiring but should work without problems.
-
-The required model usually matches the following keywords on most websites:
-
-* H43 USB to TTL UART CH340
-* HW-597 USB to TTL UART CH340
-
-Pinout of the adapter:
-
-* 5V
-* VCC (connected to 3.3V or 5V by a jumper)
-* 3.3V
-* TXD
-* RXD
-* GND
-
-![USB to UART module](images/usb_serial.jpg)
-
-**Hint:** With a bit of practice, it is possible to program the unit without
-soldering a female header. Just insert the adapter's pins inside matching PCB
-holes and hold it slightly slanted with a bit of force to keep good contacts
-during the flashing operation. PCB holes are metal plated so it should provide
-good enough contact.
-
-![Flashing with other adapters](images/compact_pcb_flash.jpg)
-
-**Note:** When using this kind of adapter, you don't need to enable the FLASH
-jumper. The PCB is wired to enable flash mode when it senses power on the 5V
-pin at power up / reset.
-
-If you don't have that very specific model of adapter, plug as following:
-
-* Make sure your adapter works with 3.3V signals. 5V signals may damage the
-  STM32.
-* Plug GND to the GND pin of your adapter.
-* Plug TX to RX of your adapter, RX to TX of your adapter.
-* Enable (short) the FLASH jumper or put 5V on the 5V pin of the UART header.
-* Put a 3.3V source on any of the 3.3V pins of the UART header.
-* As soon as power is applied, the STM32 is ready to receive its firmware.
-
-**Note:** The Super Compact PCB has no FLASH jumper, you must put 5V on the 5V
-pin at boot to enter firmware flash mode.
-
-### Flashing using STM32CubeProg
-
-Download [STM32CubeProg from st.com](https://www.st.com/en/development-tools/stm32cubeprog.html)
-
-Install STM32CubeProg on your system and start it.
-
-![Screenshot of STM32CubeProg](images/stm32cube-1.png)
-
-On the main window, select *UART* in the programmer type, then select the serial
-port matching your UART adapter, then click *Connect*.
-
-Click the *Open file* tab and select the `acsi2stm-XXX.ino.bin` file from the
-release package.
-
-![Last STM32CubeProg step](images/stm32cube-2.png)
-
-To program the chip, click the *Download* button.
-
-### Flashing using the stm32flash command-line
-
-You need the `stm32flash` command-line tool available on the
-[Arduino_STM32](https://github.com/rogerclarkmelbourne/Arduino_STM32/tree/master/tools)
-repository, in the tools subdirectory.
-
-Sample stm32flash command-line:
-
-    stm32flash -w acsi2stm-XXXX.ino.bin /dev/ttyUSB0
-
-You need to adapt the command-line for your setup: /dev/ttyUSB0 should point at
-the virtual serial port connected to the STM32. On Windows and MacOS, it may use
-slightly different syntax for the port.
-
-
-Installing the PCB
-------------------
+Installing the ACSI2STM unit on your machine
+--------------------------------------------
 
 ### Powering the unit
 
@@ -206,7 +42,7 @@ instead of the DB19 port. This is useful if you have other IDC20 devices.
 ![Compact PCB on IDC20 port](images/compact_idc20.jpg)
 
 **Note:** You can connect things on both the DB19 and IDC20 ports at the same
-time.
+time, the ACSI2STM PCB can be used as an adapter.
 
 
 Using the unit
@@ -214,26 +50,35 @@ Using the unit
 
 Depending on which hardware you have, setup will be different.
 
-See [standard configurations](standard_configurations.md) to setup the unit.
-
 On the most standard configuration (no internal hard drive, no other device),
 just plug the unit, power it on before turning on the ST, and there you go: a C:
-drive will appear that corresponds to the first SD card slot. It behaves like a
-floppy drive: you can insert / swap SD cards at any time without rebooting.
+drive will appear that corresponds to the first SD card slot.
+
+Slots behave like a floppy drive: you can insert / swap SD cards at any time
+without rebooting. You can even boot with no SD card inserted, it will just
+work. Make sure that you don't hot swap while programs do file access.
+
+See [standard configurations](standard_configurations.md) to setup the unit.
 
 See [tutorial](tutorial.md) if you have no prior experience with hard drives on
-the ST.
+the ST. Among other things, it explains how to add icons for the extra microSD
+slots on the desktop.
 
+[jumpers](jumpers.md) explains how to change various jumpers on the board for
+more complex configurations.
 
-Setting date and time
----------------------
+### Setting date and time
 
 In GemDrive mode, you can use any tool to set the date, such as `CONTROL.ACC` or
 `XCONTROL.ACC` available in the *Language disk* provided with the computer.
+These tools can be found online easily if necessary.
+
+Copy the accessory at the root of your `C:` drive, reboot, then run the *Control
+panel* from the Desk menu. In `CONTROL.ACC`, click date and time to change them.
 
 In ACSI mode, ACSI2STM emulates an UltraSatan clock, so you can use UltraSatan
 tools such as `US_SETCL.PRG` and `US_GETCL.PRG`. GemDrive mode also responds to
-UltraSatan clock queries as a convenience.
+UltraSatan clock queries as a convenience, but it doesn't need these tools.
 
 When the system is switched off, the STM32 clock is powered by the onboard
 CR2032 battery so it will keep time even when powered off.
@@ -248,12 +93,17 @@ ACSI2STM both in ACSI and GemDrive modes.
 
 Steps to update your firmware:
 
-* Download the release package and unzip it.
+* Download the release package and unzip it. The latest binary release package
+  is available on the [GitHub release section](https://github.com/retro16/acsi2stm/releases)
 * Choose which firmware variant you want to use (see [firmware](firmware.md)).
 * Copy the firmware file (`acsi2stm-VERSION-VARIANT.ino.bin`) and rename it to
   `HDDFLASH.BIN`
 * Copy `HDDFLASH.TOS` and `HDDFLASH.BIN` files on any medium readable by the
   ST (floppy, ACSI drive, GemDrive SD card, ...).
+* If you load GemDrive using `GEMDRIVE.PRG` or `GEMDRPIO.PRG`, copy this file
+  as well. Older versions may not be compatible with the newer firmware.
+* If needed, copy the new `GEMDRIVE.PRG` or `GEMDRPIO.PRG` to the `AUTO` folder
+  of the ST's boot drive. Do not reboot the ST before flashing the firmware.
 * On the ST, run `HDDFLASH.TOS`.
 * When prompted, choose the hard drive to update (usually ID 0).
 * Press Y to start flashing.
@@ -263,13 +113,14 @@ Steps to update your firmware:
 
 * The release package provides disk images that you can use to upgrade easily:
   they have a `FIRMWARE` folder with the standard variant already named as
-  `HDDFLASH.BIN` so you just have to start `HDDFLASH.TOS`
+  `HDDFLASH.BIN` so you just have to start `HDDFLASH.TOS`.
+* On new TOS (>= 2.0) or EmuTOS, you can drag the firmware file on the
+  `HDDFLASH.TOS` icon instead of renaming the image.
 * When updating an ACSI2STM unit with multiple SD slots, you can select any slot
   to update the firmware for the whole unit. No need to do the update procedure
   multiple times.
 * `HDDFLASH.TOS` works entirely in RAM, so you can start the program from the
   unit to update.
-* If you load GemDrive using `GEMDRIVE.PRG`, upgrade this file as well. An old
-  version of `GEMDRIVE.PRG` may not be compatible with the newer firmware.
 * If flashing fails or if the unit is bricked, you will have to upload the new
-  firmware using the USB to UART dongle. See above.
+  firmware using the USB to UART dongle. Flashing the firmware cannot brick
+  completely the unit, it can always be recovered with the UART dongle.
