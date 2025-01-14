@@ -1,8 +1,14 @@
 Changes since 5.00
 ------------------
 
+WARNING: New PCBs from this beta release haven't been tested.
+
 * Fixed date/time handling in GemDrive mode
  * Fixes file date/time on non-GemDrive drivesd such as floppy or ACSI
+* Reworked components of the Compact PCB to improve stability
+* Use bigger components on the PCB to ease hand soldering
+* Added the Super Compact PCB
+
 
 5.00: Professionally assembled PCB, EmuTOS, PIO mode, multiple devices and fixes
 ================================================================================

@@ -14,23 +14,24 @@ It can work in 3 ways:
 * Expose raw SD cards as ACSI hard disks connected to the Atari.
 * Expose ACSI hard disk image files as hard disks connected to the Atari.
 
+It can also work on STs with broken DMA chips by using the PIO firmware.
+
 It also provides an UltraSatan compatible real-time clock if you add a simple
 3V lithium battery such as a CR2032.
 
 The hardware is a custom PCB that can be order preassembled directly from
 [JLCPCB](https://jlcpcb.com). See [quick_start](doc/quick_start.md) for more
 information. The PCB attaches directly on the DB19 port at the back of your ST.
-The PCB has 3 microSD card slots, and the code supports up to 5 SD card readers.
+The PCB has 3 microSD card slots, the Super Compact PCB has only 1 microSD slot,
+and the code supports up to 5 SD card readers.
 
-Due to many issues with counterfeit or defective Blue Pill boards online,
+Due to many issues with counterfeit or defective Blue Pill boards sold online,
 building new designs/units based on Blue Pill boards is discouraged.
 
 Legacy hardware based on Blue Pill designs are supported to various degrees. All
 units that were built for firmware version 3.00 and later can be upgraded to the
 latest version. Units built for firmware version 2.xx need the legacy variant.
 Units built for firmware 1.xx need hardware modifications.
-
-It can also work on STs with broken DMA chips by using the PIO firmware.
 
 See [RELEASE NOTES](release_notes.md) for details about the current version.
 
@@ -65,7 +66,7 @@ This is what you can find:
 * [firmware](doc/firmware.md): Describes the many firmware variants pre-built
   in the release package. Also provides a step-by-step tutorial to compile and
   customize firmware yourself.
-* [hardware](doc/hardware.md): How to design and build an acsi2stm unit
+* [hardware](doc/hardware.md): How to design and build an ACSI2STM unit
   from scratch (hand wired, or your own PCB design). Also documents jumper
   configuration.
 * [protocols](doc/protocols.md): Technical details about the communication
@@ -145,3 +146,4 @@ feedback, contributing to make the project better.
   of feedback.
 * Joe Ceklosky for his feedback and help on fixing RTC issues.
 * François Planque for his [extensive explanation about the Mega STE internal drive](https://www.fplanque.com/tech/retro/atari/atari-st-acsi2stm-mega-ste/)
+* Diego Parrilla for making the PCB much more reliable.

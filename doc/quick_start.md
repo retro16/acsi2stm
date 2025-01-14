@@ -31,15 +31,16 @@ How to order the pre-assembled compact PCB
 
 You can order pre-assembled PCBs, ready to use.
 
-* You will need files in the `pcb/Compact` folder of the release package.
+* You will need files in the `pcb/Compact` or `pcb/Super Compact` folder of the
+  release package. For the Super Compact version, adapt file names below.
 * Create an account on [JLCPCB](https://jlcpcb.com) if you don't have any.
 * Log in to your JLCPCB account.
 * Open the [JLCPCB ordering page](https://cart.jlcpcb.com/quote).
 * Click *Add gerber file* and select `Gerber - ACSI2STM Compact.zip`.
-* Check that dimensions are 51.31*64.26 mm
+* Check that dimensions are 51.31*64.26 mm (for the Compact PCB)
+  or 46.10*31.24mm (for the Super Compact PCB).
 * Change the following settings:
-  * *PCB Color*: choose the one you like. Some colors require to build 5 units
-    instead of 2, which is more expensive. Choose green if unsure.
+  * *PCB Color*: choose the one you like. Choose green if unsure.
   * *Remove order number*: *Specify a location*.
   * Enable *PCB assembly*
   * Select *Assemble top side*
@@ -64,7 +65,7 @@ You can order pre-assembled PCBs, ready to use.
   the Research/DIY option, but feel free to choose the option that you feel the
   best for you.
 
-### Manually soldered parts
+### Manually soldered parts (Compact)
 
 A few optional connectors are on the bottom side of the PCB and are not
 assembled by JLCPCB by default:
@@ -74,6 +75,13 @@ assembled by JLCPCB by default:
 * Satan/UltraSatan IDC20 connector: IDC20 male or 2.54mm male square pins
 
 See [jumpers](jumpers.md) for documentation about these parts.
+
+### Manually soldered parts (Super Compact)
+
+The Super Compact board has an optional *RESET* push button.
+
+Solder pads should fit most SMD push buttons as well as through hole buttons
+soldered on the side of the PCB.
 
 
 Flashing firmware
@@ -113,9 +121,9 @@ holes and hold it slightly slanted with a bit of force to keep good contacts
 during the flashing operation. PCB holes are metal plated so it should provide
 good enough contact.
 
-![Flashing without header](images/compact_pcb_flash.jpg)
+![Flashing with other adapters](images/compact_pcb_flash.jpg)
 
-**Note:** when using this kind of adapter, you don't need to enable the FLASH
+**Note:** When using this kind of adapter, you don't need to enable the FLASH
 jumper. The PCB is wired to enable flash mode when it senses power on the 5V
 pin at power up / reset.
 
@@ -128,6 +136,9 @@ If you don't have that very specific model of adapter, plug as following:
 * Enable (short) the FLASH jumper or put 5V on the 5V pin of the UART header.
 * Put a 3.3V source on any of the 3.3V pins of the UART header.
 * As soon as power is applied, the STM32 is ready to receive its firmware.
+
+**Note:** The Super Compact PCB has no FLASH jumper, you must put 5V on the 5V
+pin at boot to enter firmware flash mode.
 
 ### Flashing using STM32CubeProg
 
@@ -173,7 +184,7 @@ Power the unit via its USB-C port. It has no specific power requirements, so any
 ### Backup battery
 
 Before installing, insert a CR2032 battery in the socket. The battery is only
-needed for keeping the clock running when the ST is off.
+needed to keep the clock running when the ST is off.
 
 ### Installing on the DB19 port
 
