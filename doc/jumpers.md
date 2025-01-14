@@ -62,6 +62,29 @@ The female part must be on the inner side (backup battery side).
 In that case, you won't be able to plug the unit on the DB19 socket anymore.
 
 
+Super Compact board
+-------------------
+
+The Super Compact board has less features, and it has solder pads instead of
+jumpers.
+
+### ID_SHIFT
+
+Connect the 2 pads (using a 0-ohm resistor or a simple solder blob) to set the
+ACSI ID to 1.
+
+By default, ACSI ID is 0.
+
+### RESET
+
+The RESET pads will reset the STM32 when shorted, just like the push button on
+the Blue Pill.
+
+A tiny push button can be soldered for convenience. You can either solder a
+surface mount push button, or solder a through hole push button on its side.
+Pads are huge to accomodate many kinds of push buttons and ease hand soldering.
+
+
 Changing operation modes with jumpers on the Blue Pill board
 ------------------------------------------------------------
 
