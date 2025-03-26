@@ -357,7 +357,7 @@ struct Tos: public SysHook {
     Long block;
     Long newsiz;
   };
-  DECLARE_FUNCTION(Pexec, 75, (ToWord mode)) {
+  DECLARE_FUNCTION(Pexec, 75, (ToWord mode, ToLong l1, ToLong l2, ToLong l3)) {
     Word mode;
     Long l1;
     Long l2;
