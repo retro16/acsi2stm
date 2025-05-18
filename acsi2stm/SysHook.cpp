@@ -1,5 +1,5 @@
 /* ACSI2STM Atari hard drive emulator
- * Copyright (C) 2019-2024 by Jean-Matthieu Coulon
+ * Copyright (C) 2019-2025 by Jean-Matthieu Coulon
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -461,5 +461,7 @@ void SysHook::sendCommandNoWait(int command, ToLong param)
   bytes[4] = param.bytes[3];
   DmaPort::sendIrqFast(bytes, 5);
 }
+
+uint32_t SysHook::dmatop = 0x40000; // Default to 256k (minimum ST-RAM)
 
 // vim: ts=2 sw=2 sts=2 et

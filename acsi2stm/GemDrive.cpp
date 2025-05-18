@@ -1,5 +1,5 @@
 /* ACSI2STM Atari hard drive emulator
- * Copyright (C) 2019-2024 by Jean-Matthieu Coulon
+ * Copyright (C) 2019-2025 by Jean-Matthieu Coulon
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1082,13 +1082,11 @@ void GemDrive::onBoot() {
     FsFile emutos = fs.open(ACSI_GEMDRIVE_LOAD_EMUTOS);
     uint32_t basepage;
     uint32_t result = loadPrg(emutos, ToLong(0), ToLong(0), basepage);
-    dbgHex(basepage," ");
     if(result == E_OK) {
-      dbg("successful\n");
+      dbg("Run EmuTOS\n");
       Pexec_4(ToLong(basepage));
       return;
     }
-    dbg("failed ");
   }
 #endif
 
@@ -1135,6 +1133,9 @@ void GemDrive::onInit(bool setBootDrive) {
   tosPrint("Running in PIO mode\r\n\n");
 #endif
 
+  // Set dmatop to phystop
+  dmatop = phystop();
+
   // Cache OSHEADER values
   os_beg = _sysbase();
   os_beg = readLongAt(os_beg + offsetof(OSHEADER, os_beg));
@@ -1177,7 +1178,7 @@ void GemDrive::onInit(bool setBootDrive) {
 #endif
 #if ! ACSI_PIO
   for(d = 0; d < driveCount; ++d)
-    if(Devices::sdSlots[d].mode == SdDev::ACSI )
+    if(Devices::sdSlots[d].mode == SdDev::ACSI)
       // Avoid conflicts with legacy drivers that don't respect _drvbits.
       firstDriveLetter = 'L';
 #endif
@@ -1238,6 +1239,17 @@ void GemDrive::onInit(bool setBootDrive) {
   // if ACSI_RTC is disabled to keep file dates in sync with the ST clock.
   Devices::setDateTime(Tgetdate(), Tgettime());
 
+#if ACSI_RTC
+  else {
+    // Sync internal ST clock with ours
+    uint16_t date;
+    uint16_t time;
+    Devices::getDateTime(&date, &time);
+    Tsetdate(date);
+    Tsettime(time);
+  }
+#endif
+
 #if ACSI_DEBUG
   // With a debug build, just leave a small delay to make onscreen messages
   // easily readable.
@@ -1262,9 +1274,7 @@ void GemDrive::onGemdos() {
   DECLARE_CALLBACK(Pterm0);
   DECLARE_CALLBACK(Cconws);
   DECLARE_CALLBACK(Dsetdrv);
-  DECLARE_CALLBACK(Tgetdate);
   DECLARE_CALLBACK(Tsetdate);
-  DECLARE_CALLBACK(Tgettime);
   DECLARE_CALLBACK(Tsettime);
   DECLARE_CALLBACK(Dfree);
   DECLARE_CALLBACK(Dcreate);
@@ -1353,18 +1363,6 @@ bool GemDrive::onDsetdrv(const Tos::Dsetdrv_p &p) {
   return forward();
 }
 
-bool GemDrive::onTgetdate(const Tos::Tgetdate_p &) {
-#if ACSI_RTC
-  if(Devices::isDateTimeSet()) {
-    uint16_t date;
-    uint16_t time;
-    Devices::getDateTime(&date, &time);
-    return rte(ToLong(date));
-  }
-#endif
-  return forward();
-}
-
 bool GemDrive::onTsetdate(const Tos::Tsetdate_p &p) {
   // Set even if ACSI_RTC is disabled to keep file dates in sync with the ST
   // clock.
@@ -1374,18 +1372,6 @@ bool GemDrive::onTsetdate(const Tos::Tsetdate_p &p) {
   date = p.date;
   setDateTime(date, time);
 
-  return forward();
-}
-
-bool GemDrive::onTgettime(const Tos::Tgettime_p &) {
-#if ACSI_RTC
-  if(isDateTimeSet()) {
-    uint16_t date;
-    uint16_t time;
-    getDateTime(&date, &time);
-    return rte(ToLong(time));
-  }
-#endif
   return forward();
 }
 
@@ -2266,9 +2252,12 @@ uint32_t GemDrive::loadPrg(FsFile &prgFile, Long cmdline, Long env, uint32_t &ba
   pd.p_blen = ph.ph_blen;
   sendAt(pd, basepage);
 
-  if(!(ph.ph_prgflags.bytes[3] & 1))
-    // FASTLOAD not set: clear BSS
+  if(ph.ph_prgflags.bytes[3] & 1)
+    // FASTLOAD set: clear BSS only
     clearAt(ph.ph_blen, pd.p_bbase);
+  else
+    // FASTLOAD not set: clear the whole program space
+    clearAt(pd.p_hitpa - pd.p_bbase, pd.p_bbase);
 
   // The relocation table itself starts with a 32-bit value which marks the
   // offset of the first value to be relocated relative to the start of the

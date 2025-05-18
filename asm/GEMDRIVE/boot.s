@@ -1,5 +1,5 @@
 ; ACSI2STM Atari hard drive emulator
-; Copyright (C) 2019-2024 by Jean-Matthieu Coulon
+; Copyright (C) 2019-2025 by Jean-Matthieu Coulon
 
 ; This program is free software: you can redistribute it and/or modify
 ; it under the terms of the GNU General Public License as published by
@@ -29,7 +29,19 @@ acsiid	moveq	#$0e,d0                 ; Set command (patched by code)
 
 	include	syshook.s               ; Enter syshook mode
 
-load	st	flock.w                 ; Lock floppy controller
+load
+	; we'll give the user a chance to skip GEMDOS mode if anything goes awry (yes, I'm looking at you MSTE+16Mhz+cache)
+	move.w  #-1,-(sp)   			
+	move.w  #$B,-(sp)    			; KBshift
+	trap    #13          
+	addq.l  #4,sp
+	and.w   #$f,d0        			; check RShift/LShift/Ctrl/Alt
+	beq.s   .resumeload 			; continue if no modifier key pressed
+	; exit since the user asked us nicely
+	rts
+.resumeload	
+
+	st	flock.w                 ; Lock floppy controller
 
 	bsr.w	syshook.setdmaaddr      ; Reset DMA chip
 	move.w	#$0088,(a1)             ; Switch to command.

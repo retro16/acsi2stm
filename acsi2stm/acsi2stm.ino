@@ -1,5 +1,5 @@
 /* ACSI2STM Atari hard drive emulator
- * Copyright (C) 2019-2024 by Jean-Matthieu Coulon
+ * Copyright (C) 2019-2025 by Jean-Matthieu Coulon
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -88,7 +88,7 @@ void __attribute__ ((noinline)) checkCanary() {
   }
 
   if(revived)
-    Monitor::dbgHex("Canary @", (uint32_t)(&canary[0]), " revived ", revived, "/", canaryWords - 1, " revived\n");
+    Monitor::dbgHex("Revived ", revived, "/", canaryWords - 1, " canaries\n");
 }
 #endif
 

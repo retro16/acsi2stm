@@ -44,7 +44,7 @@ injectfiles() {
 # Legal stuff
 unix2dos > "COPYRGHT.TXT" << EOF
 ACSI2STM v$VERSION Atari hard drive emulator
-Copyright (C) 2019-2024
+Copyright (C) 2019-2025
 by Jean-Matthieu Coulon
 
 This program is free software: you can

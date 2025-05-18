@@ -23,8 +23,6 @@ mkdir "$builddir"
 
 set -e
 
-cp "$srcdir/acsi2stm/acsi2stm.h" "$builddir/acsi2stm.h"
-
 (
 
 compile_arduino() {
@@ -40,6 +38,10 @@ arduino-cli compile --build-path "$builddir/Arduino-$name/build" --fqbn "Arduino
 }
 
 if [ "$1" = all ]; then
+  # Backup original header
+  cp "$srcdir/acsi2stm/acsi2stm.h" "$builddir/acsi2stm.h"
+  trap "mv '$builddir/acsi2stm.h' '$srcdir/acsi2stm/acsi2stm.h'" EXIT
+
   echo
   echo "Compile verbose binary"
   sed -i 's/^#define ACSI_VERBOSE .$/#define ACSI_VERBOSE 1/' "$srcdir/acsi2stm/acsi2stm.h"
@@ -101,6 +103,10 @@ if [ "$1" = all ]; then
   sed -i 's/^#define ACSI_FAST_DMA .$/#define ACSI_FAST_DMA 1/' "$srcdir/acsi2stm/acsi2stm.h"
   compile_arduino legacy
   cp "$builddir/Arduino-legacy/acsi2stm.ino.bin" ./acsi2stm-$VERSION-legacy.ino.bin
+
+  # Restore original header
+  mv "$builddir/acsi2stm.h" "$srcdir/acsi2stm/acsi2stm.h"
+  trap "" EXIT
 else
   echo "Compile binary with current settings"
   compile_arduino current "$@"
@@ -108,8 +114,6 @@ else
 fi
 
 )
-
-mv "$builddir/acsi2stm.h" "$srcdir/acsi2stm/acsi2stm.h"
 
 # Clean up build
 

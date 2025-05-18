@@ -1,5 +1,5 @@
 /* ACSI2STM Atari hard drive emulator
- * Copyright (C) 2019-2024 by Jean-Matthieu Coulon
+ * Copyright (C) 2019-2025 by Jean-Matthieu Coulon
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -382,11 +382,14 @@ struct SysHook: public Monitor {
 #elif ACSI_GEMDRIVE_NO_DIRECT_DMA
     return false;
 #else
-    return address < phystop;
+    return address < dmatop;
 #endif
   }
 
-  static const uint32_t phystop = 0xe00000; // DMA-compatible range
+  // DMA-compatible range
+  // This should be detected on real hardware because some Alt-RAM expansions
+  // will break if they are in this range.
+  static uint32_t dmatop;
 };
 
 // vim: ts=2 sw=2 sts=2 et

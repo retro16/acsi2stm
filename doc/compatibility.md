@@ -44,11 +44,14 @@ compatibility:
 |              Full featured PCB v1.0 | 🛇   | 🛇   | ✓    | ✓      |
 |              Full featured PCB v1.1 | 🛇   | 🛇   | ✓    | ✓      |
 |                 SOVAJA Mega STE PCB | 🛇   | 🛇   | ✓    | ✓      |
-|  Official ACSI2STM compact PCB v1.0 | 🛇   | 🛇   | ✓    | ✓      |
+|  Official ACSI2STM Compact PCB v1.0 | 🛇   | 🛇   | ✓    | ✓      |
+|  Official ACSI2STM Compact PCB v1.1 | 🛇   | 🛇   | ✓    | ✓      |
+|     ACSI2STM Super Compact PCB v1.1 | 🛇   | 🛇   | ✓    | ✓      |
 
 **Note:** 3.0+ means version 3.0 and higher, including any 4.x, 5.x,...
 
-**Note:** Hardware can be upgraded by making changes. See [hardware](hardware.md).
+**Note:** Hardware can be upgraded by making changes. See
+[hardware](hardware.md).
 
 **Info:** Hardware compatible with 3.0+ and 4.0+ will be supported by all future
 firmware revisions.

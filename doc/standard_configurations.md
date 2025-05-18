@@ -108,6 +108,8 @@ Machine with an internal hard drive
 * Boot the computer, GemDrive should load from the `AUTO` folder and expose SD
   cards as new disk drives
 
+[jumpers](jumpers.md) explains how to change ID_SHIFT.
+
 
 Machine running EmuTOS
 ----------------------
@@ -118,7 +120,7 @@ automatically.
 ### What you have
 
 * A machine with EmuTOS in ROM
-* One ACSI2STM unit
+* One ACSI2STM unit with at least 2 SD card slots
 * No internal hard drive
 * No other device
 
@@ -153,6 +155,7 @@ This is so commonplace that it's become a standard configuration !
 
 * A machine that displays bombs or exhibits weird behaviors when booting with an
   ACSI2STM unit plugged in
+* A machine with a floppy drive (or a floppy drive emulator)
 
 ### What you want to achieve
 

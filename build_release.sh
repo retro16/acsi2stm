@@ -38,9 +38,6 @@ fi
 
 outdir="$(readlink -fs "$PWD")"
 
-# Update the STM32 core
-git -C "$HOME/Arduino/hardware/Arduino_STM32" pull
-
 export KEEP_BUILD
 builddir="$outdir/build.release~"
 zipdir="acsi2stm-$VERSION-release"
@@ -79,7 +76,7 @@ echo "... and the legal stuff"
 
 cat > "$zipdir/README.txt" << EOF
 ACSI2STM Atari hard drive emulator
-Copyright (C) 2019-2024 by Jean-Matthieu Coulon
+Copyright (C) 2019-2025 by Jean-Matthieu Coulon
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

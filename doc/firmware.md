@@ -269,16 +269,19 @@ cygwin, git bash or macos (untested).
 Building a release package
 ==========================
 
-You need to install [arduino-cli](https://arduino.github.io/arduino-cli) to
-build the Arduino sketch.
+The release package is now generated inside a docker / podman container.
+This fully automates all dependencies. Commands are the same for docker and
+podman, just switch command name to use docker.
 
-You also need to setup the Arduino environment from the IDE: install all
-dependencies from there. You don't need to select the correct board from within
-the IDE as the build script will automatically select the correct board.
+Run the build script:
 
-The `build_release.sh` shell script patches VERSION in all sources, calls
-`build_asm.sh`, `build_arduino.sh` and `build_atari_img.sh`, then packages
-everything into a zip file.
+    podman build -t acsi2stm .
+    podman run --rm --mount type=bind,source=$PWD,target=/acsi2stm -t acsi2stm
+
+Clean up images after you finished:
+
+    podman image rm acsi2stm
+    podman image prune
 
 
 Release package test procedure
@@ -439,3 +442,26 @@ ACSI2STM device 1 has id 0-2 and device 2 has id 3-5 (ID_SHIFT set).
 | 1.04 | Strict   | ICD      | PIO      | FAT      | ACSI2STM | cdefGHI |
 | 1.04 | Normal   | FAT      | PIO      | FAT      | ACSI2STM | CDEFGH  |
 | 1.04 | PIO      | FAT      | PIO      | FAT      | ACSI2STM | CDEFGH  |
+
+### Date setting test
+
+With 2 devices in GemDrive mode, standard firmware. Device 0 will be IDs 0-2 and
+device 3 will be IDs 3-5.
+
+* Put a battery only in device 0
+* Set the date on device 0
+* Power off everything and let capacitors discharge
+* Boot with both units
+* Check the date is correct
+* Create a folder on a floppy disk
+* Check the folder's date and time
+* Switch device IDs
+* Power off everything and let capacitors discharge
+* Boot with both units
+* Check the date is correct
+* Power off everything and let capacitors discharge
+* Put a battery in device 0. Both units now have a battery
+* Boot with both units
+* Power off everything and let capacitors discharge
+* Boot only with device 0
+* Check the date is correct

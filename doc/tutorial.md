@@ -18,6 +18,8 @@ The physical "hard disk" port
 All Atari ST and derivatives have a *hard disk* socket somewhere. It's a DB19
 female socket, a very rare kind that doesn't exist anymore.
 
+![DB19 hard disk port](images/db19_hard_disk_port.jpg)
+
 Because it doesn't have a real name, it can be called *DB19*, *Hard disk*,
 *ACSI* or *DMA port*.
 
@@ -76,7 +78,7 @@ device id 0, but this can be changed by internal DIP switches.
 ### ACSI2STM
 
 ACSI2STM provides a set of jumpers named `ID_SHIFT` which can change device ids
-of the SD slots as well as theyr GemDrive drive letters. It can't map to all 8
+of the SD slots as well as their GemDrive drive letters. It can't map to all 8
 ids freely though.
 
 
@@ -186,12 +188,12 @@ Most hard drive drivers will list mounted drives at boot.
 
 ### *C:* drive icon
 
-TOS handles the C: drive specially: if the drive is mounted during boot process,
+GEM handles the C: drive specially: if the drive is mounted during boot process,
 it will add the corresponding icon to the desktop. If the drive is not mounted
 during the boot process, it will **actively remove** the icon, even if it was
 present in your `DESKTOP.INF` file.
 
-TOS doesn't care about other mounted drives, you will need to install them
+GEM doesn't care about other mounted drives, you will need to install them
 manually (see below).
 
 ### Boot drive
@@ -202,6 +204,8 @@ accessories and loading `DESKTOP.INF`/`NEWDESK.INF` from there.
 However, the *Save Desktop* feature will disregard that boot drive and use its
 own logic. It seems that it tries to save to C:, and if C: doesn't exist it
 saves to A:.
+
+Different TOS versions behave differently regarding to boot drive.
 
 ### Installing drive icons
 
@@ -270,3 +274,78 @@ recreate any drive icon ! Saving the desktop while in this state is a bad idea.
 
 **Note:** New TOS can even remove multiple icons at once, just select all of
 them at the same time.
+
+
+Disk operations vs file operations
+----------------------------------
+
+Another common GEM quirk: how it handles disk and file operations.
+
+### Disk copy
+
+Dragging a drive icon over another drive icon triggers a disk copy operation:
+
+![Disk copy](images/disk_copy.png)
+
+This can be done only between `A:` and `B:` floppy drives. GEM will do a
+low-level copy of the disk, so the resulting disk will have the same identifier
+and the same content, as well as the same file fragmentation.
+
+![GEM disk copy tool](images/gem_disk_copy_tool.png)
+
+The GEM disk copy tool is not very sophisticated, you should use specialized
+tools such as *ACOPY* or *FastCopy Pro*.
+
+### File copy
+
+File copies are just that: each file is read from the source, then written on
+the destination folder.
+
+There are 3 ways to trigger file copies in GEM:
+
+#### Copy from folder to folder
+
+![Copy from folder to folder](images/copy_from_folder_to_folder.png)
+
+This copies all selected files to the destination folder
+
+#### Copy from drive to folder
+
+![Copy from drive to folder](images/copy_from_drive_to_folder.png)
+
+This copies all files in the drive to the destination folder
+
+#### Copy from folder to drive
+
+![Copy from folder to drive](images/copy_from_folder_to_drive.png)
+
+This copies all selected files to the root of the destination drive
+
+### Disk format
+
+You would think that dragging a drive to trash would format it ? No ! There is
+a menu for that: select the drive icon to format, then open the format menu:
+
+![Disk format menu](images/disk_format_menu.png)
+
+GEM can only format floppy disks.
+
+Just like disk copy, the GEM format tool is not very sophisticated, you should
+use specialized tools such as *ACOPY* or *FastCopy Pro* for floppy disks. Hard
+disk drives need specialized tools to format or partition the disk.
+
+### File delete
+
+In old TOS, the only way to delete files is to drag them on the thrash. To
+delete all files from a drive, you need to select all files and folders at the
+root of the drive and drag them all at once on the trash.
+
+![Drag to trash](images/drag_to_trash.png)
+
+New TOS has a menu entry and a keyboard shortcut to delete files, making the
+trash icon obsolete: you can remove the trash icon from the desktop if you want.
+
+![File delete](images/file_delete.png)
+
+You can't empty a drive by dragging the drive icon on the trash, you must select
+all icons at its root folder and delete them.

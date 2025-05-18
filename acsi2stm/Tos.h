@@ -1,5 +1,5 @@
 /* ACSI2STM Atari hard drive emulator
- * Copyright (C) 2019-2024 by Jean-Matthieu Coulon
+ * Copyright (C) 2019-2025 by Jean-Matthieu Coulon
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -357,7 +357,7 @@ struct Tos: public SysHook {
     Long block;
     Long newsiz;
   };
-  DECLARE_FUNCTION(Pexec, 75, (ToWord mode)) {
+  DECLARE_FUNCTION(Pexec, 75, (ToWord mode, ToLong l1, ToLong l2, ToLong l3)) {
     Word mode;
     Long l1;
     Long l2;
