@@ -14,7 +14,7 @@
 #
 
 # Use a lightweight debian base image
-FROM debian:stable-slim
+FROM --platform=linux/amd64 debian:stable-slim
 
 # Set environment variables
 ENV DEBIAN_FRONTEND=noninteractive
