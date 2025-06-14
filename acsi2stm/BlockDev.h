@@ -45,7 +45,7 @@ public:
   // Return a (hopefully) unique id for this media
   // Returns 0 if no device is present
   // Also serves as a device state detection and refresh
-  virtual uint32_t mediaId(MediaIdMode mode = NORMAL) = 0;
+  virtual uint16_t mediaId(MediaIdMode mode = NORMAL) = 0;
 
   // Size in 512 bytes blocks
   uint32_t blocks;
@@ -76,13 +76,13 @@ public:
   virtual bool writeData(const uint8_t *data, int count = 1);
   virtual bool writeStop();
   virtual bool isWritable();
-  virtual uint32_t mediaId(MediaIdMode mode = NORMAL);
+  virtual uint16_t mediaId(MediaIdMode mode = NORMAL);
 
   SdDev &sd;
   FsBaseFile image;
 
 protected:
-  uint32_t sdMediaId; // SD card owning the current image
+  uint16_t sdMediaId; // SD card owning the current image
 };
 
 // Actual SD card slot
@@ -122,7 +122,7 @@ public:
   virtual bool writeData(const uint8_t *data, int count = 1);
   virtual bool writeStop();
   virtual bool isWritable();
-  virtual uint32_t mediaId(MediaIdMode = NORMAL);
+  virtual uint16_t mediaId(MediaIdMode = NORMAL);
 
   // Permanently disable the slot
   void disable();
@@ -149,7 +149,7 @@ public:
   friend class ImageDev;
 protected:
   static const uint32_t mediaCheckPeriod = 500;
-  uint32_t lastMediaId;
+  uint16_t lastMediaId;
   uint32_t lastMediaCheckTime;
   void reset();
 };

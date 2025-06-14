@@ -93,13 +93,14 @@ struct TOS_PACKED GemPattern {
 // GemDrive DTA, compatible with TOS DTA
 struct TOS_PACKED GemDriveDTA {
   TinyFile file;
+  uint8_t attribMask;
+  uint8_t unused;
   GemPattern pattern;
   uint8_t d_attrib;
   Word d_time;
   Word d_date;
   Long d_length;
-  char d_fname[13];
-  uint8_t attribMask;
+  char d_fname[14];
 };
 
 struct GemPath: public FsFile {
@@ -141,7 +142,7 @@ protected:
   uint16_t indexes[maxDepth];
   SdDev &sd;
 public:
-  uint32_t mediaId;
+  uint16_t mediaId;
 };
 
 struct GemFile: public TinyFile {
@@ -211,7 +212,7 @@ struct GemDrive: public Devices, public Tos {
   static GemDrive * getDrive(char *path, char **outPath = nullptr);
   static GemDrive * getDrive(Long pathAddr, char **outPath = nullptr);
   static GemDrive * getDrive(uint8_t driveId);
-  static GemDrive * getDrive(uint32_t mediaId, BlockDev::MediaIdMode mode = BlockDev::NORMAL);
+  static GemDrive * getDrive(uint16_t mediaId, BlockDev::MediaIdMode mode = BlockDev::NORMAL);
   static void closeProcessFiles();
   static oflag_t attribToSdFat(uint8_t attrib);
   static bool ownFd(Word fd);

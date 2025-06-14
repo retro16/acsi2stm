@@ -2127,7 +2127,7 @@ GemDrive * GemDrive::getDrive(uint8_t id) {
   return nullptr;
 }
 
-GemDrive * GemDrive::getDrive(uint32_t mediaId, BlockDev::MediaIdMode mode) {
+GemDrive * GemDrive::getDrive(uint16_t mediaId, BlockDev::MediaIdMode mode) {
   if(!mediaId)
     return nullptr;
 

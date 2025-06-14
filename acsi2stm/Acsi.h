@@ -91,7 +91,7 @@ public:
   SdDev &blockDev;
 
   // Last media ID
-  uint32_t mediaId = 0;
+  uint16_t mediaId = 0;
 
   // SCSI status variables
   ScsiErr lastErr;

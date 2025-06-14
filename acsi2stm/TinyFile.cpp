@@ -24,15 +24,16 @@
 #include "TinyFile.h"
 
 TinyFile::TinyFile() : index(0) {
+
 }
 
-void TinyFile::set(uint32_t mediaId_, FsFile &parent, FsFile &file) {
+void TinyFile::set(uint16_t mediaId_, FsFile &parent, FsFile &file) {
   mediaId = mediaId_;
   dirCluster = getCluster(parent);
   index = file.dirIndex() + 1;
 };
 
-void TinyFile::set(uint32_t mediaId_, FsFile &parent) {
+void TinyFile::set(uint16_t mediaId_, FsFile &parent) {
   mediaId = mediaId_;
   dirCluster = getCluster(parent);
   index = 0;
@@ -150,7 +151,7 @@ void TinyFile::closeLast() {
   lastMediaId = 0;
 }
 
-void TinyFile::ejected(uint32_t mediaId) {
+void TinyFile::ejected(uint16_t mediaId) {
   // Called on SD card hot swap
   if(mediaId == lastMediaId) {
     lastFile = FsFile();
@@ -161,4 +162,4 @@ void TinyFile::ejected(uint32_t mediaId) {
 
 FsFile TinyFile::lastFile;
 FsFile TinyFile::lastParent;
-uint32_t TinyFile::lastMediaId;
+uint16_t TinyFile::lastMediaId;
