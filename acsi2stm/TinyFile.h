@@ -38,10 +38,10 @@ struct __attribute__((__packed__)) TinyFile {
   }
 
   // Point this TinyFile at a file
-  void set(uint32_t mediaId, FsFile &parent, FsFile &file);
+  void set(uint16_t mediaId, FsFile &parent, FsFile &file);
 
   // Point this TinyFile at the beginning of a folder
-  void set(uint32_t mediaId, FsFile &parent);
+  void set(uint16_t mediaId, FsFile &parent);
 
   // Acquires the file.
   // If mediaId is set, enables the acquire cache, speeding up things a lot.
@@ -62,7 +62,7 @@ struct __attribute__((__packed__)) TinyFile {
   static uint32_t getCluster(FsFile &file);
   static void setCluster(FsFile &file, uint32_t cluster);
 
-  uint32_t mediaId;
+  uint16_t mediaId;
   uint32_t dirCluster;
   uint16_t index;
 
@@ -72,11 +72,11 @@ struct __attribute__((__packed__)) TinyFile {
   static const uint16_t VOLUME = 0xfffd;
 
   static void closeLast();
-  static void ejected(uint32_t mediaId);
+  static void ejected(uint16_t mediaId);
 
   static FsFile lastFile;
   static FsFile lastParent;
-  static uint32_t lastMediaId;
+  static uint16_t lastMediaId;
 };
 
 #endif

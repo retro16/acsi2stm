@@ -38,7 +38,7 @@ void Acsi::onReset() {
 }
 
 void Acsi::refresh() {
-  uint32_t realId = blockDev.mediaId();
+  uint16_t realId = blockDev.mediaId();
   if(realId == mediaId)
     return;
 

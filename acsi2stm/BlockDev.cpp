@@ -164,11 +164,11 @@ bool ImageDev::isWritable() {
   return image.isWritable();
 }
 
-uint32_t ImageDev::mediaId(BlockDev::MediaIdMode mode) {
+uint16_t ImageDev::mediaId(BlockDev::MediaIdMode mode) {
   // For now, images cannot be switched on the fly so they cannot change
   // unless the SD card is physically swapped. Derive mediaId from the SD
   // card itself
-  uint32_t id = sd.mediaId(mode);
+  uint16_t id = sd.mediaId(mode);
   if(!id || id != sdMediaId) {
     // No medium or SD card swapped: abort ASAP
     close();
@@ -236,7 +236,7 @@ beginOk:
     writable = !digitalRead(wpPin);
 #endif
 
-    uint32_t id = mediaId(FORCE);
+    uint16_t id = mediaId(FORCE);
 
     // Open the file system
     image.close();
@@ -437,7 +437,7 @@ bool SdDev::isWritable() {
   return writable;
 }
 
-uint32_t SdDev::mediaId(BlockDev::MediaIdMode mediaIdMode) {
+uint16_t SdDev::mediaId(BlockDev::MediaIdMode mediaIdMode) {
   if(mode == DISABLED)
     return 0;
 
@@ -490,9 +490,9 @@ uint32_t SdDev::mediaId(BlockDev::MediaIdMode mediaIdMode) {
     // init() called us again, just return the updated value
     return lastMediaId;
 
-  uint32_t id = 0;
-  for(unsigned int i = 0; i < sizeof(cid) / 4; ++i)
-    id ^= ((const uint32_t*)&cid)[i];
+  uint16_t id = 0;
+  for(unsigned int i = 0; i < sizeof(cid) / 2; ++i)
+    id ^= ((const uint16_t*)&cid)[i];
 
   // Make sure the same card transfered to another slot won't give the same value
   id += slot * 2;
