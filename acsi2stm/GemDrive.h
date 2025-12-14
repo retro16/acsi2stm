@@ -178,9 +178,7 @@ struct GemDrive: public Devices, public Tos {
   DECLARE_CALLBACK(Pterm0);
   DECLARE_CALLBACK(Cconws);
   DECLARE_CALLBACK(Dsetdrv);
-  DECLARE_CALLBACK(Tgetdate);
   DECLARE_CALLBACK(Tsetdate);
-  DECLARE_CALLBACK(Tgettime);
   DECLARE_CALLBACK(Tsettime);
   DECLARE_CALLBACK(Dfree);
   DECLARE_CALLBACK(Dcreate);

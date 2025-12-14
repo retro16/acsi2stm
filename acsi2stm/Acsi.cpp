@@ -244,7 +244,7 @@ void Acsi::process(uint8_t cmd) {
     // Used by UltraSatan protocol emulation (used for RTC)
 #if ACSI_RTC
     if(memcmp(&cmdBuf[1], "USCurntFW", 9) == 0) {
-      verbose("USatan query ");
+      verbose("USatan ");
       // Fake the firmware
       memcpy(buf, "ACSI2STM " ACSI2STM_VERSION "\r\n", 16);
       DmaPort::sendDma(buf, 16);
@@ -423,7 +423,7 @@ void Acsi::process(uint8_t cmd) {
         commandStatus(ERR_OK);
         return;
       }
-      verboseHex("Invalid buffer ", "read mode ", cmdBuf[1], ' ');
+      verboseHex("Invalid buffer ", "read ", cmdBuf[1], ' ');
       commandStatus(ERR_INVARG);
       return;
     }
@@ -595,14 +595,9 @@ void Acsi::modeSense4(uint8_t *outBuf) {
   int cylinders;
   for(heads = 255; heads >= 1; --heads) {
     cylinders = blocks / heads;
-    if(cylinders > 0xffffff || (blocks % heads) == 0) {
-      if((blocks % heads) != 0)
-        dbg("(truncated) ");
+    if(cylinders > 0xffffff || (blocks % heads) == 0)
       break;
-    }
   }
-
-  verbose("blocks=", blocks, " cylinders=", cylinders, " heads=", heads, ' ');
 
   for(uint8_t b = 0; b < 24; ++b)
     outBuf[b] = 0;
