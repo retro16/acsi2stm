@@ -418,6 +418,12 @@ struct Tos: public SysHook {
     Word handle;
     Word wflag;
   };
+  // MiNT extended calls
+  DECLARE_FUNCTION(Fxattr, 0x12c, (ToWord flag, const char *fname, void *xattr)) {
+    Word flag;
+    Long fname;
+    Long xattr;
+  };
 #undef DECLARE_FUNCTION
 
   // System call templates

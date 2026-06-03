@@ -199,6 +199,7 @@ struct GemDrive: public Devices, public Tos {
   DECLARE_CALLBACK(Fsnext);
   DECLARE_CALLBACK(Frename);
   DECLARE_CALLBACK(Fdatime);
+  DECLARE_CALLBACK(Fxattr);
 
 #undef DECLARE_CALLBACK
 

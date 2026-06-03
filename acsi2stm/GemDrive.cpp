@@ -1295,6 +1295,7 @@ void GemDrive::onGemdos() {
   DECLARE_CALLBACK(Fsfirst);
   DECLARE_CALLBACK(Frename);
   DECLARE_CALLBACK(Fdatime);
+  DECLARE_CALLBACK(Fxattr);
 
   // Just log these callbacks
 #if ACSI_DEBUG
@@ -2026,6 +2027,76 @@ bool GemDrive::onFdatime(const Tos::Fdatime_p &p) {
     dbg(' ');
   }
 
+  return rte(E_OK);
+}
+
+bool GemDrive::onFxattr(const Tos::Fxattr_p &p) {
+  char *path;
+  GemDrive *drive = getDrive(p.fname, &path);
+  if(!drive)
+    return forward();
+  if(!path)
+    return rte(EFILNF);
+
+  GemPath parent = drive->curPath;
+  GemPattern name;
+  if(!parent.openPath(path, name))
+    return rte(EFILNF);
+
+  FsFile file;
+  if(!parent.openFile(name, file))
+    return rte(EFILNF);
+  if(!file)
+    return rte(EFILNF);
+
+  // Build the MiNT XATTR struct (128 bytes, same layout as FreeMiNT kernel).
+  // Fields are Big-Endian; ToWord/ToLong handle that.
+  struct TOS_PACKED {
+    Word  st_mode;
+    Long  st_ino;
+    Word  st_dev;
+    Word  st_rdev;
+    Word  st_nlink;
+    Word  st_uid;
+    Word  st_gid;
+    Long  st_size;
+    Long  st_blksize;
+    Long  st_blocks;
+    Long  st_mtime;   // DOS time+date packed as long (time in high word)
+    Long  st_atime;
+    Long  st_ctime;
+    Word  st_attr;    // DOS attribute byte
+    Word  reserved[3];
+  } xattr;
+  memset(&xattr, 0, sizeof(xattr));
+
+  bool isDir = file.isDir();
+  uint32_t size = isDir ? 0 : (uint32_t)file.fileSize();
+  uint16_t dosTime, dosDate;
+  file.getModifyDateTime(&dosDate, &dosTime);
+  uint32_t packedTime = ((uint32_t)dosTime << 16) | dosDate;
+
+  // st_mode: file type + permissions
+  // Regular file: 0100644 (S_IFREG | rw-r--r--)
+  // Directory:    0040755 (S_IFDIR | rwxr-xr-x)
+  // Read-only DOS attribute maps to no write bits
+  uint16_t mode = isDir ? 0040755 : 0100644;
+  if(!isDir && (file.attrib() & 0x01))  // read-only attribute
+    mode = 0100444;
+
+  xattr.st_mode    = ToWord(mode);
+  xattr.st_ino     = ToLong(0);  // FAT has no persistent inodes
+  xattr.st_dev     = ToWord((uint16_t)(drive->letter() - 'A'));
+  xattr.st_nlink   = ToWord(1);
+  xattr.st_size    = ToLong(size);
+  xattr.st_blksize = ToLong(512);
+  xattr.st_blocks  = ToLong((size + 511) / 512);
+  xattr.st_mtime   = ToLong(packedTime);
+  xattr.st_atime   = ToLong(packedTime);
+  xattr.st_ctime   = ToLong(packedTime);
+  xattr.st_attr    = ToWord((uint16_t)file.attrib());
+
+  sendAt(xattr, p.xattr);
   return rte(E_OK);
 }
 
